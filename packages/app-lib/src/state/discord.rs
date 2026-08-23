@@ -51,7 +51,7 @@ impl DiscordGuard {
     /// Initialize discord IPC client, and attempt to connect to it
     /// If it fails, it will still return a DiscordGuard, but the client will be unconnected
     pub fn init() -> crate::Result<DiscordGuard> {
-        let dipc = DiscordIpcClient::new("1190718475832918136");
+        let dipc = DiscordIpcClient::new("1541156829462011914");
 
         Ok(DiscordGuard {
             client: Arc::new(RwLock::new(dipc)),
@@ -199,3 +199,4 @@ impl DiscordGuard {
         Ok(())
     }
 }
+

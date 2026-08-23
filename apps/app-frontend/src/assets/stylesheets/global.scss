@@ -234,15 +234,15 @@ textarea {
 	}
 }
 
-:root,
-.light,
-.dark,
-.oled,
-.light-mode,
-.dark-mode,
-.oled-mode,
-.retro-mode,
-:root[data-theme='dark'] {
+html:root,
+html.light,
+html.dark,
+html.oled,
+html.light-mode,
+html.dark-mode,
+html.oled-mode,
+html.retro-mode,
+html:root[data-theme='dark'] {
 	color-scheme: dark;
 
 	--surface-1: #0d0914;
@@ -269,6 +269,17 @@ textarea {
 	--color-contrast: var(--color-text-primary);
 	--color-accent-contrast: #ffffff;
 
+	--color-green-50: #f8f0ff;
+	--color-green-100: #f0dfff;
+	--color-green-200: #e3c4ff;
+	--color-green-300: #d09cff;
+	--color-green-400: #bb72ff;
+	--color-green-500: #a855f7;
+	--color-green-600: #9333ea;
+	--color-green-700: #7e22ce;
+	--color-green-800: #6b21a8;
+	--color-green-900: #581c87;
+	--color-green-950: #3b0764;
 	--color-red: #a759f3;
 	--color-orange: #b66cff;
 	--color-green: #9f55ee;
@@ -328,3 +339,4 @@ textarea {
 	--color-platform-bta-babric: #8f5ec1;
 	--color-platform-nilloader: #c476ed;
 }
+
