@@ -1,0 +1,372 @@
+<script setup lang="ts">
+import {
+	BadgeCheckIcon,
+	CoffeeIcon,
+	DownloadIcon,
+	GameIcon,
+	GaugeIcon,
+	LanguagesIcon,
+	PaintbrushIcon,
+	RefreshCwIcon,
+	Settings2Icon,
+	SpinnerIcon,
+	ToggleRightIcon,
+} from '@modrinth/assets'
+import {
+	commonMessages,
+	commonSettingsMessages,
+	defineMessage,
+	defineMessages,
+	ProgressBar,
+	TabbedModal,
+	UnsavedChangesPopup,
+	useVIntl,
+} from '@modrinth/ui'
+import { getVersion } from '@tauri-apps/api/app'
+import { platform as getOsPlatform, version as getOsVersion } from '@tauri-apps/plugin-os'
+import { computed, provide, ref, watch } from 'vue'
+
+import LauncherUpdateModal from '@/components/ui/astralrinth/LauncherUpdateModal.vue'
+import ExternalAuthLibrarySettings from '@/components/ui/settings/astralrinth/ExternalAuthLibrarySettings.vue'
+import UpdateSettings from '@/components/ui/settings/astralrinth/UpdateSettings.vue'
+import {
+	isUpdateAvailable,
+	isUpdateInstalling,
+	latestLauncherReleases,
+} from '@/helpers/astralrinth/update'
+import edenWorldLogo from '@/assets/edenworld-logo.jpg'
+import AppearanceSettings from '@/components/ui/settings/display/AppearanceSettings.vue'
+import BehaviorSettings from '@/components/ui/settings/display/BehaviorSettings.vue'
+import FeatureFlagSettings from '@/components/ui/settings/display/FeatureFlagSettings.vue'
+import LanguageSettings from '@/components/ui/settings/display/LanguageSettings.vue'
+import DefaultInstanceSettings from '@/components/ui/settings/instances/DefaultInstanceSettings.vue'
+import JavaSettings from '@/components/ui/settings/instances/JavaSettings.vue'
+import ResourceManagementSettings from '@/components/ui/settings/instances/ResourceManagementSettings.vue'
+import { get, set } from '@/helpers/settings.ts'
+import {
+	appSettingsModalContextKey,
+	type UnsavedChangesController,
+} from '@/providers/app-settings-modal'
+import { injectAppUpdateDownloadProgress } from '@/providers/download-progress.ts'
+import { useTheming } from '@/store/state'
+
+// TODO: Apply COMPONENT_STRUCTURE.md here and extract out common setting option components
+const themeStore = useTheming()
+const { formatMessage } = useVIntl()
+
+const devModeCounter = ref(0)
+const launcherUpdateModal = ref<InstanceType<typeof LauncherUpdateModal> | null>(null)
+
+const developerModeEnabled = defineMessage({
+	id: 'app.settings.developer-mode-enabled',
+	defaultMessage: 'Developer mode enabled.',
+})
+
+const tabCategories = defineMessages({
+	display: {
+		id: 'settings.sidebar.label.display',
+		defaultMessage: 'Display',
+	},
+	instances: {
+		id: 'app.settings.sidebar.label.instances',
+		defaultMessage: 'Instances',
+	},
+	edenlauncher: {
+		id: 'edenlauncher.app.settings.sidebar.label.edenlauncher',
+		defaultMessage: 'EdenLauncher',
+	},
+})
+
+const tabs = [
+	{
+		name: defineMessage({
+			id: 'app.settings.tabs.appearance',
+			defaultMessage: 'Appearance',
+		}),
+		category: tabCategories.display,
+		icon: PaintbrushIcon,
+		content: AppearanceSettings,
+	},
+	{
+		name: defineMessage({
+			id: 'app.settings.tabs.behavior',
+			defaultMessage: 'Behavior',
+		}),
+		category: tabCategories.display,
+		icon: Settings2Icon,
+		content: BehaviorSettings,
+	},
+	{
+		name: defineMessage({
+			id: 'app.settings.tabs.language',
+			defaultMessage: 'Language',
+		}),
+		category: tabCategories.display,
+		icon: LanguagesIcon,
+		content: LanguageSettings,
+		badge: commonMessages.beta,
+	},
+	{
+		name: commonSettingsMessages.featureFlags,
+		category: tabCategories.display,
+		icon: ToggleRightIcon,
+		content: FeatureFlagSettings,
+		developerOnly: true,
+	},
+	{
+		name: defineMessage({
+			id: 'app.settings.tabs.default-instance-options',
+			defaultMessage: 'Default game options',
+		}),
+		category: tabCategories.instances,
+		icon: GameIcon,
+		content: DefaultInstanceSettings,
+	},
+	{
+		name: defineMessage({
+			id: 'app.settings.tabs.java-installations',
+			defaultMessage: 'Java installations',
+		}),
+		category: tabCategories.instances,
+		icon: CoffeeIcon,
+		content: JavaSettings,
+	},
+	{
+		name: defineMessage({
+			id: 'app.settings.tabs.resource-management',
+			defaultMessage: 'Resource management',
+		}),
+		category: tabCategories.instances,
+		icon: GaugeIcon,
+		content: ResourceManagementSettings,
+	},
+	{
+		name: defineMessage({
+			id: 'edenlauncher.app.settings.tabs.external-auth-libraries',
+			defaultMessage: 'Authentication libraries',
+		}),
+		category: tabCategories.edenlauncher,
+		icon: DownloadIcon,
+		content: ExternalAuthLibrarySettings,
+	},
+	{
+		name: defineMessage({
+			id: 'edenlauncher.app.settings.tabs.updates',
+			defaultMessage: 'Обновления',
+		}),
+		category: tabCategories.edenlauncher,
+		icon: RefreshCwIcon,
+		content: UpdateSettings,
+	},
+]
+
+const availableTabs = computed(() => tabs.filter((tab) => !tab.developerOnly || themeStore.devMode))
+
+const modal = ref<InstanceType<typeof TabbedModal> | null>(null)
+const unsavedChangesPopup = ref<{ nudge: () => void } | null>(null)
+const unsavedChangesController = ref<UnsavedChangesController | null>(null)
+const emptyUnsavedChangesState: Record<string, unknown> = {}
+const originalUnsavedChangesState = computed(
+	() => unsavedChangesController.value?.getOriginal() ?? emptyUnsavedChangesState,
+)
+const modifiedUnsavedChangesState = computed(
+	() => unsavedChangesController.value?.getModified() ?? emptyUnsavedChangesState,
+)
+const savingUnsavedChanges = computed(() => unsavedChangesController.value?.isSaving() ?? false)
+const hasUnsavedChanges = computed(() => unsavedChangesController.value?.hasChanges() ?? false)
+
+function canLeaveCurrentTab(): boolean {
+	if (!unsavedChangesController.value?.hasChanges()) return true
+	unsavedChangesPopup.value?.nudge()
+	return false
+}
+
+function close(): boolean {
+	return modal.value?.hide() ?? false
+}
+
+function registerUnsavedChangesController(controller: UnsavedChangesController | null): void {
+	unsavedChangesController.value = controller
+}
+
+provide(appSettingsModalContextKey, {
+	close,
+	registerUnsavedChangesController,
+})
+
+function resetUnsavedChanges(): void {
+	unsavedChangesController.value?.reset()
+}
+
+function saveUnsavedChanges(): void {
+	void unsavedChangesController.value?.save()
+}
+
+function show() {
+	modal.value?.show()
+}
+
+function showUpdateModal() {
+	modal.value?.show()
+	void launcherUpdateModal.value?.show()
+}
+
+defineExpose({ show, showUpdateModal })
+
+const { progress, version: downloadingVersion } = injectAppUpdateDownloadProgress()
+
+const version = await getVersion()
+const osPlatform = getOsPlatform()
+const osVersion = getOsVersion()
+const settings = ref(await get())
+
+watch(
+	settings,
+	async () => {
+		await set(settings.value)
+	},
+	{ deep: true },
+)
+
+function devModeCount() {
+	devModeCounter.value++
+	if (devModeCounter.value > 5) {
+		const selectedTab = modal.value ? availableTabs.value[modal.value.selectedTab] : undefined
+
+		themeStore.devMode = !themeStore.devMode
+		settings.value.developer_mode = !!themeStore.devMode
+		devModeCounter.value = 0
+
+		if (modal.value) {
+			const selectedTabIndex = selectedTab ? availableTabs.value.indexOf(selectedTab) : -1
+			modal.value.setTab(selectedTabIndex >= 0 ? selectedTabIndex : 0)
+		}
+	}
+}
+
+const messages = defineMessages({
+	downloading: {
+		id: 'app.settings.downloading',
+		defaultMessage: 'Downloading v{version}',
+	},
+	updateInstalling: {
+		id: 'edenlauncher.app.settings.update-installing',
+		defaultMessage: 'Установка обновления…',
+	},
+	updatesInstalled: {
+		id: 'edenlauncher.app.settings.updates-installed',
+		defaultMessage: 'Установлена последняя версия',
+	},
+	viewUpdateInfo: {
+		id: 'edenlauncher.app.settings.view-update-info',
+		defaultMessage: 'Открыть сведения об обновлении',
+	},
+	appVersion: {
+		id: 'app.settings.app-version',
+		defaultMessage: 'EdenLauncher {version}',
+	},
+	macos: {
+		id: 'app.settings.operating-system.macos',
+		defaultMessage: 'macOS',
+	},
+	developerModeButtonLabel: {
+		id: 'app.settings.developer-mode-button.label',
+		defaultMessage: 'Toggle developer mode',
+	},
+})
+</script>
+
+<template>
+	<TabbedModal
+		ref="modal"
+		:tabs="availableTabs"
+		:width="'min(928px, calc(95vw - 10rem))'"
+		:before-hide="canLeaveCurrentTab"
+		:before-tab-change="canLeaveCurrentTab"
+		:floating-action-bar-shown="hasUnsavedChanges"
+	>
+		<template #title>
+			<span class="text-2xl font-semibold text-contrast">
+				{{ formatMessage(commonMessages.settingsLabel) }}
+			</span>
+		</template>
+		<template #floating-action-bar>
+			<UnsavedChangesPopup
+				ref="unsavedChangesPopup"
+				:original="originalUnsavedChangesState"
+				:modified="modifiedUnsavedChangesState"
+				:saving="savingUnsavedChanges"
+				inline
+				@reset="resetUnsavedChanges"
+				@save="saveUnsavedChanges"
+			/>
+		</template>
+		<template #footer>
+			<div class="mt-auto text-secondary text-sm">
+				<div class="mb-3">
+					<template v-if="progress > 0 && progress < 1">
+						<p class="m-0 mb-2">
+							{{ formatMessage(messages.downloading, { version: downloadingVersion }) }}
+						</p>
+						<ProgressBar :progress="progress" />
+					</template>
+				</div>
+				<p v-if="themeStore.devMode" class="text-brand font-semibold m-0 mb-2">
+					{{ formatMessage(developerModeEnabled) }}
+				</p>
+				<div class="flex items-center gap-3">
+					<button
+						:aria-label="formatMessage(messages.developerModeButtonLabel)"
+						class="p-0 m-0 bg-transparent border-none cursor-pointer button-animation"
+						:class="{
+							'text-brand': themeStore.devMode,
+							'text-secondary': !themeStore.devMode,
+						}"
+						@click="devModeCount"
+					>
+						<img :src="edenWorldLogo" aria-hidden="true" class="w-7 h-7 rounded-lg" />
+					</button>
+					<div class="max-w-[200px]">
+						<p class="m-0">
+							{{ formatMessage(messages.appVersion, { version }) }}
+						</p>
+						<p class="m-0">
+							<span v-if="osPlatform === 'macos'">{{ formatMessage(messages.macos) }}</span>
+							<span v-else class="capitalize">{{ osPlatform }}</span>
+							{{ osVersion }}
+						</p>
+					</div>
+					<div
+						v-if="isUpdateAvailable"
+						class="w-8 h-8 cursor-pointer hover:brightness-75 neon-icon pulse shrink-0"
+					>
+						<template v-if="isUpdateInstalling">
+							<SpinnerIcon
+								class="size-6 animate-spin"
+								v-tooltip.bottom="formatMessage(messages.updateInstalling)"
+							/>
+						</template>
+						<template v-else>
+							<DownloadIcon
+								class="size-6"
+								v-tooltip.bottom="formatMessage(messages.viewUpdateInfo)"
+								@click="showUpdateModal()"
+							/>
+						</template>
+					</div>
+					<BadgeCheckIcon
+						v-else-if="latestLauncherReleases"
+						class="size-7 shrink-0 text-green"
+						v-tooltip.bottom="formatMessage(messages.updatesInstalled)"
+					/>
+				</div>
+			</div>
+		</template>
+	</TabbedModal>
+
+	<LauncherUpdateModal ref="launcherUpdateModal" :version="version" />
+</template>
+
+<style lang="scss" scoped>
+@import '../../../../../../packages/assets/styles/astralrinth/neon-icon.scss';
+</style>

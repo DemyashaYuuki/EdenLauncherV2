@@ -1,0 +1,228 @@
+import { getVersion } from '@tauri-apps/api/app'
+import { isTauri } from '@tauri-apps/api/core'
+import { ref } from 'vue'
+import { fetch } from '@tauri-apps/plugin-http'
+
+import { getOS, initUpdateLauncher, isDev } from '@/helpers/utils.js'
+
+export type LauncherReleaseAsset = {
+	name: string
+	browser_download_url: string
+	download_count: number
+	digest?: string | null
+}
+
+export type LauncherRelease = {
+	tag_name: string
+	name: string
+	assets: LauncherReleaseAsset[]
+}
+
+export const LAUNCHER_REPOSITORY_URL = 'https://github.com/DemyashaYuuki/EdenLauncherV2/'
+export const LAUNCHER_RELEASES_URL = `${LAUNCHER_REPOSITORY_URL}releases`
+export const LAUNCHER_LATEST_RELEASE_API =
+	'https://api.github.com/repos/DemyashaYuuki/EdenLauncherV2/releases/latest'
+
+export const isUpdateInstalling = ref(false)
+export const isUpdateAvailable = ref(false)
+export const latestLauncherReleases = ref<LauncherRelease | null>(null)
+export const latestLauncherReleaseHttpStatus = ref<number | null>(null)
+
+const currentOS = ref('')
+
+const systems = ['macos', 'windows', 'linux'] as const
+const osExtensions = {
+	linux: ['.deb', '.rpm', '.AppImage'],
+	macos: ['.dmg', '.pkg', '.app'],
+	windows: ['.exe', '.msi'],
+}
+
+const isDeveloper = isTauri() && (await isDev())
+
+const blacklistBeginPrefixes = [
+	'dev',
+	'nightly',
+	'dirty',
+	'dirty-dev',
+	'dirty-nightly',
+	'dirty_dev',
+	'dirty_nightly',
+]
+
+export async function fetchRemote(): Promise<void> {
+	currentOS.value = (await getOS()).toLowerCase()
+	latestLauncherReleaseHttpStatus.value = null
+	try {
+		if (!currentOS.value) {
+			throw new Error(String('Current OS is undefined'))
+		}
+		const response = await fetch(LAUNCHER_LATEST_RELEASE_API)
+		latestLauncherReleaseHttpStatus.value = response.status
+		if (!response.ok) {
+			throw new Error(String(response.status))
+		}
+
+		const remoteData = (await response.json()) as LauncherRelease
+		latestLauncherReleases.value = remoteData
+
+		if (systems.includes(currentOS.value as (typeof systems)[number])) {
+			const rawLocalVersion = await getVersion()
+			const localVersion = normalizeVersion(rawLocalVersion)
+			const remoteVersion = normalizeVersion(remoteData.tag_name)
+			const versionComparison = compareVersions(remoteVersion, localVersion)
+			isUpdateAvailable.value = versionComparison > 0
+
+			if (isDeveloper) {
+				console.debug('Raw local version is', rawLocalVersion)
+				console.debug('Normalized local version is', localVersion)
+				console.debug('Raw remote version is', remoteData.tag_name)
+				console.debug('Normalized remote version is', remoteVersion)
+				console.debug('Local version parts are', parseVersionParts(localVersion))
+				console.debug('Remote version parts are', parseVersionParts(remoteVersion))
+				console.debug('Version comparison result is', versionComparison)
+			}
+		} else {
+			isUpdateAvailable.value = false
+
+			if (isDeveloper) {
+				console.debug('Skipped update comparison for unsupported OS', currentOS.value)
+			}
+		}
+
+		if (isDeveloper) {
+			console.debug('Update available state is', isUpdateAvailable.value)
+			console.debug('Remote version is', remoteData.tag_name)
+			console.debug('Remote title is', remoteData.name)
+			console.debug('Operating System is', currentOS.value)
+		}
+	} catch (error) {
+		console.error('Failed to fetch remote releases:', error)
+		latestLauncherReleases.value = null
+		isUpdateAvailable.value = false
+		isUpdateInstalling.value = false
+	}
+}
+
+export async function downloadLatestRelease(
+	selectedInstaller?: LauncherReleaseAsset | null,
+): Promise<boolean> {
+	if (!latestLauncherReleases.value) {
+		return false
+	}
+
+	if (!currentOS.value) {
+		currentOS.value = (await getOS()).toLowerCase()
+	}
+
+	const installer = selectedInstaller ?? null
+	if (isDeveloper) {
+		console.debug(installer)
+	}
+	if (!installer) {
+		isUpdateInstalling.value = false
+		return false
+	}
+	if (!installer.digest?.toLowerCase().startsWith('sha256:')) {
+		console.error('EdenLauncher update asset does not provide a SHA-256 digest')
+		return false
+	}
+
+	try {
+		isUpdateInstalling.value = true
+		return await initUpdateLauncher(
+			installer.browser_download_url,
+			installer.name,
+			currentOS.value,
+			installer.digest ?? null,
+		)
+	} catch (error) {
+		console.error('Failed to install EdenLauncher update:', error)
+		return false
+	} finally {
+		isUpdateInstalling.value = false
+	}
+}
+
+export function getPreferredInstaller(): LauncherReleaseAsset | null {
+	const installers = getAvailableInstallers()
+	if (currentOS.value === 'windows') {
+		return installers.find((installer) => installer.name.toLowerCase().endsWith('.exe')) ?? null
+	}
+	return installers[0] ?? null
+}
+
+export function getAvailableInstallers(): LauncherReleaseAsset[] {
+	if (!latestLauncherReleases.value) {
+		return []
+	}
+
+	return getInstallers(resolveOperationalSystemExtension(), latestLauncherReleases.value.assets)
+}
+
+function getInstallers(os: string[], builds: LauncherReleaseAsset[]): LauncherReleaseAsset[] {
+	return builds.filter((build) => {
+		if (blacklistBeginPrefixes.some((prefix) => build.name.startsWith(prefix))) {
+			return false
+		}
+
+		const matchesExtension = os.some((extension) => build.name.endsWith(extension))
+		if (matchesExtension && isDeveloper) {
+			console.debug(build.name, build.browser_download_url)
+		}
+
+		return matchesExtension
+	})
+}
+
+function resolveOperationalSystemExtension(): string[] {
+	try {
+		switch (currentOS.value) {
+			case 'macos':
+				return osExtensions.macos
+			case 'windows':
+				return osExtensions.windows
+			case 'linux':
+				return osExtensions.linux
+			default:
+				throw new Error(String("Operational System can't be resolved"))
+		}
+	} catch (error) {
+		console.error("Operational System can't be resolved")
+		return []
+	}
+}
+
+function normalizeVersion(version: string): string {
+	return version.trim().replace(/^v/i, '')
+}
+
+function compareVersions(left: string, right: string): number {
+	const leftParts = parseVersionParts(left)
+	const rightParts = parseVersionParts(right)
+	const maxLength = Math.max(leftParts.length, rightParts.length)
+
+	for (let index = 0; index < maxLength; index += 1) {
+		const leftPart = leftParts[index] ?? 0
+		const rightPart = rightParts[index] ?? 0
+
+		if (leftPart !== rightPart) {
+			if (isDeveloper) {
+				console.debug('Version parts differ at index', index, leftPart, rightPart)
+			}
+			return leftPart - rightPart
+		}
+	}
+
+	if (isDeveloper) {
+		console.debug('Version parts are equal', leftParts, rightParts)
+	}
+
+	return 0
+}
+
+function parseVersionParts(version: string): number[] {
+	return normalizeVersion(version)
+		.split(/[.-]/)
+		.map((part) => Number.parseInt(part, 10))
+		.filter((part) => !Number.isNaN(part))
+}

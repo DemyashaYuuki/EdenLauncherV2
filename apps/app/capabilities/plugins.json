@@ -65,6 +65,18 @@
 					"url": "https://edenworld.fun/*"
 				},
 				{
+					"url": "https://api.github.com/*"
+				},
+				{
+					"url": "https://github.com/*"
+				},
+				{
+					"url": "https://objects.githubusercontent.com/*"
+				},
+				{
+					"url": "https://release-assets.githubusercontent.com/*"
+				},
+				{
 					"url": "https://api.mclo.gs/*"
 				},
 				{
@@ -145,4 +157,3 @@
 		"worlds:default"
 	]
 }
-

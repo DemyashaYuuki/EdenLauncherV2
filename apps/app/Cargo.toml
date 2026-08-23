@@ -3,7 +3,7 @@ name = "theseus_gui"
 # The actual version is set by the theseus-build workflow on tagging
 version = "1.0.0-local"
 edition.workspace = true
-description = "EdenLauncher 2.0 is the official EdenWorld Minecraft launcher"
+description = "EdenLauncher is the official EdenWorld Minecraft launcher"
 repository = "https://edenworld.fun/"
 license = "GPL-3.0-only"
 
@@ -81,4 +81,3 @@ updater = []
 
 [lints]
 workspace = true
-

@@ -1,0 +1,82 @@
+<svg width="624" height="192" viewBox="0 0 624 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<defs>
+		<linearGradient
+			id="eden-accent"
+			x1="24"
+			y1="18"
+			x2="158"
+			y2="172"
+			gradientUnits="userSpaceOnUse"
+		>
+			<stop stop-color="#C783FF" />
+			<stop offset="0.48" stop-color="#8B00FF" />
+			<stop offset="1" stop-color="#3C0078" />
+		</linearGradient>
+		<linearGradient
+			id="eden-wordmark"
+			x1="190"
+			y1="45"
+			x2="590"
+			y2="145"
+			gradientUnits="userSpaceOnUse"
+		>
+			<stop stop-color="#FFFFFF" />
+			<stop offset="0.68" stop-color="#D9B5FF" />
+			<stop offset="1" stop-color="#9B36FF" />
+		</linearGradient>
+		<filter id="eden-glow" x="-40%" y="-40%" width="180%" height="180%">
+			<feGaussianBlur stdDeviation="7" result="blur" />
+			<feMerge>
+				<feMergeNode in="blur" />
+				<feMergeNode in="SourceGraphic" />
+			</feMerge>
+		</filter>
+	</defs>
+	<path
+		d="M96 12L166 52V132L96 172L26 132V52L96 12Z"
+		fill="#100C17"
+		stroke="url(#eden-accent)"
+		stroke-width="6"
+	/>
+	<path
+		d="M96 29L151 60.5V123.5L96 155L41 123.5V60.5L96 29Z"
+		stroke="#FFFFFF"
+		stroke-opacity="0.14"
+		stroke-width="2"
+	/>
+	<circle cx="62" cy="53" r="5" fill="#37D5FF" filter="url(#eden-glow)" />
+	<circle cx="132" cy="53" r="5" fill="#C783FF" filter="url(#eden-glow)" />
+	<text
+		x="48"
+		y="119"
+		fill="#F5EEDE"
+		font-family="Inter, Segoe UI, Arial, sans-serif"
+		font-size="70"
+		font-weight="900"
+		letter-spacing="-8"
+	>
+		EW
+	</text>
+	<text
+		x="190"
+		y="112"
+		fill="url(#eden-wordmark)"
+		font-family="Inter, Segoe UI, Arial, sans-serif"
+		font-size="62"
+		font-weight="850"
+		letter-spacing="-2.5"
+	>
+		EdenLauncher
+	</text>
+	<text
+		x="194"
+		y="142"
+		fill="#C783FF"
+		font-family="Inter, Segoe UI, Arial, sans-serif"
+		font-size="17"
+		font-weight="700"
+		letter-spacing="6"
+	>
+		VERSION 2.0
+	</text>
+</svg>
