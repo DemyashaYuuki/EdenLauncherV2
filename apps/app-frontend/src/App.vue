@@ -97,6 +97,7 @@ import { AppNotificationManager } from './providers/app-notifications'
 import { AppPopupNotificationManager } from './providers/app-popup-notifications'
 
 const themeStore = useTheming()
+themeStore.initializeTheme()
 const router = useRouter()
 const route = useRoute()
 const breadcrumbManager = createBreadcrumbManager()
@@ -315,9 +316,9 @@ async function completeFirstRun({ autoUpdates }) {
 
 async function setupApp() {
 	const settings = await getSettings()
+	settings.theme = 'dark'
 	if (!settings.onboarded) {
 		settings.locale = 'ru-RU'
-		settings.theme = 'dark'
 		settings.auto_download_updates ??= true
 	}
 	settings.personalized_ads = false
@@ -326,7 +327,6 @@ async function setupApp() {
 
 	const {
 		native_decorations,
-		theme,
 		locale,
 		collapsed_navigation,
 		hide_nametag_skins_page,
@@ -356,7 +356,7 @@ async function setupApp() {
 	nativeDecorations.value = native_decorations
 	if (os.value !== 'MacOS') await getCurrentWindow().setDecorations(native_decorations)
 
-	themeStore.setThemeState(theme)
+	themeStore.setThemeState('dark')
 	themeStore.collapsedNavigation = collapsed_navigation
 	themeStore.advancedRendering = advanced_rendering
 	themeStore.hideNametagSkinsPage = hide_nametag_skins_page
