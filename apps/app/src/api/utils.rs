@@ -31,7 +31,8 @@ pub fn init<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
 }
 
 #[tauri::command]
-pub async fn init_update_launcher(
+pub async fn init_update_launcher<R: Runtime>(
+    app: tauri::AppHandle<R>,
     download_url: &str,
     filename: &str,
     os_type: &str,
@@ -44,6 +45,7 @@ pub async fn init_update_launcher(
         expected_digest,
     )
     .await?;
+    app.exit(0);
     Ok(())
 }
 

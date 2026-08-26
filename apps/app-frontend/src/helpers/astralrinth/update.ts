@@ -129,12 +129,13 @@ export async function downloadLatestRelease(
 
 	try {
 		isUpdateInstalling.value = true
-		return await initUpdateLauncher(
+		await initUpdateLauncher(
 			installer.browser_download_url,
 			installer.name,
 			currentOS.value,
 			installer.digest ?? null,
 		)
+		return true
 	} catch (error) {
 		console.error('Failed to install EdenLauncher update:', error)
 		return false

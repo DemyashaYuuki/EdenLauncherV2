@@ -1,9 +1,11 @@
 use reqwest;
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
+use std::time::Duration;
 use tokio::fs::File as AsyncFile;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
+use tokio::time::sleep;
 
 const EMPTY_OPEN_ARGS: &[&str] = &[];
 
@@ -60,15 +62,52 @@ async fn handle_windows_file(
 async fn run_windows_installer(
     path: &PathBuf,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let installer_path = path.to_str().unwrap_or_default();
-
-    if installer_path.ends_with(".msi") {
-        Command::new("msiexec")
-            .args(["/i", installer_path, "/passive", "/norestart"])
-            .spawn()?;
+    let installer_path = path.to_string_lossy();
+    let quoted_installer_path = format!(
+        "'{}'",
+        installer_path.replace('\'', "''")
+    );
+    let is_msi = path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("msi"));
+    let install_command = if is_msi {
+        format!(
+            "& msiexec.exe /i {quoted_installer_path} /passive /norestart"
+        )
     } else {
-        Command::new(installer_path).arg("/S").spawn()?;
+        format!("& {quoted_installer_path} /S")
+    };
+    let launcher_pid = std::process::id();
+    let script = format!(
+        "$launcherPid = {launcher_pid}; \
+         while (Get-Process -Id $launcherPid -ErrorAction SilentlyContinue) \
+         {{ Start-Sleep -Milliseconds 250 }}; {install_command}"
+    );
+
+    let mut helper = Command::new("powershell.exe")
+        .args([
+            "-NoLogo",
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-WindowStyle",
+            "Hidden",
+            "-Command",
+            &script,
+        ])
+        .spawn()?;
+
+    sleep(Duration::from_millis(500)).await;
+    if let Some(status) = helper.try_wait()? {
+        return Err(format!(
+            "EdenLauncher update helper exited before launcher shutdown: {:?}",
+            status.code()
+        )
+        .into());
     }
+
     Ok(())
 }
 

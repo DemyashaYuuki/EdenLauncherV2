@@ -5,7 +5,6 @@ use crate::{Result, State};
 
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use std::process;
 use tokio::{fs, io};
 
 const PACKAGE_JSON_CONTENT: &str =
@@ -328,7 +327,7 @@ pub async fn init_update_launcher(
     })?;
 
     tracing::info!("[EdenLauncher] Launcher update ready");
-    process::exit(0)
+    Ok(())
 }
 
 /// Saves the downloaded bytes to the `libraries` directory using the given relative path.

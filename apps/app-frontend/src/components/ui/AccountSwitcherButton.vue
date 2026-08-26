@@ -43,6 +43,7 @@ defineExpose({
 		placement="bottom-end"
 		:triggers="['click']"
 		:hide-triggers="['click']"
+		eager-mount
 		@show="menuOpen = true"
 		@hide="menuOpen = false"
 	>
@@ -123,4 +124,3 @@ defineExpose({
 	font-size: 0.68rem;
 }
 </style>
-

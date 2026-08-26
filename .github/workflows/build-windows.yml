@@ -244,7 +244,7 @@ jobs:
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "EdenLauncher $TAG" --latest
           else
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "EdenLauncher $TAG" --notes "EdenLauncher для Windows x64 и Linux x64. В Linux-релиз входят пакеты AppImage и DEB." --latest
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "EdenLauncher $TAG" --notes "Исправлены вход через офлайн-аккаунт и автоматическая установка обновлений. Сборки доступны для Windows x64 и Linux x64 (AppImage и DEB)." --latest
           fi
 
           mapfile -d '' assets < <(find release-assets -type f \( -name '*.exe' -o -name '*.msi' -o -name '*.AppImage' -o -name '*.deb' \) -print0)
@@ -253,4 +253,3 @@ jobs:
             exit 1
           fi
           gh release upload "$TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
-
