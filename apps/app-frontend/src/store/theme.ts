@@ -65,7 +65,6 @@ export type ThemeStore = {
 	accentColor: string
 	advancedRendering: boolean
 	hideNametagSkinsPage: boolean
-	toggleSidebar: boolean
 
 	devMode: boolean
 	featureFlags: FeatureFlags
@@ -76,7 +75,6 @@ export const DEFAULT_THEME_STORE: ThemeStore = {
 	accentColor: DEFAULT_ACCENT_COLOR,
 	advancedRendering: true,
 	hideNametagSkinsPage: false,
-	toggleSidebar: false,
 
 	devMode: false,
 	featureFlags: DEFAULT_FEATURE_FLAGS,
@@ -372,3 +370,4 @@ export const useTheming = defineStore('themeStore', {
 		},
 	},
 })
+

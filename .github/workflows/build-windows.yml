@@ -1,4 +1,4 @@
-name: EdenLauncher Windows Build
+name: EdenLauncher Desktop Build
 
 on:
   push:
@@ -10,11 +10,11 @@ permissions:
   contents: write
 
 concurrency:
-  group: edenlauncher-windows-${{ github.ref }}
+  group: edenlauncher-desktop-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-windows:
     name: Windows x86_64 installer
     runs-on: windows-latest
     timeout-minutes: 120
@@ -112,7 +112,7 @@ jobs:
         working-directory: source/apps/app
         run: pnpm exec tauri icon ../app-frontend/src/assets/edenworld-logo.jpg -o icons
 
-      - name: Build EdenLauncher
+      - name: Build EdenLauncher for Windows
         shell: pwsh
         working-directory: source
         run: pnpm --filter @modrinth/app exec tauri build --target x86_64-pc-windows-msvc
@@ -124,31 +124,133 @@ jobs:
           path: source/target/x86_64-pc-windows-msvc/release/bundle/**
           if-no-files-found: error
 
-      - name: Read application version
-        id: version
-        shell: pwsh
+  build-linux:
+    name: Linux x86_64 packages
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    env:
+      CI: true
+
+    steps:
+      - name: Check out EdenLauncher overlay
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
         run: |
-          $version = (Get-Content -LiteralPath 'source/apps/app-frontend/package.json' -Raw | ConvertFrom-Json).version
-          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            patchelf \
+            wget
+
+      - name: Clone upstream launcher source
+        run: git clone --depth 1 --branch release https://git.xorison.dev/didirus/AstralRinth.git source
+
+      - name: Apply EdenLauncher source changes
+        run: |
+          cp -a apps/. source/apps/
+          cp -a packages/. source/packages/
+          rm -f source/apps/app-frontend/src/assets/astralrinth-app.svg
+          rm -f source/apps/app-frontend/src/components/ui/settings/astralrinth/AstralRinthSettingsPage.vue
+
+      - name: Download EdenWorld branding
+        run: |
+          curl --fail --location 'https://cdn.easydonate.ru/images/logos/b6/53/b653e7ee3e92c6cd8e66a5b488e3bb04aea407f9b2051d76b5b9dffe4e25b1fd.jpg' --output source/apps/app-frontend/src/assets/edenworld-logo.jpg
+          curl --fail --location 'https://cdn.easydonate.ru/images/backgrounds/da/e7/dae72ff86676ef5b3ef20b299be37a560fcc7353ea4331aec5039716d8d7ac0c.png' --output source/apps/app-frontend/src/assets/edenworld-background.png
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: pnpm
+          cache-dependency-path: source/pnpm-lock.yaml
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: 1.95.0
+          target: x86_64-unknown-linux-gnu
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: source -> target
+          cache-on-failure: true
+
+      - name: Set application environment
+        working-directory: source
+        run: cp packages/app-lib/.env.prod packages/app-lib/.env
+
+      - name: Install dependencies
+        working-directory: source
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate EdenWorld application icons
+        working-directory: source/apps/app
+        run: pnpm exec tauri icon ../app-frontend/src/assets/edenworld-logo.jpg -o icons
+
+      - name: Build EdenLauncher for Linux
+        working-directory: source
+        run: pnpm --filter @modrinth/app exec tauri build --target x86_64-unknown-linux-gnu --bundles deb,appimage
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: EdenLauncher-Linux-x64
+          path: source/target/x86_64-unknown-linux-gnu/release/bundle/**
+          if-no-files-found: error
+
+  publish:
+    name: Publish EdenLauncher release
+    runs-on: ubuntu-latest
+    needs:
+      - build-windows
+      - build-linux
+
+    steps:
+      - name: Check out EdenLauncher overlay
+        uses: actions/checkout@v4
+
+      - name: Download desktop packages
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
 
       - name: Publish GitHub release
-        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: v${{ steps.version.outputs.version }}
         run: |
-          $releaseExists = $true
-          gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY 2>$null
-          if ($LASTEXITCODE -ne 0) { $releaseExists = $false }
+          VERSION="$(node -p "require('./apps/app-frontend/package.json').version")"
+          TAG="v${VERSION}"
 
-          if ($releaseExists) {
-            gh release edit $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --title "EdenLauncher $env:RELEASE_TAG" --latest
-          } else {
-            gh release create $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "EdenLauncher $env:RELEASE_TAG" --notes "Автоматическая сборка EdenLauncher для Windows x64." --latest
-          }
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "EdenLauncher $TAG" --latest
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "EdenLauncher $TAG" --notes "EdenLauncher для Windows x64 и Linux x64. В Linux-релиз входят пакеты AppImage и DEB." --latest
+          fi
 
-          $assets = Get-ChildItem -LiteralPath 'source/target/x86_64-pc-windows-msvc/release/bundle' -File -Recurse | Where-Object { $_.Extension -in '.exe', '.msi' }
-          if (-not $assets) { throw 'Windows installers were not found.' }
-          foreach ($asset in $assets) {
-            gh release upload $env:RELEASE_TAG $asset.FullName --repo $env:GITHUB_REPOSITORY --clobber
-          }
+          mapfile -d '' assets < <(find release-assets -type f \( -name '*.exe' -o -name '*.msi' -o -name '*.AppImage' -o -name '*.deb' \) -print0)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo 'Desktop packages were not found.' >&2
+            exit 1
+          fi
+          gh release upload "$TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+

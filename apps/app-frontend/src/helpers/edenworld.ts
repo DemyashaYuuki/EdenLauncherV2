@@ -18,7 +18,6 @@ const EDENWORLD_RF_DOWNLOAD_URL = `https://drive.usercontent.google.com/download
 
 export const EDENWORLD_PROJECT_URL = 'https://edenworld.fun/'
 export const EDENWORLD_TELEGRAM_URL = 'https://t.me/EdenWorldMC'
-export const EDENWORLD_TELEGRAM_FEED_URL = 'https://t.me/s/EdenWorldMC'
 export const EDENWORLD_DISCORD_URL = 'https://discord.gg/WBTUMKuBTa'
 
 export type EdenWorldInstallProgress = {
@@ -102,3 +101,4 @@ export async function downloadAndInstallEdenWorld(
 		await removeDownloadedPack().catch(() => undefined)
 	}
 }
+

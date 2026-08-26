@@ -8,7 +8,6 @@ import {
 	HomeIcon,
 	LibraryIcon,
 	PlusIcon,
-	RightArrowIcon,
 	SettingsIcon,
 	ShirtIcon,
 } from '@modrinth/assets'
@@ -42,10 +41,9 @@ import { saveWindowState, StateFlags } from '@tauri-apps/plugin-window-state'
 import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
-import AccountsCard from '@/components/ui/AccountsCard.vue'
+import AccountSwitcherButton from '@/components/ui/AccountSwitcherButton.vue'
 import AppActionBar from '@/components/ui/AppActionBar.vue'
 import Breadcrumbs from '@/components/ui/Breadcrumbs.vue'
-import EdenWorldNewsFeed from '@/components/ui/EdenWorldNewsFeed.vue'
 import ErrorModal from '@/components/ui/ErrorModal.vue'
 import AddServerToInstanceModal from '@/components/ui/install_flow/AddServerToInstanceModal.vue'
 import UnknownPackWarningModal from '@/components/ui/install_flow/UnknownPackWarningModal.vue'
@@ -65,6 +63,7 @@ import { config } from '@/config'
 import { debugAnalytics, initAnalytics, trackEvent } from '@/helpers/analytics'
 import { check_reachable } from '@/helpers/auth.js'
 import { get_version } from '@/helpers/cache.js'
+import { downloadAndInstallEdenWorld } from '@/helpers/edenworld'
 import { command_listener, warning_listener, info_listener } from '@/helpers/events.js'
 import { install_create_modpack_instance, install_get_modpack_preview } from '@/helpers/install'
 import { get as getInstance, run } from '@/helpers/instance'
@@ -115,16 +114,7 @@ function updateHistoryNavigationState() {
 updateHistoryNavigationState()
 
 const APP_LEFT_NAV_WIDTH = '4rem'
-const APP_SIDEBAR_WIDTH = 300
 const credentials = ref(null)
-const sidebarToggled = ref(true)
-const unsubscribeSidebarToggle = themeStore.$subscribe(() => {
-	sidebarToggled.value = !themeStore.toggleSidebar
-})
-const forceSidebar = computed(
-	() => route.path.startsWith('/browse') || route.path.startsWith('/project'),
-)
-const sidebarVisible = computed(() => sidebarToggled.value || forceSidebar.value)
 
 const notificationManager = new AppNotificationManager()
 provideNotificationManager(notificationManager)
@@ -143,10 +133,10 @@ const tauriApiClient = new TauriModrinthClient({
 })
 provideModrinthClient(tauriApiClient)
 providePageContext({
-	hierarchicalSidebarAvailable: ref(true),
+	hierarchicalSidebarAvailable: ref(false),
 	floatingActionBarOffsets: {
 		left: ref(APP_LEFT_NAV_WIDTH),
-		right: computed(() => (sidebarVisible.value ? `${APP_SIDEBAR_WIDTH}px` : '0px')),
+		right: ref('0px'),
 	},
 	featureFlags: {
 		serverRamAsBytesAlwaysOn: computed(() =>
@@ -225,7 +215,6 @@ onUnmounted(async () => {
 	document.querySelector('body').removeEventListener('click', handleClick)
 	document.querySelector('body').removeEventListener('auxclick', handleAuxClick)
 	if (updateCheckTimer !== null) window.clearInterval(updateCheckTimer)
-	unsubscribeSidebarToggle()
 })
 
 const { formatMessage } = useVIntl()
@@ -266,11 +255,7 @@ const messages = defineMessages({
 	},
 	restarting: {
 		id: 'app.restarting',
-		defaultMessage: 'Restarting...',
-	},
-	playingAs: {
-		id: 'app.sidebar.playing-as',
-		defaultMessage: 'Игровой аккаунт',
+		defaultMessage: 'Перезапуск...',
 	},
 })
 
@@ -299,20 +284,54 @@ async function checkForLauncherUpdate(autoInstall = true) {
 	}
 }
 
-async function completeFirstRun({ autoUpdates }) {
+async function installOnboardingPack(rfMode) {
+	addNotification({
+		title: 'Установка EdenWorld',
+		text: 'Сборка загружается и будет установлена автоматически.',
+		type: 'info',
+		autoCloseMs: 8000,
+	})
+
+	try {
+		const job = await downloadAndInstallEdenWorld(rfMode, () => undefined)
+		const instanceId = job.instance_id ?? job.target?.instance_id
+		addNotification({
+			title: 'Сборка EdenWorld установлена',
+			text: 'Профиль готов к запуску.',
+			type: 'success',
+			autoCloseMs: 8000,
+		})
+		if (instanceId) await router.push(`/instance/${encodeURIComponent(instanceId)}/`)
+	} catch (installError) {
+		handleError(installError)
+	}
+}
+
+async function completeFirstRun({
+	autoUpdates,
+	discordRpc,
+	installPack,
+	locale,
+	memoryMb,
+	rfMode,
+}) {
 	const settings = await getSettings()
-	settings.locale = 'ru-RU'
+	settings.locale = locale
 	settings.theme = 'dark'
 	settings.auto_download_updates = autoUpdates
+	settings.discord_rpc = discordRpc
+	settings.memory.maximum = memoryMb
 	settings.personalized_ads = false
 	settings.telemetry = false
 	settings.onboarded = true
 	await setSettings(settings)
 
-	i18n.global.locale.value = 'ru-RU'
+	window.localStorage.setItem('edenlauncher-rf-mode', String(rfMode))
+	i18n.global.locale.value = locale
 	themeStore.setThemeState('dark')
 	showOnboarding.value = false
 	void checkForLauncherUpdate(autoUpdates)
+	if (installPack) void installOnboardingPack(rfMode)
 }
 
 async function setupApp() {
@@ -335,7 +354,6 @@ async function setupApp() {
 		advanced_rendering,
 		onboarded,
 		default_page,
-		toggle_sidebar,
 		developer_mode,
 		feature_flags,
 		pending_update_toast_for_version,
@@ -362,7 +380,6 @@ async function setupApp() {
 	themeStore.collapsedNavigation = collapsed_navigation
 	themeStore.advancedRendering = advanced_rendering
 	themeStore.hideNametagSkinsPage = hide_nametag_skins_page
-	themeStore.toggleSidebar = toggle_sidebar
 	themeStore.devMode = developer_mode
 	themeStore.featureFlags = feature_flags
 	stateInitialized.value = true
@@ -445,13 +462,6 @@ let routerToken = null
 let suspenseToken = null
 
 let suspensePending = false
-
-const sidebarOverlayScrollbarsOptions = Object.freeze({
-	overflow: {
-		x: 'hidden',
-		y: 'scroll',
-	},
-})
 
 router.beforeEach(() => {
 	suspensePending = false
@@ -793,7 +803,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 						<button
 							class="!h-7 !min-w-7 !w-7 !border !border-surface-4 !p-0 !opacity-100"
 							:disabled="!canNavigateBack"
-							aria-label="Go back"
+							aria-label="Назад"
 							@click="router.back()"
 						>
 							<ChevronLeftIcon
@@ -806,7 +816,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 						<button
 							class="!h-7 !min-w-7 !w-7 !border !border-surface-4 !p-0 !opacity-100"
 							:disabled="!canNavigateForward"
-							aria-label="Go forward"
+							aria-label="Вперёд"
 							@click="router.forward()"
 						>
 							<ChevronRightIcon
@@ -819,19 +829,11 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 				<Breadcrumbs />
 			</div>
 			<section data-tauri-drag-region class="flex shrink-0 ml-auto items-center">
-				<ButtonStyled
-					v-if="!forceSidebar && themeStore.toggleSidebar"
-					:type="sidebarToggled ? 'standard' : 'transparent'"
-					circular
-				>
-					<button
-						class="mr-3 transition-transform"
-						:class="{ 'rotate-180': !sidebarToggled }"
-						@click="sidebarToggled = !sidebarToggled"
-					>
-						<RightArrowIcon />
-					</button>
-				</ButtonStyled>
+				<div class="mr-2">
+					<Suspense>
+						<AccountSwitcherButton ref="accounts" />
+					</Suspense>
+				</div>
 				<div class="flex mr-3">
 					<Suspense>
 						<AppActionBar />
@@ -845,7 +847,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		v-if="stateInitialized"
 		class="app-contents"
 		:class="{
-			'sidebar-enabled': sidebarVisible,
 			'disable-advanced-rendering': !themeStore.advancedRendering,
 		}"
 	>
@@ -868,10 +869,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			</div>
 			<div
 				id="background-teleport-target"
-				class="absolute h-full -z-10 rounded-tl-[--radius-xl] overflow-hidden"
-				:style="{
-					width: 'calc(100% - var(--right-bar-width))',
-				}"
+				class="absolute h-full w-full -z-10 rounded-tl-[--radius-xl] overflow-hidden"
 			></div>
 			<Admonition
 				v-if="authUnreachable"
@@ -889,32 +887,10 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 				</template>
 			</RouterView>
 		</div>
-		<div
-			class="app-sidebar mt-px shrink-0 flex flex-col border-0 border-l-[1px] border-[--brand-gradient-border] border-solid"
-		>
-			<div
-				v-overlay-scrollbars="sidebarOverlayScrollbarsOptions"
-				class="app-sidebar-scrollable flex-grow shrink relative"
-				data-overlayscrollbars-initialize
-			>
-				<div id="sidebar-teleport-target" class="sidebar-teleport-content"></div>
-				<div class="sidebar-default-content" :class="{ 'sidebar-enabled': sidebarVisible }">
-					<div class="p-4 border-0 border-b-[1px] border-[--brand-gradient-border] border-solid">
-						<h3 class="text-base text-primary font-medium m-0">
-							{{ formatMessage(messages.playingAs) }}
-						</h3>
-						<suspense>
-							<AccountsCard ref="accounts" />
-						</suspense>
-					</div>
-					<EdenWorldNewsFeed />
-				</div>
-			</div>
-		</div>
 	</div>
 	<I18nDebugPanel />
-	<NotificationPanel :has-sidebar="sidebarVisible" />
-	<PopupNotificationPanel :has-sidebar="sidebarVisible" />
+	<NotificationPanel :has-sidebar="false" />
+	<PopupNotificationPanel :has-sidebar="false" />
 	<ErrorModal ref="errorModal" />
 	<MinecraftAuthErrorModal ref="minecraftAuthErrorModal" />
 	<MinecraftRequiredModal ref="minecraftRequiredModal" />
@@ -972,7 +948,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 .app-contents {
 	--top-bar-height: 3rem;
 	--left-bar-width: 4rem;
-	--right-bar-width: 300px;
+	--right-bar-width: 0px;
 }
 
 .app-grid-layout {
@@ -1014,13 +990,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	background-color: var(--color-bg);
 	border-top-left-radius: var(--radius-xl);
 
-	display: grid;
-	grid-template-columns: 1fr 0px;
-	// transition: grid-template-columns 0.4s ease-in-out;
-
-	&.sidebar-enabled {
-		grid-template-columns: 1fr 300px;
-	}
+	display: block;
 }
 
 .loading-indicator-container {
@@ -1028,39 +998,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	overflow: hidden;
 }
 
-.app-sidebar {
-	overflow: visible;
-	width: 300px;
-	position: relative;
-	height: calc(100vh - var(--top-bar-height));
-	background: var(--brand-gradient-bg);
-
-	--color-button-bg: var(--brand-gradient-button);
-	--color-button-bg-hover: var(--brand-gradient-border);
-	--color-divider: var(--brand-gradient-border);
-	--color-divider-dark: var(--brand-gradient-border);
-}
-
-.app-sidebar::after {
-	// content: ''; // Fix dirty gray line
-	position: absolute;
-	bottom: 250px;
-	left: 0;
-	right: 0;
-	height: 5rem;
-	background: var(--brand-gradient-fade-out-color);
-	pointer-events: none;
-}
-
-.app-sidebar.has-plus::after {
-	display: none;
-}
-
 .disable-advanced-rendering {
-	.app-sidebar::before {
-		box-shadow: none;
-	}
-
 	&.app-contents::before {
 		box-shadow: none;
 	}
@@ -1070,17 +1008,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		box-shadow: none !important;
 		--tw-drop-shadow:;
 	}
-}
-
-.app-sidebar::before {
-	content: '';
-	box-shadow: -15px 0 15px -15px rgba(0, 0, 0, 0.1) inset;
-	top: 0;
-	bottom: 0;
-	left: -2rem;
-	width: 2rem;
-	position: absolute;
-	pointer-events: none;
 }
 
 .app-viewport {
@@ -1105,18 +1032,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	border-width: 1px;
 	border-style: solid;
 	pointer-events: none;
-}
-
-.sidebar-teleport-content {
-	display: contents;
-}
-
-.sidebar-default-content {
-	display: none;
-}
-
-.sidebar-teleport-content:empty + .sidebar-default-content.sidebar-enabled {
-	display: contents;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -1202,3 +1117,4 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	}
 }
 </style>
+

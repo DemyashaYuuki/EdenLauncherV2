@@ -426,3 +426,4 @@ function resetAccentColor() {
 		0 0 0 4px var(--color-brand);
 }
 </style>
+
