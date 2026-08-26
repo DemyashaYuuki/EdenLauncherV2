@@ -327,16 +327,17 @@ onUnmounted(() => {
 .eden-home {
 	min-height: 100%;
 	padding: 1.35rem;
-	color: #fff;
+	color: var(--color-text-primary);
 	background:
-		radial-gradient(circle at 18% 0%, rgba(139, 0, 255, 0.13), transparent 28rem), #0f0f12;
+		radial-gradient(circle at 18% 0%, var(--color-brand-highlight), transparent 28rem),
+		var(--color-bg);
 }
 
 .eden-hero {
 	position: relative;
 	min-height: 25rem;
 	overflow: hidden;
-	border: 1px solid rgba(188, 123, 255, 0.2);
+	border: 1px solid var(--brand-gradient-border);
 	border-radius: 1.75rem;
 	background-position: center 42%;
 	background-size: cover;
@@ -374,7 +375,7 @@ onUnmounted(() => {
 	display: flex;
 	align-items: center;
 	gap: 0.55rem;
-	color: #c795ff;
+	color: var(--color-link);
 	font-size: 0.7rem;
 	font-weight: 800;
 	letter-spacing: 0.16em;
@@ -384,8 +385,8 @@ onUnmounted(() => {
 	width: 0.45rem;
 	height: 0.45rem;
 	border-radius: 50%;
-	background: #8b00ff;
-	box-shadow: 0 0 1rem #a83bff;
+	background: var(--color-brand);
+	box-shadow: 0 0 1rem var(--color-brand-shadow);
 }
 
 .eden-title-row {
@@ -400,7 +401,7 @@ onUnmounted(() => {
 	height: 5.25rem;
 	border: 1px solid rgba(255, 255, 255, 0.2);
 	border-radius: 1.4rem;
-	box-shadow: 0 0 2.5rem rgba(139, 0, 255, 0.38);
+	box-shadow: 0 0 2.5rem var(--color-brand-shadow);
 	object-fit: cover;
 }
 
@@ -410,7 +411,7 @@ onUnmounted(() => {
 	font-weight: 900;
 	letter-spacing: -0.055em;
 	line-height: 0.95;
-	background: linear-gradient(110deg, #fff 12%, #d7b2ff 72%, #8b00ff);
+	background: linear-gradient(110deg, #fff 12%, var(--color-purple-200) 72%, var(--color-brand));
 	-webkit-background-clip: text;
 	background-clip: text;
 	color: transparent;
@@ -462,13 +463,14 @@ onUnmounted(() => {
 }
 
 .eden-button--primary {
-	background: linear-gradient(135deg, #9700ff, #6500d8);
-	box-shadow: 0 0.75rem 2rem rgba(139, 0, 255, 0.3);
+	color: var(--color-accent-contrast);
+	background: linear-gradient(135deg, var(--color-brand), var(--color-purple-700));
+	box-shadow: 0 0.75rem 2rem var(--color-brand-highlight);
 }
 
 .eden-button--primary:hover:not(:disabled) {
 	transform: translateY(-2px);
-	box-shadow: 0 1rem 2.5rem rgba(139, 0, 255, 0.44);
+	box-shadow: 0 1rem 2.5rem var(--color-brand-shadow);
 }
 
 .eden-button--glass {
@@ -500,9 +502,9 @@ onUnmounted(() => {
 	align-items: center;
 	gap: 0.9rem;
 	padding: 1.15rem;
-	border: 1px solid rgba(255, 255, 255, 0.075);
+	border: 1px solid var(--color-button-border);
 	border-radius: 1.25rem;
-	background: linear-gradient(145deg, rgba(31, 29, 38, 0.96), rgba(18, 17, 22, 0.96));
+	background: linear-gradient(145deg, var(--surface-3), var(--surface-2));
 	box-shadow: 0 0.8rem 2.5rem rgba(0, 0, 0, 0.17);
 }
 
@@ -513,18 +515,18 @@ onUnmounted(() => {
 	flex: 0 0 2.8rem;
 	place-items: center;
 	border-radius: 0.85rem;
-	color: #d7adff;
-	background: rgba(139, 0, 255, 0.15);
+	color: var(--color-link);
+	background: var(--color-brand-highlight);
 }
 
 .eden-panel__icon--network {
-	color: #87e8d1;
-	background: rgba(30, 194, 157, 0.12);
+	color: var(--color-link);
+	background: var(--color-brand-highlight);
 }
 
 .eden-panel__icon--social {
-	color: #9eb8ff;
-	background: rgba(88, 101, 242, 0.14);
+	color: var(--color-link);
+	background: var(--color-brand-highlight);
 }
 
 .eden-panel__body {
@@ -540,7 +542,7 @@ onUnmounted(() => {
 
 .eden-panel p {
 	margin: 0.28rem 0 0;
-	color: rgba(255, 255, 255, 0.48);
+	color: var(--color-text-tertiary);
 	font-size: 0.76rem;
 	line-height: 1.4;
 }
@@ -553,8 +555,8 @@ onUnmounted(() => {
 	place-items: center;
 	border: 0;
 	border-radius: 0.85rem;
-	color: #fff;
-	background: #8b00ff;
+	color: var(--color-accent-contrast);
+	background: var(--color-brand);
 	cursor: pointer;
 }
 
@@ -563,7 +565,7 @@ onUnmounted(() => {
 	align-items: center;
 	gap: 0.55rem;
 	margin-top: 0.55rem;
-	color: rgba(255, 255, 255, 0.62);
+	color: var(--color-text-tertiary);
 	font-size: 0.7rem;
 }
 
@@ -572,13 +574,13 @@ onUnmounted(() => {
 	height: 0.28rem;
 	overflow: hidden;
 	border-radius: 1rem;
-	background: rgba(255, 255, 255, 0.08);
+	background: var(--color-divider);
 }
 
 .eden-progress__bar {
 	height: 100%;
 	border-radius: inherit;
-	background: linear-gradient(90deg, #8b00ff, #c67aff);
+	background: linear-gradient(90deg, var(--color-brand), var(--color-purple-300));
 	transition: width 180ms ease;
 }
 
@@ -599,7 +601,7 @@ onUnmounted(() => {
 	width: 2.65rem;
 	height: 1.5rem;
 	border-radius: 1rem;
-	background: rgba(255, 255, 255, 0.11);
+	background: var(--surface-5);
 	transition: 160ms ease;
 }
 
@@ -616,8 +618,8 @@ onUnmounted(() => {
 }
 
 .eden-switch input:checked + span {
-	background: #8b00ff;
-	box-shadow: 0 0 1rem rgba(139, 0, 255, 0.36);
+	background: var(--color-brand);
+	box-shadow: 0 0 1rem var(--color-brand-highlight);
 }
 
 .eden-switch input:checked + span::after {
@@ -635,10 +637,10 @@ onUnmounted(() => {
 	align-items: center;
 	gap: 0.35rem;
 	padding: 0 0.65rem;
-	border: 1px solid rgba(255, 255, 255, 0.1);
+	border: 1px solid var(--color-button-border);
 	border-radius: 0.7rem;
-	color: rgba(255, 255, 255, 0.82);
-	background: rgba(255, 255, 255, 0.055);
+	color: var(--color-text-default);
+	background: var(--color-button-bg);
 	font: inherit;
 	font-size: 0.72rem;
 	font-weight: 800;
@@ -646,8 +648,8 @@ onUnmounted(() => {
 }
 
 .eden-social-actions button:hover {
-	border-color: rgba(168, 84, 255, 0.5);
-	background: rgba(139, 0, 255, 0.15);
+	border-color: var(--color-brand);
+	background: var(--color-brand-highlight);
 }
 
 .eden-content-section {
@@ -676,4 +678,3 @@ onUnmounted(() => {
 	}
 }
 </style>
-

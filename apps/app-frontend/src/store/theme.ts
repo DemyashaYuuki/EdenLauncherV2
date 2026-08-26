@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 export const DEFAULT_ACCENT_COLOR = '#AC58F5'
 
 const ACCENT_COLOR_STORAGE_KEY = 'edenlauncher-accent-color'
+const BASE_THEME_STORAGE_KEY = 'edenlauncher-base-theme'
 const LEGACY_THEME_OPTIONS = ['dark', 'light', 'oled', 'retro', 'system'] as const
 const ACCENT_COLOR_PATTERN = /^#[0-9A-F]{6}$/
 const ACCENT_PALETTE_NAMES = ['red', 'orange', 'green', 'blue', 'purple'] as const
@@ -57,6 +58,7 @@ export type FeatureFlag = keyof typeof DEFAULT_FEATURE_FLAGS
 export type FeatureFlags = Record<FeatureFlag, boolean>
 // Old values remain readable for compatibility with existing settings files.
 export type ColorTheme = (typeof LEGACY_THEME_OPTIONS)[number]
+export type LauncherTheme = 'dark' | 'light'
 
 export type ThemeStore = {
 	selectedTheme: ColorTheme
@@ -152,21 +154,28 @@ function setCssVariable(
 	root.style.setProperty(name, value, priority)
 }
 
-export function applyAccentColor(color: string): boolean {
+function normalizeLauncherTheme(theme: ColorTheme): LauncherTheme {
+	return theme === 'light' ? 'light' : 'dark'
+}
+
+export function applyAccentColor(color: string, theme: LauncherTheme = 'dark'): boolean {
 	const normalized = normalizeAccentColor(color)
 	if (!normalized || typeof document === 'undefined') return false
 
 	const root = document.documentElement
 	const accent = hexToRgb(normalized)
 	const palette = buildAccentPalette(accent)
-	const darkBase = hexToRgb('#09060D')
-	const surfaces = [0.04, 0.055, 0.075, 0.095, 0.125, 0.17].map((amount) =>
-		mixColor(darkBase, accent, amount),
-	)
+	const isLight = theme === 'light'
+	const base = hexToRgb(isLight ? '#F7F5FA' : '#09060D')
+	const surfaceMixes = isLight
+		? [0.018, 0.012, 0.006, 0.025, 0.04, 0.07]
+		: [0.04, 0.055, 0.075, 0.095, 0.125, 0.17]
+	const surfaces = surfaceMixes.map((amount) => mixColor(base, accent, amount))
 	const shadeEntries = Object.entries(palette)
 
 	root.dataset.accentColor = normalized
-	root.style.colorScheme = 'dark'
+	root.dataset.launcherTheme = theme
+	root.style.colorScheme = theme
 
 	for (const paletteName of ACCENT_PALETTE_NAMES) {
 		for (const [shade, shadeColor] of shadeEntries) {
@@ -179,41 +188,75 @@ export function applyAccentColor(color: string): boolean {
 
 	setCssVariable(root, '--surface-1', rgbToHex(surfaces[0]))
 	setCssVariable(root, '--surface-1-5', rgbToHex(surfaces[1]))
-	setCssVariable(root, '--surface-2', rgbToHex(surfaces[2]))
+	setCssVariable(root, '--surface-2', isLight ? '#FFFFFF' : rgbToHex(surfaces[2]))
 	setCssVariable(root, '--surface-2-5', rgbToHex(surfaces[3]))
-	setCssVariable(root, '--surface-3', rgbToHex(surfaces[4]))
-	setCssVariable(root, '--surface-4', rgbToHex(surfaces[5]))
-	setCssVariable(root, '--surface-5', rgbToHex(mixColor(darkBase, accent, 0.24)))
+	setCssVariable(root, '--surface-3', isLight ? '#FFFFFF' : rgbToHex(surfaces[4]))
+	setCssVariable(root, '--surface-4', isLight ? '#FFFFFF' : rgbToHex(surfaces[5]))
+	setCssVariable(root, '--surface-5', rgbToHex(mixColor(base, accent, isLight ? 0.14 : 0.24)))
 
-	setCssVariable(root, '--color-text-primary', '#FFFAFF')
-	setCssVariable(root, '--color-text-default', rgbToHex(mixColor(WHITE, accent, 0.14)))
-	setCssVariable(root, '--color-text-tertiary', rgbToHex(mixColor(WHITE, accent, 0.32)))
+	setCssVariable(root, '--color-text-primary', isLight ? '#18121D' : '#FFFAFF')
+	setCssVariable(
+		root,
+		'--color-text-default',
+		isLight
+			? rgbToHex(mixColor(hexToRgb('#39333F'), accent, 0.07))
+			: rgbToHex(mixColor(WHITE, accent, 0.14)),
+	)
+	setCssVariable(
+		root,
+		'--color-text-tertiary',
+		isLight
+			? rgbToHex(mixColor(hexToRgb('#716A77'), accent, 0.09))
+			: rgbToHex(mixColor(WHITE, accent, 0.32)),
+	)
 	setCssVariable(root, '--color-bg', 'var(--surface-1)')
 	setCssVariable(root, '--color-raised-bg', 'var(--surface-3)')
 	setCssVariable(root, '--color-super-raised-bg', 'var(--surface-4)')
 	setCssVariable(root, '--color-button-bg', 'var(--surface-4)')
-	setCssVariable(root, '--color-button-border', rgba(palette[300], 0.2))
-	setCssVariable(root, '--color-scrollbar', rgbToHex(palette[800]))
-	setCssVariable(root, '--color-divider', rgba(palette[400], 0.18))
-	setCssVariable(root, '--color-divider-dark', rgba(palette[300], 0.28))
+	setCssVariable(root, '--color-button-border', rgba(isLight ? palette[700] : palette[300], 0.2))
+	setCssVariable(root, '--color-scrollbar', rgbToHex(isLight ? palette[300] : palette[800]))
+	setCssVariable(
+		root,
+		'--color-divider',
+		rgba(isLight ? palette[700] : palette[400], isLight ? 0.16 : 0.18),
+	)
+	setCssVariable(root, '--color-divider-dark', rgba(isLight ? palette[800] : palette[300], 0.28))
 	setCssVariable(root, '--color-base', 'var(--color-text-default)')
 	setCssVariable(root, '--color-secondary', 'var(--color-text-tertiary)')
 	setCssVariable(root, '--color-contrast', 'var(--color-text-primary)')
 	setCssVariable(root, '--color-accent-contrast', readableTextColor(accent))
-	setCssVariable(root, '--color-gray', rgbToHex(mixColor(WHITE, accent, 0.42)))
+	setCssVariable(
+		root,
+		'--color-gray',
+		rgbToHex(mixColor(isLight ? hexToRgb('#6F6874') : WHITE, accent, isLight ? 0.12 : 0.42)),
+	)
 	setCssVariable(root, '--color-gray-highlight', rgba(accent, 0.2))
 
 	setCssVariable(root, '--color-brand', normalized)
 	setCssVariable(root, '--color-brand-highlight', rgba(accent, 0.26))
 	setCssVariable(root, '--color-brand-shadow', rgba(accent, 0.62))
 	setCssVariable(root, '--color-button-bg-selected', rgba(accent, 0.24))
-	setCssVariable(root, '--color-button-text-selected', rgbToHex(palette[300]))
-	setCssVariable(root, '--color-link', rgbToHex(palette[300]), 'important')
-	setCssVariable(root, '--color-link-hover', rgbToHex(palette[200]), 'important')
-	setCssVariable(root, '--color-link-active', rgbToHex(palette[100]), 'important')
-	setCssVariable(root, '--color-focus-ring', rgbToHex(palette[300]))
+	setCssVariable(
+		root,
+		'--color-button-text-selected',
+		rgbToHex(isLight ? palette[700] : palette[300]),
+	)
+	setCssVariable(root, '--color-link', rgbToHex(isLight ? palette[700] : palette[300]), 'important')
+	setCssVariable(
+		root,
+		'--color-link-hover',
+		rgbToHex(isLight ? palette[600] : palette[200]),
+		'important',
+	)
+	setCssVariable(
+		root,
+		'--color-link-active',
+		rgbToHex(isLight ? palette[800] : palette[100]),
+		'important',
+	)
+	setCssVariable(root, '--color-focus-ring', rgbToHex(isLight ? palette[600] : palette[300]))
 	setCssVariable(root, '--color-tooltip-bg', 'var(--surface-4)')
-	setCssVariable(root, '--color-tooltip-text', '#FFFAFF')
+	setCssVariable(root, '--color-tooltip-text', isLight ? '#18121D' : '#FFFAFF')
 	setCssVariable(root, '--color-ad', rgba(palette[700], 0.2))
 	setCssVariable(root, '--color-ad-raised', rgba(palette[400], 0.34))
 	setCssVariable(root, '--color-ad-highlight', rgbToHex(palette[400]))
@@ -226,17 +269,19 @@ export function applyAccentColor(color: string): boolean {
 	setCssVariable(
 		root,
 		'--color-gradient-button-bg',
-		`linear-gradient(180deg, ${rgbToHex(surfaces[5])} 0%, ${rgbToHex(surfaces[4])} 100%)`,
+		`linear-gradient(180deg, ${isLight ? '#FFFFFF' : rgbToHex(surfaces[5])} 0%, ${rgbToHex(surfaces[4])} 100%)`,
 	)
 	setCssVariable(
 		root,
 		'--brand-gradient-bg',
-		`linear-gradient(0deg, ${rgba(surfaces[0], 0.97)}, ${rgba(palette[800], 0.58)})`,
+		isLight
+			? `linear-gradient(0deg, ${rgba(surfaces[0], 0.98)}, ${rgba(palette[100], 0.68)})`
+			: `linear-gradient(0deg, ${rgba(surfaces[0], 0.97)}, ${rgba(palette[800], 0.58)})`,
 	)
 	setCssVariable(
 		root,
 		'--brand-gradient-strong-bg',
-		`linear-gradient(270deg, ${rgbToHex(surfaces[0])} 10%, ${rgbToHex(surfaces[5])} 100%)`,
+		`linear-gradient(270deg, ${rgbToHex(surfaces[0])} 10%, ${isLight ? '#FFFFFF' : rgbToHex(surfaces[5])} 100%)`,
 	)
 	setCssVariable(root, '--brand-gradient-button', rgba(accent, 0.12))
 	setCssVariable(root, '--brand-gradient-border', rgba(palette[300], 0.18))
@@ -265,7 +310,14 @@ export const useTheming = defineStore('themeStore', {
 	}),
 	actions: {
 		initializeTheme() {
-			this.setThemeState('dark')
+			let savedTheme: ColorTheme = 'dark'
+			try {
+				savedTheme =
+					window.localStorage.getItem(BASE_THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark'
+			} catch (error) {
+				console.warn('Could not read the saved EdenLauncher theme.', error)
+			}
+			this.setThemeState(savedTheme)
 
 			let savedColor: string | null = null
 			try {
@@ -276,9 +328,15 @@ export const useTheming = defineStore('themeStore', {
 
 			this.setAccentColor(savedColor ?? DEFAULT_ACCENT_COLOR)
 		},
-		setThemeState(_newTheme: ColorTheme) {
-			this.selectedTheme = 'dark'
+		setThemeState(newTheme: ColorTheme) {
+			this.selectedTheme = normalizeLauncherTheme(newTheme)
 			this.setThemeClass()
+
+			try {
+				window.localStorage.setItem(BASE_THEME_STORAGE_KEY, this.selectedTheme)
+			} catch (error) {
+				console.warn('Could not save the EdenLauncher theme.', error)
+			}
 		},
 		setThemeClass() {
 			if (typeof document === 'undefined') return
@@ -288,15 +346,15 @@ export const useTheming = defineStore('themeStore', {
 				html.classList.remove(theme, `${theme}-mode`)
 			}
 			html.removeAttribute('data-theme')
-			html.classList.add('dark-mode')
-			applyAccentColor(this.accentColor)
+			html.classList.add(`${this.selectedTheme}-mode`)
+			applyAccentColor(this.accentColor, normalizeLauncherTheme(this.selectedTheme))
 		},
 		setAccentColor(newColor: string) {
 			const normalized = normalizeAccentColor(newColor)
 			if (!normalized) return false
 
 			this.accentColor = normalized
-			applyAccentColor(normalized)
+			applyAccentColor(normalized, normalizeLauncherTheme(this.selectedTheme))
 
 			try {
 				window.localStorage.setItem(ACCENT_COLOR_STORAGE_KEY, normalized)

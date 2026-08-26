@@ -234,11 +234,14 @@ textarea {
 	}
 }
 
-html:root,
 html.light,
+html.light-mode {
+	color-scheme: light;
+}
+
+html:root:not(.light):not(.light-mode),
 html.dark,
 html.oled,
-html.light-mode,
 html.dark-mode,
 html.oled-mode,
 html.retro-mode,
@@ -339,4 +342,3 @@ html:root[data-theme='dark'] {
 	--color-platform-bta-babric: #8f5ec1;
 	--color-platform-nilloader: #c476ed;
 }
-

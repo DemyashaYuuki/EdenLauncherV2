@@ -45,6 +45,7 @@ import { RouterView, useRoute, useRouter } from 'vue-router'
 import AccountsCard from '@/components/ui/AccountsCard.vue'
 import AppActionBar from '@/components/ui/AppActionBar.vue'
 import Breadcrumbs from '@/components/ui/Breadcrumbs.vue'
+import EdenWorldNewsFeed from '@/components/ui/EdenWorldNewsFeed.vue'
 import ErrorModal from '@/components/ui/ErrorModal.vue'
 import AddServerToInstanceModal from '@/components/ui/install_flow/AddServerToInstanceModal.vue'
 import UnknownPackWarningModal from '@/components/ui/install_flow/UnknownPackWarningModal.vue'
@@ -316,7 +317,8 @@ async function completeFirstRun({ autoUpdates }) {
 
 async function setupApp() {
 	const settings = await getSettings()
-	settings.theme = 'dark'
+	const savedTheme = settings.theme === 'light' ? 'light' : 'dark'
+	settings.theme = savedTheme
 	if (!settings.onboarded) {
 		settings.locale = 'ru-RU'
 		settings.auto_download_updates ??= true
@@ -356,7 +358,7 @@ async function setupApp() {
 	nativeDecorations.value = native_decorations
 	if (os.value !== 'MacOS') await getCurrentWindow().setDecorations(native_decorations)
 
-	themeStore.setThemeState('dark')
+	themeStore.setThemeState(savedTheme)
 	themeStore.collapsedNavigation = collapsed_navigation
 	themeStore.advancedRendering = advanced_rendering
 	themeStore.hideNametagSkinsPage = hide_nametag_skins_page
@@ -905,6 +907,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 							<AccountsCard ref="accounts" />
 						</suspense>
 					</div>
+					<EdenWorldNewsFeed />
 				</div>
 			</div>
 		</div>

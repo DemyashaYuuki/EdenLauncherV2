@@ -65,6 +65,18 @@
 					"url": "https://edenworld.fun/*"
 				},
 				{
+					"url": "https://t.me/*"
+				},
+				{
+					"url": "https://*.t.me/*"
+				},
+				{
+					"url": "https://telegram.org/*"
+				},
+				{
+					"url": "https://*.telegram.org/*"
+				},
+				{
 					"url": "https://api.github.com/*"
 				},
 				{

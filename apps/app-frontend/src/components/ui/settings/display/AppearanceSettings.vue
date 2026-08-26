@@ -1,16 +1,33 @@
 <script setup lang="ts">
+import { MoonIcon, PaletteIcon, SunIcon } from '@modrinth/assets'
 import { ButtonStyled, defineMessages, Toggle, useVIntl } from '@modrinth/ui'
 import { computed, ref, watch } from 'vue'
 
 import { get, set } from '@/helpers/settings.ts'
 import { getOS } from '@/helpers/utils'
 import { useTheming } from '@/store/state'
-import { DEFAULT_ACCENT_COLOR, normalizeAccentColor } from '@/store/theme.ts'
+import { DEFAULT_ACCENT_COLOR, type LauncherTheme, normalizeAccentColor } from '@/store/theme.ts'
 
 const themeStore = useTheming()
 const { formatMessage } = useVIntl()
 
 const messages = defineMessages({
+	themeModeTitle: {
+		id: 'edenlauncher.appearance-settings.theme-mode.title',
+		defaultMessage: 'Режим оформления',
+	},
+	themeModeDescription: {
+		id: 'edenlauncher.appearance-settings.theme-mode.description',
+		defaultMessage: 'Выберите тёмную или светлую основу. Акцентный цвет сохранится.',
+	},
+	darkTheme: {
+		id: 'edenlauncher.appearance-settings.theme-mode.dark',
+		defaultMessage: 'Тёмная тема',
+	},
+	lightTheme: {
+		id: 'edenlauncher.appearance-settings.theme-mode.light',
+		defaultMessage: 'Светлая тема',
+	},
 	launcherColorTitle: {
 		id: 'edenlauncher.appearance-settings.launcher-color.title',
 		defaultMessage: 'Цвет лаунчера',
@@ -23,6 +40,10 @@ const messages = defineMessages({
 	customColorLabel: {
 		id: 'edenlauncher.appearance-settings.launcher-color.custom',
 		defaultMessage: 'Свой цвет',
+	},
+	openPalette: {
+		id: 'edenlauncher.appearance-settings.launcher-color.open-palette',
+		defaultMessage: 'Открыть палитру',
 	},
 	colorCodeLabel: {
 		id: 'edenlauncher.appearance-settings.launcher-color.code',
@@ -70,14 +91,16 @@ const colorPresets = [
 const os = ref(await getOS())
 const settings = ref(await get())
 const accentColorInput = ref(themeStore.accentColor)
+const colorPicker = ref<HTMLInputElement | null>(null)
 const isAccentColorValid = computed(() => normalizeAccentColor(accentColorInput.value) !== null)
 
-settings.value.theme = 'dark'
+const initialTheme: LauncherTheme = settings.value.theme === 'light' ? 'light' : 'dark'
+settings.value.theme = initialTheme
+themeStore.setThemeState(initialTheme)
 
 watch(
 	settings,
 	async () => {
-		settings.value.theme = 'dark'
 		await set(settings.value)
 	},
 	{ deep: true },
@@ -96,6 +119,15 @@ function chooseAccentColor(color: string) {
 	themeStore.setAccentColor(normalized)
 }
 
+function chooseLauncherTheme(theme: LauncherTheme) {
+	settings.value.theme = theme
+	themeStore.setThemeState(theme)
+}
+
+function openColorPalette() {
+	colorPicker.value?.click()
+}
+
 function onNativeColorInput(event: Event) {
 	chooseAccentColor((event.target as HTMLInputElement).value)
 }
@@ -111,6 +143,39 @@ function resetAccentColor() {
 </script>
 <template>
 	<h2 class="m-0 text-lg font-semibold text-contrast">
+		{{ formatMessage(messages.themeModeTitle) }}
+	</h2>
+
+	<p class="m-0 mt-1">{{ formatMessage(messages.themeModeDescription) }}</p>
+
+	<div class="theme-mode-grid mt-4">
+		<button
+			type="button"
+			class="theme-mode-option"
+			:class="{ active: themeStore.selectedTheme === 'dark' }"
+			:aria-pressed="themeStore.selectedTheme === 'dark'"
+			@click="chooseLauncherTheme('dark')"
+		>
+			<span class="theme-mode-option__preview theme-mode-option__preview--dark">
+				<MoonIcon />
+			</span>
+			<span>{{ formatMessage(messages.darkTheme) }}</span>
+		</button>
+		<button
+			type="button"
+			class="theme-mode-option"
+			:class="{ active: themeStore.selectedTheme === 'light' }"
+			:aria-pressed="themeStore.selectedTheme === 'light'"
+			@click="chooseLauncherTheme('light')"
+		>
+			<span class="theme-mode-option__preview theme-mode-option__preview--light">
+				<SunIcon />
+			</span>
+			<span>{{ formatMessage(messages.lightTheme) }}</span>
+		</button>
+	</div>
+
+	<h2 class="m-0 text-lg font-semibold text-contrast">
 		{{ formatMessage(messages.launcherColorTitle) }}
 	</h2>
 
@@ -119,6 +184,7 @@ function resetAccentColor() {
 	<div class="accent-color-panel mt-4">
 		<label class="accent-color-preview" :title="formatMessage(messages.customColorLabel)">
 			<input
+				ref="colorPicker"
 				type="color"
 				:value="themeStore.accentColor"
 				:aria-label="formatMessage(messages.customColorLabel)"
@@ -152,6 +218,13 @@ function resetAccentColor() {
 	</div>
 
 	<div class="mt-3 flex flex-wrap items-center gap-2">
+		<ButtonStyled type="standard">
+			<button type="button" @click="openColorPalette">
+				<PaletteIcon />
+				{{ formatMessage(messages.openPalette) }}
+			</button>
+		</ButtonStyled>
+
 		<button
 			v-for="preset in colorPresets"
 			:key="preset.value"
@@ -206,6 +279,65 @@ function resetAccentColor() {
 </template>
 
 <style lang="scss" scoped>
+.theme-mode-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+	margin-bottom: 2rem;
+}
+
+.theme-mode-option {
+	display: flex;
+	align-items: center;
+	gap: 0.8rem;
+	padding: 0.7rem;
+	color: var(--color-text-primary);
+	font: inherit;
+	font-weight: 700;
+	text-align: left;
+	background: var(--surface-2);
+	border: 1px solid var(--color-button-border);
+	border-radius: var(--radius-lg);
+	cursor: pointer;
+	transition:
+		border-color 120ms ease,
+		box-shadow 120ms ease,
+		transform 120ms ease;
+}
+
+.theme-mode-option:hover {
+	transform: translateY(-1px);
+}
+
+.theme-mode-option.active {
+	border-color: var(--color-brand);
+	box-shadow: 0 0 0 3px var(--color-brand-highlight);
+}
+
+.theme-mode-option__preview {
+	display: grid;
+	width: 3rem;
+	height: 2.4rem;
+	place-items: center;
+	border: 1px solid rgba(128, 128, 128, 0.24);
+	border-radius: var(--radius-md);
+}
+
+.theme-mode-option__preview svg {
+	width: 1.1rem;
+	height: 1.1rem;
+}
+
+.theme-mode-option__preview--dark {
+	color: #f7eaff;
+	background: #151019;
+}
+
+.theme-mode-option__preview--light {
+	color: #6f2ca8;
+	background: #ffffff;
+}
+
 .accent-color-panel {
 	display: flex;
 	align-items: flex-start;
