@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import {
-	CheckCircleIcon,
-	CpuIcon,
 	DiscordIcon,
 	DownloadIcon,
 	GlobeIcon,
@@ -10,9 +8,6 @@ import {
 	PlayIcon,
 	RefreshCwIcon,
 	ServerIcon,
-	ShieldCheckIcon,
-	WrenchIcon,
-	XCircleIcon,
 } from '@modrinth/assets'
 import { injectNotificationManager, NewModal } from '@modrinth/ui'
 import type { SearchResult } from '@modrinth/utils'
@@ -33,19 +28,16 @@ import {
 	EDENWORLD_DISCORD_URL,
 	EDENWORLD_PROJECT_URL,
 	EDENWORLD_TELEGRAM_URL,
-	repairEdenWorld,
 	type EdenWorldInstallProgress,
 } from '@/helpers/edenworld'
 import { instance_listener } from '@/helpers/events'
 import { list } from '@/helpers/instance'
-import { get_java_versions, get_max_memory, test_jre } from '@/helpers/jre'
-import { get as getSettings } from '@/helpers/settings'
 import type { GameInstance } from '@/helpers/types'
 import { get_server_status, type ServerStatus } from '@/helpers/worlds'
 import { useRootBreadcrumb } from '@/providers/breadcrumbs'
 import { useTheming } from '@/store/state'
 
-const { addNotification, handleError } = injectNotificationManager()
+const { handleError } = injectNotificationManager()
 const router = useRouter()
 const themeStore = useTheming()
 
@@ -64,24 +56,12 @@ const featuredModpacks = ref<SearchResult[]>([])
 const featuredMods = ref<SearchResult[]>([])
 const installedModpacksFilter = ref('')
 const installing = ref(false)
-const repairing = ref(false)
 const installStage = ref<'idle' | 'downloading' | 'installing' | 'ready'>('idle')
 const installProgress = ref<EdenWorldInstallProgress>({ downloaded: 0, total: null })
-const rfMode = ref(localStorage.getItem('edenlauncher-rf-mode') !== 'false')
 const serverStatus = ref<ServerStatus | null>(null)
 const serverStatusLoading = ref(true)
 const serverStatusFailed = ref(false)
-const diagnosticsModal = ref<InstanceType<typeof NewModal> | null>(null)
-const diagnosticsRunning = ref(false)
-
-type DiagnosticStatus = 'success' | 'warning' | 'error'
-type DiagnosticResult = {
-	label: string
-	details: string
-	status: DiagnosticStatus
-}
-
-const diagnosticResults = ref<DiagnosticResult[]>([])
+const playersModal = ref<InstanceType<typeof NewModal> | null>(null)
 
 const recentInstances = computed(() =>
 	instances.value
@@ -113,6 +93,9 @@ const installButtonLabel = computed(() => {
 const heroBackground = computed(() => {
 	if (themeStore.visualTheme === 'asuna') return asunaBackground
 	if (themeStore.visualTheme === 'error') return errorBackground
+	if (themeStore.visualTheme === 'custom' && themeStore.customTheme.backgroundDataUrl) {
+		return themeStore.customTheme.backgroundDataUrl
+	}
 	return edenBackground
 })
 const serverStatusLabel = computed(() => {
@@ -120,10 +103,9 @@ const serverStatusLabel = computed(() => {
 	if (serverStatusFailed.value || !serverStatus.value) return 'Недоступен'
 	return `${serverStatus.value.players?.online ?? 0} / ${serverStatus.value.players?.max ?? '—'}`
 })
-const diagnosticsHealthy = computed(
-	() =>
-		diagnosticResults.value.length > 0 &&
-		diagnosticResults.value.every((result) => result.status === 'success'),
+const onlinePlayers = computed(() => serverStatus.value?.players?.sample ?? [])
+const hiddenOnlinePlayers = computed(() =>
+	Math.max(0, (serverStatus.value?.players?.online ?? 0) - onlinePlayers.value.length),
 )
 
 const offline = ref<boolean>(!navigator.onLine)
@@ -135,10 +117,6 @@ const handleOnline = () => {
 }
 window.addEventListener('offline', handleOffline)
 window.addEventListener('online', handleOnline)
-
-function updateRfMode() {
-	localStorage.setItem('edenlauncher-rf-mode', String(rfMode.value))
-}
 
 async function fetchServerStatus() {
 	serverStatusLoading.value = true
@@ -152,6 +130,11 @@ async function fetchServerStatus() {
 	} finally {
 		serverStatusLoading.value = false
 	}
+}
+
+async function showOnlinePlayers() {
+	playersModal.value?.show()
+	await fetchServerStatus()
 }
 
 async function openProjectLink(url: string) {
@@ -197,7 +180,7 @@ async function installEdenWorld() {
 	installProgress.value = { downloaded: 0, total: null }
 
 	try {
-		const job = await downloadAndInstallEdenWorld(rfMode.value, (progress) => {
+		const job = await downloadAndInstallEdenWorld((progress) => {
 			installProgress.value = progress
 			if (progress.total && progress.downloaded >= progress.total) {
 				installStage.value = 'installing'
@@ -216,114 +199,6 @@ async function installEdenWorld() {
 		installing.value = false
 	}
 }
-
-async function repairInstalledEdenWorld() {
-	if (!edenWorldInstance.value) {
-		await installEdenWorld()
-		return
-	}
-
-	repairing.value = true
-	installStage.value = 'downloading'
-	installProgress.value = { downloaded: 0, total: null }
-
-	try {
-		await repairEdenWorld(edenWorldInstance.value.id, rfMode.value, (progress) => {
-			installProgress.value = progress
-			if (progress.total && progress.downloaded >= progress.total) {
-				installStage.value = 'installing'
-			}
-		})
-		installStage.value = 'ready'
-		addNotification({
-			type: 'success',
-			title: 'Сборка EdenWorld восстановлена',
-			text: 'Повреждённые и отсутствующие файлы были установлены заново.',
-			autoCloseMs: 8000,
-		})
-		await fetchInstances()
-	} catch (error) {
-		installStage.value = 'idle'
-		handleError(error as Error)
-	} finally {
-		repairing.value = false
-	}
-}
-
-async function runDiagnostics() {
-	diagnosticsModal.value?.show()
-	diagnosticsRunning.value = true
-	diagnosticResults.value = []
-
-	const results: DiagnosticResult[] = []
-	results.push({
-		label: 'Подключение к интернету',
-		details: navigator.onLine ? 'Сетевое подключение доступно.' : 'Windows сообщает, что сети нет.',
-		status: navigator.onLine ? 'success' : 'error',
-	})
-
-	await fetchServerStatus()
-	results.push({
-		label: 'Сервер EdenWorld',
-		details: serverStatus.value
-			? `Сервер отвечает за ${serverStatus.value.ping ?? 0} мс, онлайн ${serverStatus.value.players?.online ?? 0}.`
-			: 'Сервер не ответил за отведённое время.',
-		status: serverStatus.value ? 'success' : 'warning',
-	})
-
-	try {
-		const javaVersions = (await get_java_versions()) as Record<
-			number,
-			{ path?: string; version?: string } | undefined
-		>
-		const java21 = javaVersions[21]
-		const javaValid = java21?.path ? await test_jre(java21.path, 21).catch(() => false) : false
-		results.push({
-			label: 'Java 21',
-			details: javaValid
-				? `Установка Java исправна: ${java21?.path}`
-				: 'Java 21 не настроена или не прошла проверку. Лаунчер попробует установить её при запуске.',
-			status: javaValid ? 'success' : 'warning',
-		})
-	} catch {
-		results.push({
-			label: 'Java 21',
-			details: 'Не удалось проверить установленную Java.',
-			status: 'warning',
-		})
-	}
-
-	try {
-		const [maximumMemoryKiB, settings] = await Promise.all([get_max_memory(), getSettings()])
-		const availableMemoryMb = Math.floor(Number(maximumMemoryKiB) / 1024)
-		const configuredMemoryMb = settings.memory.maximum
-		const memoryHealthy =
-			configuredMemoryMb >= 4096 && configuredMemoryMb <= Math.max(availableMemoryMb, 4096)
-		results.push({
-			label: 'Оперативная память',
-			details: `Выделено ${configuredMemoryMb} МБ из доступных ${availableMemoryMb} МБ.`,
-			status: memoryHealthy ? 'success' : 'warning',
-		})
-	} catch {
-		results.push({
-			label: 'Оперативная память',
-			details: 'Не удалось определить доступную память.',
-			status: 'warning',
-		})
-	}
-
-	results.push({
-		label: 'Сборка EdenWorld',
-		details: edenWorldInstance.value
-			? `Профиль найден: ${edenWorldInstance.value.name}`
-			: 'Сборка не установлена. Её можно установить с главной страницы.',
-		status: edenWorldInstance.value ? 'success' : 'warning',
-	})
-
-	diagnosticResults.value = results
-	diagnosticsRunning.value = false
-}
-
 await fetchInstances()
 await refreshFeaturedProjects()
 void fetchServerStatus()
@@ -347,13 +222,22 @@ onUnmounted(() => {
 </script>
 
 <template>
-	<div class="eden-home" :class="`eden-home--${themeStore.visualTheme}`">
+	<div
+		class="eden-home"
+		:class="[
+			`eden-home--${themeStore.visualTheme}`,
+			{
+				'eden-home--custom-light':
+					themeStore.visualTheme === 'custom' && themeStore.customTheme.baseTheme === 'light',
+			},
+		]"
+	>
 		<section class="eden-hero" :style="{ backgroundImage: `url(${heroBackground})` }">
 			<div class="eden-hero__veil"></div>
 			<div class="eden-hero__content">
 				<div class="eden-kicker">
 					<span class="eden-kicker__dot"></span>
-					EDENLAUNCHER 2.5 · MINECRAFT 1.21.11
+					EDENLAUNCHER 2.6 · MINECRAFT 1.21.11
 				</div>
 				<div class="eden-title-row">
 					<img :src="edenLogo" alt="EdenWorld" class="eden-logo" />
@@ -364,7 +248,7 @@ onUnmounted(() => {
 				</div>
 				<p class="eden-lead">
 					Один лаунчер для входа в мир EdenWorld: официальная сборка, быстрые ссылки и
-					подготовленный сетевой режим для игроков из России.
+					автоматически подготовленное подключение для игроков из России.
 				</p>
 				<div class="eden-hero__actions">
 					<button
@@ -435,29 +319,15 @@ onUnmounted(() => {
 					</div>
 				</div>
 				<button
-					class="eden-icon-button eden-icon-button--secondary"
+					class="eden-panel-action"
 					:disabled="serverStatusLoading"
-					aria-label="Обновить статус сервера"
-					@click="fetchServerStatus"
+					aria-label="Посмотреть игроков онлайн"
+					@click="showOnlinePlayers"
 				>
-					<RefreshCwIcon :class="{ 'animate-spin': serverStatusLoading }" />
+					<RefreshCwIcon v-if="serverStatusLoading" class="animate-spin" />
+					<ServerIcon v-else />
+					Игроки
 				</button>
-			</article>
-
-			<article class="eden-panel eden-network-panel">
-				<div class="eden-panel__icon eden-panel__icon--network"><ShieldCheckIcon /></div>
-				<div class="eden-panel__body">
-					<div class="eden-panel__eyebrow">СЕТЬ</div>
-					<h2>RF‑режим</h2>
-					<p>
-						Прямые API/CDN‑маршруты и системный прокси; авторизация не проходит через сторонние
-						реле.
-					</p>
-				</div>
-				<label class="eden-switch">
-					<input v-model="rfMode" type="checkbox" @change="updateRfMode" />
-					<span aria-hidden="true"></span>
-				</label>
 			</article>
 
 			<article class="eden-panel eden-social-panel">
@@ -481,38 +351,6 @@ onUnmounted(() => {
 						<DiscordIcon /> DS
 					</button>
 				</div>
-			</article>
-
-			<article class="eden-panel eden-repair-panel">
-				<div class="eden-panel__icon"><WrenchIcon /></div>
-				<div class="eden-panel__body">
-					<div class="eden-panel__eyebrow">ВОССТАНОВЛЕНИЕ</div>
-					<h2>Проверить сборку</h2>
-					<p>Повторно загрузит официальный пакет и восстановит отсутствующие файлы.</p>
-				</div>
-				<button
-					class="eden-panel-action"
-					:disabled="repairing || installing || offline"
-					@click="repairInstalledEdenWorld"
-				>
-					<RefreshCwIcon v-if="repairing" class="animate-spin" />
-					<WrenchIcon v-else />
-					{{ repairing ? 'Восстановление…' : edenWorldInstance ? 'Исправить' : 'Установить' }}
-				</button>
-			</article>
-
-			<article class="eden-panel eden-diagnostics-panel">
-				<div class="eden-panel__icon"><CpuIcon /></div>
-				<div class="eden-panel__body">
-					<div class="eden-panel__eyebrow">ДИАГНОСТИКА</div>
-					<h2>Проверка системы</h2>
-					<p>Сеть, сервер, Java 21, оперативная память и профиль EdenWorld.</p>
-				</div>
-				<button class="eden-panel-action" :disabled="diagnosticsRunning" @click="runDiagnostics">
-					<RefreshCwIcon v-if="diagnosticsRunning" class="animate-spin" />
-					<ShieldCheckIcon v-else />
-					Проверить
-				</button>
 			</article>
 		</section>
 
@@ -552,56 +390,42 @@ onUnmounted(() => {
 			/>
 		</section>
 
-		<NewModal ref="diagnosticsModal" header="Диагностика EdenLauncher" max-width="620px">
-			<div class="eden-diagnostics-modal">
-				<div v-if="diagnosticsRunning" class="eden-diagnostics-loading">
+		<NewModal ref="playersModal" header="Игроки EdenWorld" max-width="560px">
+			<div class="eden-players-modal">
+				<div v-if="serverStatusLoading" class="eden-players-state">
 					<RefreshCwIcon class="animate-spin" />
-					<div>
-						<strong>Проверяем систему…</strong>
-						<span>Обычно это занимает несколько секунд.</span>
-					</div>
+					<span>Обновляем список игроков…</span>
+				</div>
+				<div v-else-if="serverStatusFailed || !serverStatus" class="eden-players-state">
+					<ServerIcon />
+					<span>Сервер сейчас не отвечает.</span>
+				</div>
+				<div v-else-if="(serverStatus.players?.online ?? 0) === 0" class="eden-players-state">
+					<ServerIcon />
+					<span>Сейчас на сервере никого нет.</span>
 				</div>
 				<template v-else>
-					<div
-						class="eden-diagnostics-summary"
-						:class="{ 'eden-diagnostics-summary--warning': !diagnosticsHealthy }"
-					>
-						<CheckCircleIcon v-if="diagnosticsHealthy" />
-						<WrenchIcon v-else />
-						<div>
-							<strong>{{ diagnosticsHealthy ? 'Система готова к игре' : 'Есть рекомендации' }}</strong>
-							<span>
-								{{
-									diagnosticsHealthy
-										? 'Все основные компоненты работают корректно.'
-										: 'Проверьте отмеченные пункты перед запуском игры.'
-								}}
-							</span>
+					<div class="eden-players-summary">
+						<strong>Онлайн {{ serverStatus.players?.online ?? 0 }} игроков</strong>
+						<span>Максимум: {{ serverStatus.players?.max ?? '—' }}</span>
+					</div>
+					<div v-if="onlinePlayers.length" class="eden-players-list">
+						<div v-for="player in onlinePlayers" :key="player.id || player.name">
+							<span>{{ player.name.slice(0, 1).toUpperCase() }}</span>
+							<strong>{{ player.name }}</strong>
 						</div>
 					</div>
-
-					<div class="eden-diagnostics-list">
-						<div
-							v-for="result in diagnosticResults"
-							:key="result.label"
-							class="eden-diagnostic-row"
-							:class="`eden-diagnostic-row--${result.status}`"
-						>
-							<CheckCircleIcon v-if="result.status === 'success'" />
-							<XCircleIcon v-else-if="result.status === 'error'" />
-							<WrenchIcon v-else />
-							<div>
-								<strong>{{ result.label }}</strong>
-								<span>{{ result.details }}</span>
-							</div>
-						</div>
-					</div>
-
-					<button class="eden-button eden-button--primary ml-auto" @click="runDiagnostics">
-						<RefreshCwIcon />
-						Проверить снова
-					</button>
+					<p v-else class="eden-players-hidden">
+						Сервер передал количество игроков, но скрыл их ники.
+					</p>
+					<p v-if="hiddenOnlinePlayers > 0 && onlinePlayers.length" class="eden-players-hidden">
+						Ещё {{ hiddenOnlinePlayers }} игроков не отображаются в публичном ответе сервера.
+					</p>
 				</template>
+				<button class="eden-panel-action ml-auto" :disabled="serverStatusLoading" @click="fetchServerStatus">
+					<RefreshCwIcon :class="{ 'animate-spin': serverStatusLoading }" />
+					Обновить
+				</button>
 			</div>
 		</NewModal>
 	</div>
@@ -618,7 +442,8 @@ onUnmounted(() => {
 }
 
 .eden-home--asuna,
-.eden-home--error {
+.eden-home--error,
+.eden-home--custom {
 	background: transparent;
 }
 
@@ -655,6 +480,21 @@ onUnmounted(() => {
 			rgba(255, 246, 251, 0.08) 79%
 		),
 		linear-gradient(0deg, rgba(255, 244, 250, 0.5), transparent 58%);
+}
+
+.eden-home--custom-light .eden-hero__veil {
+	background:
+		linear-gradient(
+			90deg,
+			rgba(250, 248, 252, 0.96) 0%,
+			rgba(250, 248, 252, 0.78) 44%,
+			rgba(250, 248, 252, 0.08) 80%
+		),
+		linear-gradient(0deg, rgba(250, 248, 252, 0.48), transparent 58%);
+}
+
+.eden-home--custom-light :is(.eden-title-row p, .eden-lead) {
+	color: rgba(30, 24, 34, 0.76);
 }
 
 .eden-home--asuna .eden-title-row h1 {
@@ -847,11 +687,6 @@ onUnmounted(() => {
 	background: var(--color-brand-highlight);
 }
 
-.eden-panel__icon--network {
-	color: var(--color-link);
-	background: var(--color-brand-highlight);
-}
-
 .eden-panel__icon--social {
 	color: var(--color-link);
 	background: var(--color-brand-highlight);
@@ -969,48 +804,6 @@ onUnmounted(() => {
 	cursor: not-allowed;
 }
 
-.eden-switch {
-	position: relative;
-	display: inline-flex;
-	flex: 0 0 auto;
-	cursor: pointer;
-}
-
-.eden-switch input {
-	position: absolute;
-	opacity: 0;
-}
-
-.eden-switch span {
-	position: relative;
-	width: 2.65rem;
-	height: 1.5rem;
-	border-radius: 1rem;
-	background: var(--surface-5);
-	transition: 160ms ease;
-}
-
-.eden-switch span::after {
-	content: '';
-	position: absolute;
-	top: 0.22rem;
-	left: 0.22rem;
-	width: 1.06rem;
-	height: 1.06rem;
-	border-radius: 50%;
-	background: #fff;
-	transition: 160ms ease;
-}
-
-.eden-switch input:checked + span {
-	background: var(--color-brand);
-	box-shadow: 0 0 1rem var(--color-brand-highlight);
-}
-
-.eden-switch input:checked + span::after {
-	transform: translateX(1.14rem);
-}
-
 .eden-social-actions {
 	display: flex;
 	gap: 0.45rem;
@@ -1053,89 +846,80 @@ onUnmounted(() => {
 	font-size: 1.45rem;
 }
 
-.eden-diagnostics-modal {
+.eden-players-modal {
 	display: flex;
-	min-height: 14rem;
+	min-height: 12rem;
 	flex-direction: column;
 	gap: 1rem;
 	padding: 1.25rem;
 }
 
-.eden-diagnostics-loading,
-.eden-diagnostics-summary,
-.eden-diagnostic-row {
+.eden-players-state,
+.eden-players-summary {
 	display: flex;
 	align-items: center;
 	gap: 0.8rem;
 }
 
-.eden-diagnostics-loading {
-	min-height: 12rem;
+.eden-players-state {
+	min-height: 8rem;
 	justify-content: center;
+	color: var(--color-text-tertiary);
 }
 
-.eden-diagnostics-loading > svg,
-.eden-diagnostics-summary > svg,
-.eden-diagnostic-row > svg {
+.eden-players-state > svg {
 	width: 1.35rem;
 	height: 1.35rem;
 	flex: 0 0 1.35rem;
 }
 
-.eden-diagnostics-loading div,
-.eden-diagnostics-summary div,
-.eden-diagnostic-row div {
-	display: flex;
-	min-width: 0;
-	flex-direction: column;
-	gap: 0.18rem;
+.eden-players-summary {
+	justify-content: space-between;
+	padding: 0.9rem 1rem;
+	border: 1px solid var(--color-button-border);
+	border-radius: 0.9rem;
+	background: var(--color-brand-highlight);
 }
 
-.eden-diagnostics-loading span,
-.eden-diagnostics-summary span,
-.eden-diagnostic-row span {
+.eden-players-summary span,
+.eden-players-hidden {
 	color: var(--color-text-tertiary);
 	font-size: 0.76rem;
 	line-height: 1.4;
 }
 
-.eden-diagnostics-summary {
-	padding: 1rem;
-	border: 1px solid rgba(56, 217, 150, 0.28);
-	border-radius: 1rem;
-	color: #38d996;
-	background: rgba(56, 217, 150, 0.08);
-}
-
-.eden-diagnostics-summary--warning {
-	border-color: var(--color-button-border);
-	color: var(--color-link);
-	background: var(--color-brand-highlight);
-}
-
-.eden-diagnostics-list {
-	display: flex;
-	flex-direction: column;
+.eden-players-list {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 0.55rem;
 }
 
-.eden-diagnostic-row {
-	padding: 0.75rem;
+.eden-players-list > div {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	padding: 0.65rem;
 	border: 1px solid var(--color-divider);
-	border-radius: 0.85rem;
+	border-radius: 0.8rem;
 	background: var(--surface-2);
 }
 
-.eden-diagnostic-row--success > svg {
-	color: #38d996;
+.eden-players-list > div > span {
+	display: grid;
+	width: 2rem;
+	height: 2rem;
+	place-items: center;
+	border-radius: 0.6rem;
+	color: var(--color-accent-contrast);
+	background: var(--color-brand);
+	font-weight: 850;
 }
 
-.eden-diagnostic-row--warning > svg {
-	color: var(--color-link);
-}
-
-.eden-diagnostic-row--error > svg {
-	color: var(--color-red);
+.eden-players-hidden {
+	margin: 0;
+	padding: 0.75rem;
+	border-radius: 0.8rem;
+	background: var(--surface-2);
 }
 
 @media (max-width: 1240px) {

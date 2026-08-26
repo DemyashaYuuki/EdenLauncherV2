@@ -5,7 +5,6 @@ import { fetch } from '@tauri-apps/plugin-http'
 import {
 	install_create_modpack_instance,
 	install_get_modpack_preview,
-	install_pack_to_existing_instance,
 	wait_for_install_job,
 } from '@/helpers/install'
 
@@ -14,7 +13,6 @@ const EDENWORLD_PACK_NAME = 'EdenWorld-1.21.11.mrpack'
 const EDENWORLD_DOWNLOAD_DIRECTORY = 'profiles/.edenworld'
 const EDENWORLD_RELATIVE_PATH = `${EDENWORLD_DOWNLOAD_DIRECTORY}/${EDENWORLD_PACK_NAME}`
 
-const EDENWORLD_STANDARD_DOWNLOAD_URL = `https://drive.google.com/uc?export=download&confirm=t&id=${EDENWORLD_FILE_ID}`
 const EDENWORLD_RF_DOWNLOAD_URL = `https://drive.usercontent.google.com/download?id=${EDENWORLD_FILE_ID}&export=download&confirm=t`
 
 export const EDENWORLD_PROJECT_URL = 'https://edenworld.fun/'
@@ -32,25 +30,19 @@ async function removeDownloadedPack() {
 	}
 }
 
-async function downloadPack(
-	rfMode: boolean,
-	onProgress: (progress: EdenWorldInstallProgress) => void,
-) {
+async function downloadPack(onProgress: (progress: EdenWorldInstallProgress) => void) {
 	await mkdir(EDENWORLD_DOWNLOAD_DIRECTORY, {
 		baseDir: BaseDirectory.AppData,
 		recursive: true,
 	})
 	await removeDownloadedPack()
 
-	const response = await fetch(
-		rfMode ? EDENWORLD_RF_DOWNLOAD_URL : EDENWORLD_STANDARD_DOWNLOAD_URL,
-		{
-			method: 'GET',
-			headers: {
-				Accept: 'application/octet-stream',
-			},
+	const response = await fetch(EDENWORLD_RF_DOWNLOAD_URL, {
+		method: 'GET',
+		headers: {
+			Accept: 'application/octet-stream',
 		},
-	)
+	})
 
 	if (!response.ok || !response.body) {
 		throw new Error(`Не удалось загрузить сборку EdenWorld: HTTP ${response.status}`)
@@ -82,10 +74,9 @@ async function downloadPack(
 }
 
 export async function downloadAndInstallEdenWorld(
-	rfMode: boolean,
 	onProgress: (progress: EdenWorldInstallProgress) => void,
 ) {
-	const packPath = await downloadPack(rfMode, onProgress)
+	const packPath = await downloadPack(onProgress)
 	const location = { type: 'fromFile' as const, path: packPath }
 
 	try {
@@ -97,27 +88,6 @@ export async function downloadAndInstallEdenWorld(
 		const job = await install_create_modpack_instance(location, {
 			name: 'EdenWorld 1.21.11',
 		})
-		return await wait_for_install_job(job.job_id)
-	} finally {
-		await removeDownloadedPack().catch(() => undefined)
-	}
-}
-
-export async function repairEdenWorld(
-	instanceId: string,
-	rfMode: boolean,
-	onProgress: (progress: EdenWorldInstallProgress) => void,
-) {
-	const packPath = await downloadPack(rfMode, onProgress)
-	const location = { type: 'fromFile' as const, path: packPath }
-
-	try {
-		const preview = await install_get_modpack_preview(location)
-		if (!preview.name.toLocaleLowerCase().includes('edenworld')) {
-			throw new Error('Загруженный архив не является официальной сборкой EdenWorld.')
-		}
-
-		const job = await install_pack_to_existing_instance(instanceId, location)
 		return await wait_for_install_job(job.job_id)
 	} finally {
 		await removeDownloadedPack().catch(() => undefined)

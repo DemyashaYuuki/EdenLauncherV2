@@ -11,12 +11,18 @@ type FirstRunSettings = {
 	installPack: boolean
 	locale: string
 	memoryMb: number
-	rfMode: boolean
 }
 
 const emit = defineEmits<{
 	complete: [settings: FirstRunSettings]
 }>()
+
+const steps = [
+	{ title: 'Знакомство', description: 'Что настроит лаунчер' },
+	{ title: 'Игра', description: 'Язык и оперативная память' },
+	{ title: 'Возможности', description: 'Сборка и обновления' },
+	{ title: 'Готово', description: 'Проверка настроек' },
+]
 
 const step = ref(0)
 const autoUpdates = ref(true)
@@ -25,11 +31,20 @@ const installPack = ref(true)
 const locale = ref('ru-RU')
 const memoryMb = ref(4096)
 const maxMemoryMb = ref(8192)
-const rfMode = ref(true)
 
 const memoryLabel = computed(() => {
 	const gigabytes = memoryMb.value / 1024
 	return `${Number.isInteger(gigabytes) ? gigabytes : gigabytes.toFixed(1)} ГБ`
+})
+const memoryOptions = computed(() => {
+	const candidates = [2048, 4096, 6144, 8192].filter((value) => value <= maxMemoryMb.value)
+	if (!candidates.includes(memoryMb.value)) candidates.push(memoryMb.value)
+	return candidates.sort((a, b) => a - b)
+})
+const localeLabel = computed(() => {
+	if (locale.value === 'uk-UA') return 'Українська'
+	if (locale.value === 'en-US') return 'English'
+	return 'Русский'
 })
 
 onMounted(async () => {
@@ -48,7 +63,6 @@ function finish() {
 		installPack: installPack.value,
 		locale: locale.value,
 		memoryMb: memoryMb.value,
-		rfMode: rfMode.value,
 	})
 }
 </script>
@@ -64,78 +78,90 @@ function finish() {
 				<div>
 					<p class="eden-onboarding__eyebrow">EDENLAUNCHER</p>
 					<h1>Первоначальная настройка</h1>
+					<p>Шаг {{ step + 1 }} из {{ steps.length }} · {{ steps[step]?.description }}</p>
 				</div>
 			</header>
 
-			<div class="eden-onboarding__steps" aria-hidden="true">
-				<span v-for="index in 5" :key="index" :class="{ active: step >= index - 1 }"></span>
-			</div>
+			<nav class="eden-onboarding__steps" aria-label="Шаги настройки">
+				<button
+					v-for="(item, index) in steps"
+					:key="item.title"
+					type="button"
+					:class="{ active: step === index, complete: step > index }"
+					:disabled="index > step"
+					@click="step = index"
+				>
+					<span><CheckIcon v-if="step > index" /><template v-else>{{ index + 1 }}</template></span>
+					<strong>{{ item.title }}</strong>
+				</button>
+			</nav>
 
 			<div v-if="step === 0" class="eden-onboarding__content">
 				<div class="eden-onboarding__hero-icon"><RocketIcon /></div>
-				<h2>Добро пожаловать в EdenLauncher</h2>
+				<h2>Подготовим лаунчер к игре</h2>
 				<p>
-					За несколько шагов настроим язык, память Minecraft, подключение к EdenWorld и обновления
-					лаунчера.
+					Нужно выбрать только язык, объём памяти и нужные функции. Подключение для России уже
+					настроено и включается автоматически.
 				</p>
 				<div class="eden-onboarding__features">
-					<div><DownloadIcon /><span>Установка сборки в один клик</span></div>
-					<div><GlobeIcon /><span>Сайт и сообщества EdenWorld</span></div>
-					<div><ShieldCheckIcon /><span>Режим соединения для РФ</span></div>
+					<div><DownloadIcon /><strong>Сборка EdenWorld</strong><span>Можно установить сразу</span></div>
+					<div><GlobeIcon /><strong>Русский интерфейс</strong><span>Выбран по умолчанию</span></div>
+					<div><ShieldCheckIcon /><strong>Стабильная загрузка</strong><span>RF-маршрут уже активен</span></div>
 				</div>
 			</div>
 
 			<div v-else-if="step === 1" class="eden-onboarding__content">
-				<h2>Язык и оперативная память</h2>
-				<p>Эти параметры можно изменить позже в настройках EdenLauncher.</p>
-				<label class="eden-onboarding__field">
-					<span>Язык интерфейса</span>
-					<select v-model="locale">
-						<option value="ru-RU">Русский</option>
-						<option value="uk-UA">Українська</option>
-						<option value="en-US">English</option>
-					</select>
-				</label>
-				<label class="eden-onboarding__field">
-					<span class="eden-onboarding__field-heading">
-						<span>ОЗУ для Minecraft</span>
-						<strong>{{ memoryLabel }}</strong>
-					</span>
-					<input v-model.number="memoryMb" type="range" min="1024" :max="maxMemoryMb" step="512" />
-					<small>Доступно системе: до {{ Math.round(maxMemoryMb / 1024) }} ГБ</small>
-				</label>
+				<h2>Основные настройки игры</h2>
+				<p>Выберите язык и сколько оперативной памяти Minecraft сможет использовать.</p>
+				<div class="eden-onboarding__form-grid">
+					<label class="eden-onboarding__field">
+						<span>Язык интерфейса</span>
+						<select v-model="locale">
+							<option value="ru-RU">Русский</option>
+							<option value="uk-UA">Українська</option>
+							<option value="en-US">English</option>
+						</select>
+						<small>Эту настройку можно изменить позже.</small>
+					</label>
+					<div class="eden-onboarding__field">
+						<span class="eden-onboarding__field-heading">
+							<span>ОЗУ для Minecraft</span>
+							<strong>{{ memoryLabel }}</strong>
+						</span>
+						<div class="eden-onboarding__memory-options">
+							<button
+								v-for="option in memoryOptions"
+								:key="option"
+								type="button"
+								:class="{ active: memoryMb === option }"
+								@click="memoryMb = option"
+							>
+								{{ option / 1024 }} ГБ
+							</button>
+						</div>
+						<input v-model.number="memoryMb" type="range" min="1024" :max="maxMemoryMb" step="512" />
+						<small>Рекомендуется 4–6 ГБ. Доступно системе: до {{ Math.round(maxMemoryMb / 1024) }} ГБ.</small>
+					</div>
+				</div>
 			</div>
 
 			<div v-else-if="step === 2" class="eden-onboarding__content">
-				<h2>Сборка EdenWorld</h2>
-				<p>Лаунчер может сразу загрузить официальную сборку и создать готовый профиль.</p>
+				<h2>Что включить сразу</h2>
+				<p>Все пункты можно изменить позже. Рекомендуемые настройки уже отмечены.</p>
 				<label class="eden-onboarding__option">
 					<input v-model="installPack" type="checkbox" />
 					<span class="eden-onboarding__check"><CheckIcon /></span>
 					<span>
-						<strong>Установить сборку EdenWorld сейчас</strong>
+						<strong>Установить официальную сборку EdenWorld</strong>
 						<small>Загрузка начнётся после завершения настройки.</small>
 					</span>
 				</label>
-				<label class="eden-onboarding__option" :class="{ disabled: !installPack }">
-					<input v-model="rfMode" type="checkbox" :disabled="!installPack" />
-					<span class="eden-onboarding__check"><CheckIcon /></span>
-					<span>
-						<strong>Использовать режим соединения для РФ</strong>
-						<small>Включает альтернативный маршрут загрузки сборки.</small>
-					</span>
-				</label>
-			</div>
-
-			<div v-else-if="step === 3" class="eden-onboarding__content">
-				<h2>Возможности лаунчера</h2>
-				<p>Выберите, какие фоновые функции будут включены.</p>
 				<label class="eden-onboarding__option">
 					<input v-model="autoUpdates" type="checkbox" />
 					<span class="eden-onboarding__check"><CheckIcon /></span>
 					<span>
 						<strong>Автоматически устанавливать обновления</strong>
-						<small>Проверка GitHub выполняется при запуске и каждые 30 минут.</small>
+						<small>Лаунчер будет получать новые версии с GitHub без ручной переустановки.</small>
 					</span>
 				</label>
 				<label class="eden-onboarding__option">
@@ -143,28 +169,32 @@ function finish() {
 					<span class="eden-onboarding__check"><CheckIcon /></span>
 					<span>
 						<strong>Показывать EdenLauncher в Discord</strong>
-						<small>Discord будет отображать состояние игры и логотип EdenLauncher.</small>
+						<small>В профиле Discord появятся название, логотип и состояние игры.</small>
 					</span>
 				</label>
 			</div>
 
 			<div v-else class="eden-onboarding__content eden-onboarding__finish">
 				<div class="eden-onboarding__hero-icon"><CheckIcon /></div>
-				<h2>Всё готово</h2>
-				<p>
-					Выбрано {{ memoryLabel }} ОЗУ. Игровой аккаунт можно добавить через иконку пользователя в
-					верхней панели.
-				</p>
-				<a href="https://edenworld.fun/" target="_blank" rel="noopener noreferrer">
-					Открыть сайт EdenWorld
-				</a>
+				<h2>Проверьте настройки</h2>
+				<div class="eden-onboarding__summary">
+					<div><span>Язык</span><strong>{{ localeLabel }}</strong></div>
+					<div><span>Оперативная память</span><strong>{{ memoryLabel }}</strong></div>
+					<div><span>Сборка EdenWorld</span><strong>{{ installPack ? 'Установить' : 'Пропустить' }}</strong></div>
+					<div><span>Автообновления</span><strong>{{ autoUpdates ? 'Включены' : 'Выключены' }}</strong></div>
+					<div><span>Discord</span><strong>{{ discordRpc ? 'Включён' : 'Выключен' }}</strong></div>
+					<div><span>Подключение для РФ</span><strong>Включено автоматически</strong></div>
+				</div>
+				<p>Аккаунт Minecraft добавляется через иконку пользователя в верхней панели.</p>
 			</div>
 
 			<footer class="eden-onboarding__actions">
 				<button v-if="step > 0" class="secondary" @click="step--">Назад</button>
 				<span v-else></span>
-				<button v-if="step < 4" class="primary" @click="step++">Продолжить</button>
-				<button v-else class="primary" @click="finish">Начать</button>
+				<button v-if="step < steps.length - 1" class="primary" @click="step++">
+					Далее: {{ steps[step + 1]?.title }}
+				</button>
+				<button v-else class="primary" @click="finish">Сохранить и начать</button>
 			</footer>
 		</section>
 	</div>
@@ -210,22 +240,29 @@ function finish() {
 .eden-onboarding__card {
 	position: relative;
 	display: flex;
-	width: min(720px, 94vw);
-	min-height: 590px;
+	width: min(780px, 94vw);
+	min-height: 620px;
 	flex-direction: column;
 	padding: 2rem;
 	border: 1px solid rgba(211, 166, 255, 0.2);
 	border-radius: 28px;
 	background: linear-gradient(160deg, rgba(36, 18, 58, 0.97), rgba(16, 10, 25, 0.98));
-	box-shadow:
-		0 32px 90px rgba(0, 0, 0, 0.55),
-		0 0 60px rgba(139, 61, 238, 0.12);
+	box-shadow: 0 32px 90px rgba(0, 0, 0, 0.55);
 }
 
 .eden-onboarding__header {
 	display: flex;
 	align-items: center;
 	gap: 1rem;
+}
+
+.eden-onboarding__header > div:last-child {
+	min-width: 0;
+}
+
+.eden-onboarding__header p:last-child {
+	margin: 0.25rem 0 0;
+	font-size: 0.8rem;
 }
 
 .eden-onboarding__logo {
@@ -244,49 +281,94 @@ function finish() {
 	letter-spacing: 0.2em;
 }
 
-.eden-onboarding h1 {
+.eden-onboarding h1,
+.eden-onboarding h2 {
 	margin: 0;
+}
+
+.eden-onboarding h1 {
 	font-size: 1.55rem;
 }
 
 .eden-onboarding h2 {
-	margin: 1rem 0 0.5rem;
-	font-size: 1.85rem;
+	font-size: 1.75rem;
 }
 
 .eden-onboarding p {
 	color: #cbbbdc;
-	line-height: 1.62;
+	line-height: 1.55;
 }
 
 .eden-onboarding__steps {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 0.55rem;
+	margin: 1.4rem 0 1rem;
+}
+
+.eden-onboarding__steps button {
 	display: flex;
+	min-width: 0;
+	align-items: center;
 	gap: 0.5rem;
-	margin: 1.6rem 0 0.7rem;
+	padding: 0.55rem;
+	border: 1px solid rgba(255, 255, 255, 0.09);
+	border-radius: 12px;
+	color: #9d8eae;
+	background: rgba(255, 255, 255, 0.035);
+	font: inherit;
+	font-size: 0.72rem;
+	cursor: pointer;
 }
 
-.eden-onboarding__steps span {
-	height: 4px;
-	flex: 1;
-	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.1);
-	transition: 0.25s ease;
+.eden-onboarding__steps button:disabled {
+	cursor: default;
 }
 
-.eden-onboarding__steps span.active {
-	background: linear-gradient(90deg, #7d2be8, #c578ff);
-	box-shadow: 0 0 12px rgba(190, 112, 255, 0.45);
+.eden-onboarding__steps button.active,
+.eden-onboarding__steps button.complete {
+	border-color: rgba(190, 112, 255, 0.35);
+	color: #f3e8ff;
+	background: rgba(157, 77, 255, 0.12);
+}
+
+.eden-onboarding__steps button > span {
+	display: grid;
+	width: 1.55rem;
+	height: 1.55rem;
+	flex: 0 0 auto;
+	place-items: center;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.08);
+}
+
+.eden-onboarding__steps button.active > span,
+.eden-onboarding__steps button.complete > span {
+	background: linear-gradient(135deg, #7d2be8, #b866ff);
+	color: white;
+}
+
+.eden-onboarding__steps svg {
+	width: 0.9rem;
 }
 
 .eden-onboarding__content {
+	display: flex;
 	flex: 1;
+	flex-direction: column;
+	justify-content: center;
 	padding: 1rem 0;
+}
+
+.eden-onboarding__content > p {
+	margin: 0.65rem 0 0;
 }
 
 .eden-onboarding__hero-icon {
 	display: grid;
-	width: 66px;
-	height: 66px;
+	width: 64px;
+	height: 64px;
+	margin-bottom: 1rem;
 	place-items: center;
 	border-radius: 20px;
 	background: rgba(163, 82, 255, 0.15);
@@ -294,39 +376,50 @@ function finish() {
 }
 
 .eden-onboarding__hero-icon :deep(svg) {
-	width: 32px;
-	height: 32px;
+	width: 31px;
+	height: 31px;
 }
 
 .eden-onboarding__features {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	gap: 0.8rem;
-	margin-top: 1.5rem;
+	margin-top: 1.35rem;
 }
 
 .eden-onboarding__features div {
 	display: flex;
 	min-height: 118px;
 	flex-direction: column;
-	gap: 0.75rem;
+	gap: 0.45rem;
 	padding: 1rem;
 	border: 1px solid rgba(199, 138, 255, 0.16);
 	border-radius: 18px;
 	background: rgba(199, 138, 255, 0.06);
-	color: #e8d9f8;
 }
 
 .eden-onboarding__features :deep(svg) {
 	width: 24px;
+	margin-bottom: 0.25rem;
 	color: #bd7dff;
+}
+
+.eden-onboarding__features span {
+	color: #aa97bd;
+	font-size: 0.75rem;
+}
+
+.eden-onboarding__form-grid {
+	display: grid;
+	grid-template-columns: 0.8fr 1.2fr;
+	gap: 0.9rem;
+	margin-top: 1rem;
 }
 
 .eden-onboarding__field,
 .eden-onboarding__option {
 	display: flex;
-	margin-top: 1rem;
-	padding: 1.1rem;
+	padding: 1rem;
 	border: 1px solid rgba(199, 138, 255, 0.22);
 	border-radius: 18px;
 	background: rgba(157, 77, 255, 0.08);
@@ -334,7 +427,7 @@ function finish() {
 
 .eden-onboarding__field {
 	flex-direction: column;
-	gap: 0.8rem;
+	gap: 0.75rem;
 	font-weight: 700;
 }
 
@@ -365,16 +458,37 @@ function finish() {
 .eden-onboarding__field small {
 	color: #aa97bd;
 	font-weight: 400;
+	line-height: 1.45;
+}
+
+.eden-onboarding__memory-options {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.4rem;
+}
+
+.eden-onboarding__memory-options button {
+	padding: 0.5rem;
+	border: 1px solid rgba(207, 158, 255, 0.28);
+	border-radius: 10px;
+	color: #dbcbea;
+	background: rgba(255, 255, 255, 0.05);
+	font: inherit;
+	font-size: 0.75rem;
+	cursor: pointer;
+}
+
+.eden-onboarding__memory-options button.active {
+	border-color: #b866ff;
+	background: rgba(184, 102, 255, 0.2);
+	color: white;
 }
 
 .eden-onboarding__option {
 	align-items: flex-start;
 	gap: 1rem;
+	margin-top: 0.7rem;
 	cursor: pointer;
-}
-
-.eden-onboarding__option.disabled {
-	opacity: 0.45;
 }
 
 .eden-onboarding__option input {
@@ -410,23 +524,44 @@ function finish() {
 }
 
 .eden-onboarding__option small {
-	margin-top: 0.4rem;
+	margin-top: 0.35rem;
 	color: #aa97bd;
-	line-height: 1.45;
+	line-height: 1.4;
 }
 
 .eden-onboarding__finish {
-	display: flex;
-	flex-direction: column;
 	align-items: center;
-	justify-content: center;
 	text-align: center;
 }
 
-.eden-onboarding__finish a {
-	margin-top: 0.8rem;
-	color: #c98aff;
-	font-weight: 700;
+.eden-onboarding__summary {
+	display: grid;
+	width: 100%;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 0.55rem;
+	margin-top: 1.1rem;
+	text-align: left;
+}
+
+.eden-onboarding__summary div {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	padding: 0.7rem 0.8rem;
+	border: 1px solid rgba(199, 138, 255, 0.16);
+	border-radius: 12px;
+	background: rgba(199, 138, 255, 0.06);
+}
+
+.eden-onboarding__summary span {
+	color: #aa97bd;
+	font-size: 0.75rem;
+}
+
+.eden-onboarding__summary strong {
+	font-size: 0.78rem;
+	text-align: right;
 }
 
 .eden-onboarding__actions {
@@ -434,7 +569,7 @@ function finish() {
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
-	padding-top: 1.2rem;
+	padding-top: 1rem;
 }
 
 .eden-onboarding__actions button {
@@ -446,9 +581,7 @@ function finish() {
 	font: inherit;
 	font-weight: 750;
 	cursor: pointer;
-	transition:
-		transform 0.15s ease,
-		filter 0.15s ease;
+	transition: 0.15s ease;
 }
 
 .eden-onboarding__actions button:hover {
@@ -466,19 +599,24 @@ function finish() {
 	color: #dbcbea;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 760px) {
 	.eden-onboarding {
 		padding: 1rem;
 	}
 
 	.eden-onboarding__card {
 		min-height: auto;
-		padding: 1.35rem;
+		padding: 1.3rem;
 	}
 
-	.eden-onboarding__features {
+	.eden-onboarding__steps strong {
+		display: none;
+	}
+
+	.eden-onboarding__features,
+	.eden-onboarding__form-grid,
+	.eden-onboarding__summary {
 		grid-template-columns: 1fr;
 	}
 }
 </style>
-

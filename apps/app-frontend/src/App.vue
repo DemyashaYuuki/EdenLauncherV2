@@ -284,7 +284,7 @@ async function checkForLauncherUpdate(autoInstall = true) {
 	}
 }
 
-async function installOnboardingPack(rfMode) {
+async function installOnboardingPack() {
 	addNotification({
 		title: 'Установка EdenWorld',
 		text: 'Сборка загружается и будет установлена автоматически.',
@@ -293,7 +293,7 @@ async function installOnboardingPack(rfMode) {
 	})
 
 	try {
-		const job = await downloadAndInstallEdenWorld(rfMode, () => undefined)
+		const job = await downloadAndInstallEdenWorld(() => undefined)
 		const instanceId = job.instance_id ?? job.target?.instance_id
 		addNotification({
 			title: 'Сборка EdenWorld установлена',
@@ -313,7 +313,6 @@ async function completeFirstRun({
 	installPack,
 	locale,
 	memoryMb,
-	rfMode,
 }) {
 	const settings = await getSettings()
 	settings.locale = locale
@@ -326,12 +325,11 @@ async function completeFirstRun({
 	settings.onboarded = true
 	await setSettings(settings)
 
-	window.localStorage.setItem('edenlauncher-rf-mode', String(rfMode))
 	i18n.global.locale.value = locale
 	themeStore.setThemeState('dark')
 	showOnboarding.value = false
 	void checkForLauncherUpdate(autoUpdates)
-	if (installPack) void installOnboardingPack(rfMode)
+	if (installPack) void installOnboardingPack()
 }
 
 async function setupApp() {
@@ -1117,4 +1115,3 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	}
 }
 </style>
-

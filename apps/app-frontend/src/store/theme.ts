@@ -5,8 +5,10 @@ export const DEFAULT_ACCENT_COLOR = '#AC58F5'
 const ACCENT_COLOR_STORAGE_KEY = 'edenlauncher-accent-color'
 const BASE_THEME_STORAGE_KEY = 'edenlauncher-base-theme'
 const VISUAL_THEME_STORAGE_KEY = 'edenlauncher-visual-theme'
+const CUSTOM_THEME_STORAGE_KEY = 'edenlauncher-custom-theme'
 const LEGACY_THEME_OPTIONS = ['dark', 'light', 'oled', 'retro', 'system'] as const
-const VISUAL_THEME_OPTIONS = ['standard', 'asuna', 'error'] as const
+const VISUAL_THEME_OPTIONS = ['standard', 'asuna', 'error', 'custom'] as const
+const BUTTON_EFFECT_OPTIONS = ['none', 'pulse', 'wave', 'interference'] as const
 const ACCENT_COLOR_PATTERN = /^#[0-9A-F]{6}$/
 const ACCENT_PALETTE_NAMES = ['red', 'orange', 'green', 'blue', 'purple'] as const
 const PLATFORM_COLOR_NAMES = [
@@ -62,11 +64,29 @@ export type FeatureFlags = Record<FeatureFlag, boolean>
 export type ColorTheme = (typeof LEGACY_THEME_OPTIONS)[number]
 export type LauncherTheme = 'dark' | 'light'
 export type LauncherVisualTheme = (typeof VISUAL_THEME_OPTIONS)[number]
+export type LauncherButtonEffect = (typeof BUTTON_EFFECT_OPTIONS)[number]
+
+export type CustomLauncherTheme = {
+	name: string
+	backgroundDataUrl: string
+	accentColor: string
+	baseTheme: LauncherTheme
+	buttonEffect: LauncherButtonEffect
+}
+
+export const DEFAULT_CUSTOM_THEME: CustomLauncherTheme = {
+	name: 'Моя тема',
+	backgroundDataUrl: '',
+	accentColor: DEFAULT_ACCENT_COLOR,
+	baseTheme: 'dark',
+	buttonEffect: 'pulse',
+}
 
 export type ThemeStore = {
 	selectedTheme: ColorTheme
 	visualTheme: LauncherVisualTheme
 	accentColor: string
+	customTheme: CustomLauncherTheme
 	advancedRendering: boolean
 	hideNametagSkinsPage: boolean
 
@@ -78,6 +98,7 @@ export const DEFAULT_THEME_STORE: ThemeStore = {
 	selectedTheme: 'dark',
 	visualTheme: 'standard',
 	accentColor: DEFAULT_ACCENT_COLOR,
+	customTheme: DEFAULT_CUSTOM_THEME,
 	advancedRendering: true,
 	hideNametagSkinsPage: false,
 
@@ -88,6 +109,25 @@ export const DEFAULT_THEME_STORE: ThemeStore = {
 export function normalizeAccentColor(color: string): string | null {
 	const normalized = color.trim().toUpperCase()
 	return ACCENT_COLOR_PATTERN.test(normalized) ? normalized : null
+}
+
+function normalizeCustomTheme(value: unknown): CustomLauncherTheme | null {
+	if (!value || typeof value !== 'object') return null
+
+	const candidate = value as Partial<CustomLauncherTheme>
+	const accentColor = normalizeAccentColor(candidate.accentColor ?? '')
+	if (!accentColor) return null
+
+	return {
+		name: candidate.name?.trim().slice(0, 40) || DEFAULT_CUSTOM_THEME.name,
+		backgroundDataUrl:
+			typeof candidate.backgroundDataUrl === 'string' ? candidate.backgroundDataUrl : '',
+		accentColor,
+		baseTheme: candidate.baseTheme === 'light' ? 'light' : 'dark',
+		buttonEffect: BUTTON_EFFECT_OPTIONS.includes(candidate.buttonEffect as LauncherButtonEffect)
+			? (candidate.buttonEffect as LauncherButtonEffect)
+			: DEFAULT_CUSTOM_THEME.buttonEffect,
+	}
 }
 
 function hexToRgb(color: string): RgbColor {
@@ -309,6 +349,7 @@ export function applyAccentColor(color: string, theme: LauncherTheme = 'dark'): 
 export const useTheming = defineStore('themeStore', {
 	state: (): ThemeStore => ({
 		...DEFAULT_THEME_STORE,
+		customTheme: { ...DEFAULT_CUSTOM_THEME },
 		featureFlags: { ...DEFAULT_FEATURE_FLAGS },
 	}),
 	actions: {
@@ -322,6 +363,16 @@ export const useTheming = defineStore('themeStore', {
 			}
 			this.selectedTheme = savedTheme
 
+			try {
+				const storedCustomTheme = window.localStorage.getItem(CUSTOM_THEME_STORAGE_KEY)
+				if (storedCustomTheme) {
+					const customTheme = normalizeCustomTheme(JSON.parse(storedCustomTheme))
+					if (customTheme) this.customTheme = customTheme
+				}
+			} catch (error) {
+				console.warn('Could not read the saved EdenLauncher custom theme.', error)
+			}
+
 			let savedVisualTheme: LauncherVisualTheme = 'standard'
 			try {
 				const storedVisualTheme = window.localStorage.getItem(VISUAL_THEME_STORAGE_KEY)
@@ -332,7 +383,11 @@ export const useTheming = defineStore('themeStore', {
 				console.warn('Could not read the saved EdenLauncher visual theme.', error)
 			}
 			this.visualTheme = savedVisualTheme
-			this.setThemeClass()
+			if (savedVisualTheme === 'custom') {
+				this.selectedTheme = this.customTheme.baseTheme
+				this.accentColor = this.customTheme.accentColor
+			}
+			this.setThemeClass(false)
 
 			let savedColor: string | null = null
 			try {
@@ -341,11 +396,15 @@ export const useTheming = defineStore('themeStore', {
 				console.warn('Could not read the saved EdenLauncher color.', error)
 			}
 
-			this.setAccentColor(savedColor ?? DEFAULT_ACCENT_COLOR)
+			this.setAccentColor(
+				savedVisualTheme === 'custom'
+					? this.customTheme.accentColor
+					: (savedColor ?? DEFAULT_ACCENT_COLOR),
+			)
 		},
 		setThemeState(newTheme: ColorTheme) {
 			this.selectedTheme = normalizeLauncherTheme(newTheme)
-			this.setThemeClass()
+			this.setThemeClass(true)
 
 			try {
 				window.localStorage.setItem(BASE_THEME_STORAGE_KEY, this.selectedTheme)
@@ -353,10 +412,16 @@ export const useTheming = defineStore('themeStore', {
 				console.warn('Could not save the EdenLauncher theme.', error)
 			}
 		},
-		setThemeClass() {
+		setThemeClass(animate = false) {
 			if (typeof document === 'undefined') return
 
 			const html = document.documentElement
+			if (animate) {
+				html.classList.remove('theme-transitioning')
+				void html.offsetWidth
+				html.classList.add('theme-transitioning')
+				window.setTimeout(() => html.classList.remove('theme-transitioning'), 520)
+			}
 			for (const theme of LEGACY_THEME_OPTIONS) {
 				html.classList.remove(theme, `${theme}-mode`)
 			}
@@ -367,6 +432,20 @@ export const useTheming = defineStore('themeStore', {
 			html.classList.add(`${this.selectedTheme}-mode`)
 			html.classList.add(`theme-${this.visualTheme}`)
 			html.dataset.visualTheme = this.visualTheme
+			if (this.visualTheme === 'custom') {
+				html.dataset.buttonEffect = this.customTheme.buttonEffect
+				if (this.customTheme.backgroundDataUrl) {
+					html.style.setProperty(
+						'--custom-theme-background-image',
+						`url(${JSON.stringify(this.customTheme.backgroundDataUrl)})`,
+					)
+				} else {
+					html.style.removeProperty('--custom-theme-background-image')
+				}
+			} else {
+				html.removeAttribute('data-button-effect')
+				html.style.removeProperty('--custom-theme-background-image')
+			}
 			applyAccentColor(this.accentColor, normalizeLauncherTheme(this.selectedTheme))
 		},
 		setVisualTheme(newTheme: LauncherVisualTheme) {
@@ -379,8 +458,11 @@ export const useTheming = defineStore('themeStore', {
 			} else if (newTheme === 'error') {
 				this.selectedTheme = 'dark'
 				this.accentColor = '#E11D48'
+			} else if (newTheme === 'custom') {
+				this.selectedTheme = this.customTheme.baseTheme
+				this.accentColor = this.customTheme.accentColor
 			}
-			this.setThemeClass()
+			this.setThemeClass(true)
 
 			try {
 				window.localStorage.setItem(VISUAL_THEME_STORAGE_KEY, newTheme)
@@ -389,6 +471,21 @@ export const useTheming = defineStore('themeStore', {
 			} catch (error) {
 				console.warn('Could not save the EdenLauncher visual theme.', error)
 			}
+		},
+		saveCustomTheme(newTheme: CustomLauncherTheme) {
+			const normalized = normalizeCustomTheme(newTheme)
+			if (!normalized) return false
+
+			try {
+				window.localStorage.setItem(CUSTOM_THEME_STORAGE_KEY, JSON.stringify(normalized))
+			} catch (error) {
+				console.warn('Could not save the EdenLauncher custom theme.', error)
+				return false
+			}
+
+			this.customTheme = normalized
+			this.setVisualTheme('custom')
+			return true
 		},
 		setAccentColor(newColor: string) {
 			const normalized = normalizeAccentColor(newColor)
@@ -407,6 +504,20 @@ export const useTheming = defineStore('themeStore', {
 		},
 		resetAccentColor() {
 			this.setAccentColor(DEFAULT_ACCENT_COLOR)
+		},
+		resetToDefaults() {
+			this.visualTheme = 'standard'
+			this.selectedTheme = 'dark'
+			this.accentColor = DEFAULT_ACCENT_COLOR
+			this.setThemeClass(true)
+
+			try {
+				window.localStorage.setItem(VISUAL_THEME_STORAGE_KEY, 'standard')
+				window.localStorage.setItem(BASE_THEME_STORAGE_KEY, 'dark')
+				window.localStorage.setItem(ACCENT_COLOR_STORAGE_KEY, DEFAULT_ACCENT_COLOR)
+			} catch (error) {
+				console.warn('Could not reset the EdenLauncher theme.', error)
+			}
 		},
 		getFeatureFlag(key: FeatureFlag) {
 			return this.featureFlags[key] ?? DEFAULT_FEATURE_FLAGS[key]
