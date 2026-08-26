@@ -4,7 +4,9 @@ export const DEFAULT_ACCENT_COLOR = '#AC58F5'
 
 const ACCENT_COLOR_STORAGE_KEY = 'edenlauncher-accent-color'
 const BASE_THEME_STORAGE_KEY = 'edenlauncher-base-theme'
+const VISUAL_THEME_STORAGE_KEY = 'edenlauncher-visual-theme'
 const LEGACY_THEME_OPTIONS = ['dark', 'light', 'oled', 'retro', 'system'] as const
+const VISUAL_THEME_OPTIONS = ['standard', 'asuna', 'error'] as const
 const ACCENT_COLOR_PATTERN = /^#[0-9A-F]{6}$/
 const ACCENT_PALETTE_NAMES = ['red', 'orange', 'green', 'blue', 'purple'] as const
 const PLATFORM_COLOR_NAMES = [
@@ -59,9 +61,11 @@ export type FeatureFlags = Record<FeatureFlag, boolean>
 // Old values remain readable for compatibility with existing settings files.
 export type ColorTheme = (typeof LEGACY_THEME_OPTIONS)[number]
 export type LauncherTheme = 'dark' | 'light'
+export type LauncherVisualTheme = (typeof VISUAL_THEME_OPTIONS)[number]
 
 export type ThemeStore = {
 	selectedTheme: ColorTheme
+	visualTheme: LauncherVisualTheme
 	accentColor: string
 	advancedRendering: boolean
 	hideNametagSkinsPage: boolean
@@ -72,6 +76,7 @@ export type ThemeStore = {
 
 export const DEFAULT_THEME_STORE: ThemeStore = {
 	selectedTheme: 'dark',
+	visualTheme: 'standard',
 	accentColor: DEFAULT_ACCENT_COLOR,
 	advancedRendering: true,
 	hideNametagSkinsPage: false,
@@ -315,7 +320,19 @@ export const useTheming = defineStore('themeStore', {
 			} catch (error) {
 				console.warn('Could not read the saved EdenLauncher theme.', error)
 			}
-			this.setThemeState(savedTheme)
+			this.selectedTheme = savedTheme
+
+			let savedVisualTheme: LauncherVisualTheme = 'standard'
+			try {
+				const storedVisualTheme = window.localStorage.getItem(VISUAL_THEME_STORAGE_KEY)
+				if (VISUAL_THEME_OPTIONS.includes(storedVisualTheme as LauncherVisualTheme)) {
+					savedVisualTheme = storedVisualTheme as LauncherVisualTheme
+				}
+			} catch (error) {
+				console.warn('Could not read the saved EdenLauncher visual theme.', error)
+			}
+			this.visualTheme = savedVisualTheme
+			this.setThemeClass()
 
 			let savedColor: string | null = null
 			try {
@@ -343,9 +360,35 @@ export const useTheming = defineStore('themeStore', {
 			for (const theme of LEGACY_THEME_OPTIONS) {
 				html.classList.remove(theme, `${theme}-mode`)
 			}
+			for (const theme of VISUAL_THEME_OPTIONS) {
+				html.classList.remove(`theme-${theme}`)
+			}
 			html.removeAttribute('data-theme')
 			html.classList.add(`${this.selectedTheme}-mode`)
+			html.classList.add(`theme-${this.visualTheme}`)
+			html.dataset.visualTheme = this.visualTheme
 			applyAccentColor(this.accentColor, normalizeLauncherTheme(this.selectedTheme))
+		},
+		setVisualTheme(newTheme: LauncherVisualTheme) {
+			if (!VISUAL_THEME_OPTIONS.includes(newTheme)) return
+
+			this.visualTheme = newTheme
+			if (newTheme === 'asuna') {
+				this.selectedTheme = 'light'
+				this.accentColor = '#D86C9B'
+			} else if (newTheme === 'error') {
+				this.selectedTheme = 'dark'
+				this.accentColor = '#E11D48'
+			}
+			this.setThemeClass()
+
+			try {
+				window.localStorage.setItem(VISUAL_THEME_STORAGE_KEY, newTheme)
+				window.localStorage.setItem(BASE_THEME_STORAGE_KEY, this.selectedTheme)
+				window.localStorage.setItem(ACCENT_COLOR_STORAGE_KEY, this.accentColor)
+			} catch (error) {
+				console.warn('Could not save the EdenLauncher visual theme.', error)
+			}
 		},
 		setAccentColor(newColor: string) {
 			const normalized = normalizeAccentColor(newColor)
@@ -370,4 +413,3 @@ export const useTheming = defineStore('themeStore', {
 		},
 	},
 })
-

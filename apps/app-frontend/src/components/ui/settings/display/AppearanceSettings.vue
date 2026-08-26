@@ -3,10 +3,17 @@ import { MoonIcon, PaletteIcon, SunIcon } from '@modrinth/assets'
 import { ButtonStyled, defineMessages, Toggle, useVIntl } from '@modrinth/ui'
 import { computed, ref, watch } from 'vue'
 
+import asunaBackground from '@/assets/theme-asuna.png'
+import errorBackground from '@/assets/theme-error.png'
 import { get, set } from '@/helpers/settings.ts'
 import { getOS } from '@/helpers/utils'
 import { useTheming } from '@/store/state'
-import { DEFAULT_ACCENT_COLOR, type LauncherTheme, normalizeAccentColor } from '@/store/theme.ts'
+import {
+	DEFAULT_ACCENT_COLOR,
+	type LauncherTheme,
+	type LauncherVisualTheme,
+	normalizeAccentColor,
+} from '@/store/theme.ts'
 
 const themeStore = useTheming()
 const { formatMessage } = useVIntl()
@@ -27,6 +34,22 @@ const messages = defineMessages({
 	lightTheme: {
 		id: 'edenlauncher.appearance-settings.theme-mode.light',
 		defaultMessage: 'Светлая тема',
+	},
+	asunaTheme: {
+		id: 'edenlauncher.appearance-settings.theme-mode.asuna',
+		defaultMessage: 'Асуна',
+	},
+	asunaThemeDescription: {
+		id: 'edenlauncher.appearance-settings.theme-mode.asuna-description',
+		defaultMessage: 'Светлый цветочный мир',
+	},
+	errorTheme: {
+		id: 'edenlauncher.appearance-settings.theme-mode.error',
+		defaultMessage: 'Error',
+	},
+	errorThemeDescription: {
+		id: 'edenlauncher.appearance-settings.theme-mode.error-description',
+		defaultMessage: 'Мрак, помехи и glitch',
 	},
 	launcherColorTitle: {
 		id: 'edenlauncher.appearance-settings.launcher-color.title',
@@ -122,6 +145,13 @@ function chooseAccentColor(color: string) {
 function chooseLauncherTheme(theme: LauncherTheme) {
 	settings.value.theme = theme
 	themeStore.setThemeState(theme)
+	themeStore.setVisualTheme('standard')
+}
+
+function chooseVisualTheme(theme: Exclude<LauncherVisualTheme, 'standard'>) {
+	themeStore.setVisualTheme(theme)
+	settings.value.theme = theme === 'asuna' ? 'light' : 'dark'
+	accentColorInput.value = themeStore.accentColor
 }
 
 function openColorPalette() {
@@ -152,8 +182,12 @@ function resetAccentColor() {
 		<button
 			type="button"
 			class="theme-mode-option"
-			:class="{ active: themeStore.selectedTheme === 'dark' }"
-			:aria-pressed="themeStore.selectedTheme === 'dark'"
+			:class="{
+				active: themeStore.visualTheme === 'standard' && themeStore.selectedTheme === 'dark',
+			}"
+			:aria-pressed="
+				themeStore.visualTheme === 'standard' && themeStore.selectedTheme === 'dark'
+			"
 			@click="chooseLauncherTheme('dark')"
 		>
 			<span class="theme-mode-option__preview theme-mode-option__preview--dark">
@@ -164,14 +198,50 @@ function resetAccentColor() {
 		<button
 			type="button"
 			class="theme-mode-option"
-			:class="{ active: themeStore.selectedTheme === 'light' }"
-			:aria-pressed="themeStore.selectedTheme === 'light'"
+			:class="{
+				active: themeStore.visualTheme === 'standard' && themeStore.selectedTheme === 'light',
+			}"
+			:aria-pressed="
+				themeStore.visualTheme === 'standard' && themeStore.selectedTheme === 'light'
+			"
 			@click="chooseLauncherTheme('light')"
 		>
 			<span class="theme-mode-option__preview theme-mode-option__preview--light">
 				<SunIcon />
 			</span>
 			<span>{{ formatMessage(messages.lightTheme) }}</span>
+		</button>
+		<button
+			type="button"
+			class="theme-mode-option theme-mode-option--special"
+			:class="{ active: themeStore.visualTheme === 'asuna' }"
+			:aria-pressed="themeStore.visualTheme === 'asuna'"
+			@click="chooseVisualTheme('asuna')"
+		>
+			<span
+				class="theme-mode-option__preview theme-mode-option__preview--image"
+				:style="{ backgroundImage: `url(${asunaBackground})` }"
+			></span>
+			<span class="theme-mode-option__copy">
+				<strong>{{ formatMessage(messages.asunaTheme) }}</strong>
+				<small>{{ formatMessage(messages.asunaThemeDescription) }}</small>
+			</span>
+		</button>
+		<button
+			type="button"
+			class="theme-mode-option theme-mode-option--special theme-mode-option--error"
+			:class="{ active: themeStore.visualTheme === 'error' }"
+			:aria-pressed="themeStore.visualTheme === 'error'"
+			@click="chooseVisualTheme('error')"
+		>
+			<span
+				class="theme-mode-option__preview theme-mode-option__preview--image"
+				:style="{ backgroundImage: `url(${errorBackground})` }"
+			></span>
+			<span class="theme-mode-option__copy">
+				<strong>{{ formatMessage(messages.errorTheme) }}</strong>
+				<small>{{ formatMessage(messages.errorThemeDescription) }}</small>
+			</span>
 		</button>
 	</div>
 
@@ -284,6 +354,47 @@ function resetAccentColor() {
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 0.75rem;
 	margin-bottom: 2rem;
+}
+
+.theme-mode-option--special {
+	min-height: 4.75rem;
+}
+
+.theme-mode-option__copy {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.theme-mode-option__copy small {
+	color: var(--color-text-tertiary);
+	font-size: 0.7rem;
+	font-weight: 500;
+}
+
+.theme-mode-option__preview--image {
+	width: 5.1rem;
+	height: 3.25rem;
+	background-position: 72% center;
+	background-size: cover;
+}
+
+.theme-mode-option--error:hover {
+	animation: theme-preview-glitch 180ms steps(2, end) infinite;
+}
+
+@keyframes theme-preview-glitch {
+	0%,
+	100% {
+		transform: translate(0);
+	}
+	40% {
+		transform: translate(-1px, 1px);
+	}
+	70% {
+		transform: translate(1px, -1px);
+	}
 }
 
 .theme-mode-option {
@@ -426,4 +537,3 @@ function resetAccentColor() {
 		0 0 0 4px var(--color-brand);
 }
 </style>
-

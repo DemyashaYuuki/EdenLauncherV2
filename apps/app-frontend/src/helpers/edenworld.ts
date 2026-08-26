@@ -5,6 +5,7 @@ import { fetch } from '@tauri-apps/plugin-http'
 import {
 	install_create_modpack_instance,
 	install_get_modpack_preview,
+	install_pack_to_existing_instance,
 	wait_for_install_job,
 } from '@/helpers/install'
 
@@ -102,3 +103,23 @@ export async function downloadAndInstallEdenWorld(
 	}
 }
 
+export async function repairEdenWorld(
+	instanceId: string,
+	rfMode: boolean,
+	onProgress: (progress: EdenWorldInstallProgress) => void,
+) {
+	const packPath = await downloadPack(rfMode, onProgress)
+	const location = { type: 'fromFile' as const, path: packPath }
+
+	try {
+		const preview = await install_get_modpack_preview(location)
+		if (!preview.name.toLocaleLowerCase().includes('edenworld')) {
+			throw new Error('Загруженный архив не является официальной сборкой EdenWorld.')
+		}
+
+		const job = await install_pack_to_existing_instance(instanceId, location)
+		return await wait_for_install_job(job.job_id)
+	} finally {
+		await removeDownloadedPack().catch(() => undefined)
+	}
+}
