@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, State as TauriState};
+use tauri::{AppHandle, Emitter, Runtime, State as TauriState};
 use theseus::prelude::{State as TheseusState, instance, jre};
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, Command};
@@ -87,7 +87,7 @@ struct FabricInstallerVersion {
 }
 
 pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
-    tauri::plugin::Builder::new("local-server")
+    tauri::plugin::Builder::<R>::new("local-server")
         .invoke_handler(tauri::generate_handler![
             local_server_status,
             local_server_prepare,
@@ -123,8 +123,8 @@ fn status_from_runtime(runtime: &LocalServerRuntime) -> LocalServerStatus {
     }
 }
 
-fn emit_progress(
-    app: &AppHandle,
+fn emit_progress<R: Runtime>(
+    app: &AppHandle<R>,
     stage: &'static str,
     message: impl Into<String>,
     progress: u8,
@@ -165,7 +165,7 @@ async fn resolve_server_java(java_major: u32) -> Result<PathBuf> {
         .get(&java_major)
         .map(|version| PathBuf::from(&version.path));
 
-    let mut java_path = if let Some(path) = saved_path
+    let java_path = if let Some(path) = saved_path
         && tokio::fs::try_exists(&path).await?
     {
         path
@@ -177,12 +177,14 @@ async fn resolve_server_java(java_major: u32) -> Result<PathBuf> {
     // The local server needs java.exe so its redirected stdout/stderr reach
     // the console embedded in the launcher.
     #[cfg(target_os = "windows")]
-    {
+    let java_path = {
         let console_java = java_path.with_file_name("java.exe");
         if tokio::fs::try_exists(&console_java).await? {
-            java_path = console_java;
+            console_java
+        } else {
+            java_path
         }
-    }
+    };
 
     Ok(java_path)
 }
@@ -342,9 +344,13 @@ async fn write_server_properties(server_dir: &Path, port: u16) -> Result<()> {
     Ok(())
 }
 
-async fn emit_console_lines<R>(app: AppHandle, reader: R, stream: &'static str)
+async fn emit_console_lines<R: Runtime, T>(
+    app: AppHandle<R>,
+    reader: T,
+    stream: &'static str,
+)
 where
-    R: AsyncRead + Unpin + Send + 'static,
+    T: AsyncRead + Unpin + Send + 'static,
 {
     let mut lines = BufReader::new(reader).lines();
     while let Ok(Some(line)) = lines.next_line().await {
@@ -359,12 +365,13 @@ where
 pub async fn local_server_status(
     manager: TauriState<'_, LocalServerManager>,
 ) -> Result<LocalServerStatus> {
-    Ok(status_from_runtime(&manager.inner.lock().await))
+    let runtime = manager.inner.lock().await;
+    Ok(status_from_runtime(&*runtime))
 }
 
 #[tauri::command]
-pub async fn local_server_prepare(
-    app: AppHandle,
+pub async fn local_server_prepare<R: Runtime>(
+    app: AppHandle<R>,
     manager: TauriState<'_, LocalServerManager>,
     instance_id: String,
     game_version: String,
@@ -433,8 +440,8 @@ pub async fn local_server_prepare(
 }
 
 #[tauri::command]
-pub async fn local_server_start(
-    app: AppHandle,
+pub async fn local_server_start<R: Runtime>(
+    app: AppHandle<R>,
     manager: TauriState<'_, LocalServerManager>,
     memory_mb: u32,
     port: u16,
