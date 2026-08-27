@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BlendIcon, MonitorIcon, MoonIcon, PaletteIcon, SunIcon } from '@modrinth/assets'
+import { MonitorIcon, MoonIcon, PaletteIcon, SunIcon } from '@modrinth/assets'
 import { ButtonStyled, defineMessages, Toggle, useVIntl } from '@modrinth/ui'
 import { computed, ref, watch } from 'vue'
 
@@ -9,10 +9,10 @@ import { get, set } from '@/helpers/settings.ts'
 import { getOS } from '@/helpers/utils'
 import { useTheming } from '@/store/state'
 import {
-	DEFAULT_ACCENT_COLOR,
-	DEFAULT_CUSTOM_THEME,
 	type ColorTheme,
 	type CustomLauncherTheme,
+	DEFAULT_ACCENT_COLOR,
+	DEFAULT_CUSTOM_THEME,
 	type LauncherButtonEffect,
 	type LauncherTheme,
 	type LauncherVisualTheme,
@@ -118,6 +118,8 @@ const customAccentColor = ref(themeStore.customTheme.accentColor)
 const customBackground = ref(themeStore.customTheme.backgroundDataUrl)
 const customButtonEffect = ref<LauncherButtonEffect>(themeStore.customTheme.buttonEffect)
 const customBackgroundInput = ref<HTMLInputElement | null>(null)
+const windowsBackgroundInput = ref<HTMLInputElement | null>(null)
+const windowsBackground = ref(localStorage.getItem('edenlauncher-windows-desktop-background') ?? '')
 const customThemeError = ref('')
 const customThemeSaved = ref(false)
 const isAccentColorValid = computed(() => normalizeAccentColor(accentColorInput.value) !== null)
@@ -187,18 +189,33 @@ function chooseLauncherTheme(theme: ColorTheme) {
 	themeStore.setVisualTheme('standard')
 }
 
-function chooseMicaTheme() {
-	settings.value.theme = 'system'
-	themeStore.setThemeState('system')
-	themeStore.setVisualTheme('mica')
-	accentColorInput.value = themeStore.accentColor
-}
-
-function chooseVisualTheme(theme: Exclude<LauncherVisualTheme, 'standard' | 'mica' | 'custom'>) {
+function chooseVisualTheme(theme: Exclude<LauncherVisualTheme, 'standard' | 'custom'>) {
 	themeStore.setVisualTheme(theme)
 	settings.value.theme = theme === 'asuna' ? 'light' : 'dark'
 	accentColorInput.value = themeStore.accentColor
 	rememberColor(themeStore.accentColor)
+}
+
+async function onWindowsBackgroundSelected(event: Event) {
+	const input = event.target as HTMLInputElement
+	const file = input.files?.[0]
+	if (!file) return
+	try {
+		windowsBackground.value = await prepareCustomBackground(file)
+		localStorage.setItem('edenlauncher-windows-desktop-background', windowsBackground.value)
+		document.documentElement.style.setProperty(
+			'--windows-desktop-background-image',
+			`url(${JSON.stringify(windowsBackground.value)})`,
+		)
+	} finally {
+		input.value = ''
+	}
+}
+
+function resetWindowsBackground() {
+	windowsBackground.value = ''
+	localStorage.removeItem('edenlauncher-windows-desktop-background')
+	document.documentElement.style.removeProperty('--windows-desktop-background-image')
 }
 
 function chooseCustomTheme() {
@@ -228,6 +245,7 @@ function normalizeColorInput() {
 
 function resetTheme() {
 	themeStore.resetToDefaults()
+	resetWindowsBackground()
 	settings.value.theme = 'dark'
 	accentColorInput.value = DEFAULT_ACCENT_COLOR
 	recentColors.value = []
@@ -366,13 +384,15 @@ function saveCustomTheme() {
 		<button
 			type="button"
 			class="theme-mode-option"
-			:class="{ active: themeStore.visualTheme === 'mica' }"
-			@click="chooseMicaTheme"
+			:class="{ active: themeStore.visualTheme === 'windows10' }"
+			@click="chooseVisualTheme('windows10')"
 		>
-			<span class="theme-mode-option__preview theme-mode-option__preview--mica"><BlendIcon /></span>
+			<span class="theme-mode-option__preview theme-mode-option__preview--windows"
+				><MonitorIcon
+			/></span>
 			<span class="theme-mode-option__copy">
-				<strong>Mica</strong>
-				<small>Полупрозрачное системное окно Windows 11</small>
+				<strong>Windows 10</strong>
+				<small>Рабочий стол, панель задач и меню «Пуск»</small>
 			</span>
 		</button>
 		<button
@@ -426,6 +446,26 @@ function saveCustomTheme() {
 				<small>Ваш фон, цвет и эффект кнопок</small>
 			</span>
 		</button>
+	</div>
+
+	<div v-if="themeStore.visualTheme === 'windows10'" class="windows-background-settings">
+		<div>
+			<strong>Фон рабочего стола</strong>
+			<small>Настраивается отдельно от остальных тем.</small>
+		</div>
+		<input
+			ref="windowsBackgroundInput"
+			type="file"
+			accept="image/*"
+			class="sr-only"
+			@change="onWindowsBackgroundSelected"
+		/>
+		<ButtonStyled type="outlined">
+			<button type="button" @click="windowsBackgroundInput?.click()">Выбрать фон</button>
+		</ButtonStyled>
+		<ButtonStyled v-if="windowsBackground" type="outlined">
+			<button type="button" @click="resetWindowsBackground">Вернуть стандартный</button>
+		</ButtonStyled>
 	</div>
 
 	<div class="custom-theme-heading">
@@ -640,6 +680,34 @@ function saveCustomTheme() {
 	box-shadow: 0 0 0 3px var(--color-brand-highlight);
 }
 
+.theme-mode-option__preview--windows {
+	color: white;
+	background: linear-gradient(135deg, #1b96e8, #005a9e);
+	border-radius: 0;
+}
+
+.windows-background-settings {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	margin: -1rem 0 2rem;
+	padding: 0.8rem;
+	border: 1px solid var(--color-button-border);
+	border-radius: var(--radius-lg);
+	background: var(--surface-2);
+}
+
+.windows-background-settings > div:first-child {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	flex-direction: column;
+}
+
+.windows-background-settings small {
+	color: var(--color-text-tertiary);
+}
+
 .theme-mode-option__preview {
 	display: grid;
 	width: 3rem;
@@ -668,14 +736,6 @@ function saveCustomTheme() {
 .theme-mode-option__preview--system {
 	color: #d6a9ff;
 	background: linear-gradient(135deg, #17111f 0 50%, #ffffff 50% 100%);
-}
-
-.theme-mode-option__preview--mica {
-	color: #f1ddff;
-	background:
-		linear-gradient(135deg, rgba(255, 255, 255, 0.26), rgba(111, 44, 168, 0.24)),
-		linear-gradient(45deg, #3a2d49, #8e6aa8);
-	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
 }
 
 .theme-mode-option__preview--image {

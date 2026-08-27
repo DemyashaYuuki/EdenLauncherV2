@@ -244,7 +244,7 @@ jobs:
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "EdenLauncher $TAG" --latest
           else
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "EdenLauncher $TAG" --notes "Добавлены режим «Как в системе», полупрозрачная тема Mica и полный сброс настроек оформления. В лаунчере появился мастер локального сервера EdenWorld: автоматическая установка сборки, Java и Fabric, выбор ОЗУ и порта, встроенная консоль, команды управления и инструкция подключения. Сборки доступны для Windows x64 и Linux x64 (AppImage и DEB)." --latest
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "EdenLauncher $TAG" --notes "EdenLauncher 2.8.0 добавляет тему Windows 10 с рабочим столом, панелью задач, меню «Пуск» и отдельным фоном, а также пасхалку pilot. Mica удалена. Новый менеджер локальных серверов поддерживает создание и импорт сервера, выбор ядра, Java, ОЗУ, порта, offline mode, иконки, встроенную консоль и контент по типу ядра. Клиентскую сборку можно преобразовать в серверный профиль или ZIP с фильтрацией клиентских модов. Возвращены аккаунт и друзья Modrinth, добавлена кнопка голосования EdenWorld. Сборки доступны для Windows x64 и Linux x64 (AppImage и DEB)." --latest
           fi
 
           mapfile -d '' assets < <(find release-assets -type f \( -name '*.exe' -o -name '*.msi' -o -name '*.AppImage' -o -name '*.deb' \) -print0)

@@ -27,6 +27,11 @@ export default new createRouter({
 			component: Pages.Skins,
 		},
 		{
+			path: '/user/:user/:projectType?',
+			name: 'User',
+			component: Pages.User,
+		},
+		{
 			path: '/library',
 			name: 'Library',
 			component: Library.Index,

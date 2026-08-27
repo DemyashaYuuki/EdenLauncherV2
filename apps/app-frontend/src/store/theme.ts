@@ -1,4 +1,3 @@
-import { invoke } from '@tauri-apps/api/core'
 import { defineStore } from 'pinia'
 
 export const DEFAULT_ACCENT_COLOR = '#AC58F5'
@@ -8,7 +7,7 @@ const BASE_THEME_STORAGE_KEY = 'edenlauncher-base-theme'
 const VISUAL_THEME_STORAGE_KEY = 'edenlauncher-visual-theme'
 const CUSTOM_THEME_STORAGE_KEY = 'edenlauncher-custom-theme'
 const LEGACY_THEME_OPTIONS = ['dark', 'light', 'oled', 'retro', 'system'] as const
-const VISUAL_THEME_OPTIONS = ['standard', 'mica', 'asuna', 'error', 'custom'] as const
+const VISUAL_THEME_OPTIONS = ['standard', 'windows10', 'asuna', 'error', 'custom'] as const
 const BUTTON_EFFECT_OPTIONS = ['none', 'pulse', 'wave', 'interference'] as const
 const ACCENT_COLOR_PATTERN = /^#[0-9A-F]{6}$/
 const ACCENT_PALETTE_NAMES = ['red', 'orange', 'green', 'blue', 'purple'] as const
@@ -208,13 +207,6 @@ function normalizeLauncherTheme(theme: ColorTheme): LauncherTheme {
 	return 'dark'
 }
 
-function applyMicaEffect(enabled: boolean) {
-	if (typeof window === 'undefined') return
-	void invoke('set_window_mica', { enabled }).catch((error) => {
-		console.warn('Could not update the EdenLauncher Mica effect.', error)
-	})
-}
-
 export function applyAccentColor(color: string, theme: LauncherTheme = 'dark'): boolean {
 	const normalized = normalizeAccentColor(color)
 	if (!normalized || typeof document === 'undefined') return false
@@ -368,6 +360,19 @@ export const useTheming = defineStore('themeStore', {
 	}),
 	actions: {
 		initializeTheme() {
+			try {
+				const windowsBackground = window.localStorage.getItem(
+					'edenlauncher-windows-desktop-background',
+				)
+				if (windowsBackground) {
+					document.documentElement.style.setProperty(
+						'--windows-desktop-background-image',
+						`url(${JSON.stringify(windowsBackground)})`,
+					)
+				}
+			} catch (error) {
+				console.warn('Could not read the Windows desktop background.', error)
+			}
 			let savedTheme: ColorTheme = 'dark'
 			try {
 				const storedTheme = window.localStorage.getItem(BASE_THEME_STORAGE_KEY)
@@ -402,8 +407,6 @@ export const useTheming = defineStore('themeStore', {
 				this.accentColor = this.customTheme.accentColor
 			}
 			this.setThemeClass(false)
-			applyMicaEffect(savedVisualTheme === 'mica')
-
 			if (!systemThemeListenerInstalled) {
 				systemThemeListenerInstalled = true
 				window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
@@ -483,13 +486,14 @@ export const useTheming = defineStore('themeStore', {
 			} else if (newTheme === 'error') {
 				this.selectedTheme = 'dark'
 				this.accentColor = '#E11D48'
+			} else if (newTheme === 'windows10') {
+				this.selectedTheme = 'dark'
+				this.accentColor = '#0078D4'
 			} else if (newTheme === 'custom') {
 				this.selectedTheme = this.customTheme.baseTheme
 				this.accentColor = this.customTheme.accentColor
 			}
 			this.setThemeClass(true)
-			applyMicaEffect(newTheme === 'mica')
-
 			try {
 				window.localStorage.setItem(VISUAL_THEME_STORAGE_KEY, newTheme)
 				window.localStorage.setItem(BASE_THEME_STORAGE_KEY, this.selectedTheme)
@@ -537,7 +541,6 @@ export const useTheming = defineStore('themeStore', {
 			this.accentColor = DEFAULT_ACCENT_COLOR
 			this.customTheme = { ...DEFAULT_CUSTOM_THEME }
 			this.setThemeClass(true)
-			applyMicaEffect(false)
 
 			try {
 				window.localStorage.setItem(VISUAL_THEME_STORAGE_KEY, 'standard')

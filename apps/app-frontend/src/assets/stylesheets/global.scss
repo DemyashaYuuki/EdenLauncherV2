@@ -232,37 +232,84 @@ html.theme-custom [role='dialog'] {
 	backdrop-filter: blur(16px) saturate(1.08);
 }
 
-html.theme-mica,
-html.theme-mica body,
-html.theme-mica #app {
+html.theme-windows10 {
+	--top-bar-height: 2.45rem;
+	--left-bar-width: 0rem;
+}
+
+html.theme-windows10 .app-grid-layout,
+html.theme-windows10 .app-contents {
+	--top-bar-height: 2.45rem;
+	--left-bar-width: 0rem;
+}
+
+html.theme-windows10 .app-grid-layout {
 	background: transparent !important;
 }
 
-html.theme-mica .app-grid-layout {
+html.theme-windows10 .app-grid-navbar {
+	position: fixed;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 100;
+	display: flex !important;
+	width: 100% !important;
+	height: 3rem;
+	box-sizing: border-box;
+	flex-direction: row !important;
+	align-items: center;
+	padding: 0 0.25rem !important;
+	gap: 0 !important;
+	border-top: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(12, 23, 38, 0.94) !important;
+	box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.28);
+}
+
+html.theme-windows10 .app-grid-navbar > .flex-grow {
+	display: none;
+}
+
+html.theme-windows10 .app-grid-navbar > * {
+	border-radius: 0 !important;
+}
+
+html.theme-windows10 .windows-start-button {
+	order: -10;
+}
+
+html.theme-windows10 .app-grid-statusbar {
+	left: 0 !important;
+	background: rgba(13, 27, 44, 0.96) !important;
+}
+
+html.theme-windows10 .app-contents {
+	left: 0 !important;
+	bottom: 3rem !important;
+	height: calc(100vh - var(--top-bar-height) - 3rem) !important;
 	background:
-		radial-gradient(circle at 18% 8%, var(--color-brand-highlight), transparent 34rem),
-		color-mix(in srgb, var(--color-bg) 48%, transparent) !important;
-	backdrop-filter: blur(34px) saturate(1.32);
+		linear-gradient(135deg, rgba(0, 70, 145, 0.2), rgba(0, 20, 52, 0.15)),
+		var(
+				--windows-desktop-background-image,
+				linear-gradient(135deg, #0b75c9 0%, #00366d 52%, #071b32 100%)
+			)
+			center / cover fixed !important;
 }
 
-html.theme-mica .app-contents,
-html.theme-mica .app-viewport,
-html.theme-mica .eden-home {
-	background: color-mix(in srgb, var(--color-bg) 34%, transparent) !important;
-	backdrop-filter: blur(28px) saturate(1.24);
+html.theme-windows10 .app-viewport {
+	background: transparent !important;
 }
 
-html.theme-mica .app-grid-navbar,
-html.theme-mica .app-grid-statusbar,
-html.theme-mica .v-popper__inner,
-html.theme-mica [role='dialog'],
-html.theme-mica :is(.card, .eden-panel, .theme-mode-option, .accent-color-panel) {
-	border-color: color-mix(in srgb, var(--color-brand) 18%, rgba(255, 255, 255, 0.18)) !important;
-	background-color: color-mix(in srgb, var(--surface-2) 68%, transparent) !important;
-	backdrop-filter: blur(24px) saturate(1.2);
-	box-shadow:
-		inset 0 1px rgba(255, 255, 255, 0.09),
-		0 1rem 3rem rgba(0, 0, 0, 0.13);
+html.theme-windows10 [role='dialog'],
+html.theme-windows10 .v-popper__inner {
+	border: 1px solid #787878 !important;
+	border-radius: 0 !important;
+	background: #f2f2f2 !important;
+	box-shadow: 0 10px 35px rgba(0, 0, 0, 0.42) !important;
+}
+
+html.theme-windows10.light-mode [role='dialog'] {
+	color: #111;
 }
 
 html.theme-custom[data-button-effect='pulse'] button:active:not(:disabled) {

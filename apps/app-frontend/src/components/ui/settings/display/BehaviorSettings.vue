@@ -273,4 +273,3 @@ watch(
 		</div>
 	</section>
 </template>
-

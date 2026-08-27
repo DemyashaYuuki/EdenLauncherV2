@@ -1,18 +1,19 @@
 <script setup>
 import { ModrinthApiError, TauriModrinthClient, VerboseLoggingFeature } from '@modrinth/api-client'
 import {
-	ArrowBigUpDashIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	CompassIcon,
 	HomeIcon,
 	LibraryIcon,
+	LogInIcon,
 	PlusIcon,
 	SettingsIcon,
 	ShirtIcon,
 } from '@modrinth/assets'
 import {
 	Admonition,
+	Avatar,
 	ButtonStyled,
 	commonMessages,
 	ContentInstallModal,
@@ -37,14 +38,16 @@ import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { type } from '@tauri-apps/plugin-os'
-import { saveWindowState, StateFlags } from '@tauri-apps/plugin-window-state'
-import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
+import pilotVideo from '@/assets/pilot.mp4'
 import AccountSwitcherButton from '@/components/ui/AccountSwitcherButton.vue'
 import AppActionBar from '@/components/ui/AppActionBar.vue'
 import Breadcrumbs from '@/components/ui/Breadcrumbs.vue'
+import CreateHubModal from '@/components/ui/CreateHubModal.vue'
 import ErrorModal from '@/components/ui/ErrorModal.vue'
+import FirstRunSetup from '@/components/ui/FirstRunSetup.vue'
 import AddServerToInstanceModal from '@/components/ui/install_flow/AddServerToInstanceModal.vue'
 import UnknownPackWarningModal from '@/components/ui/install_flow/UnknownPackWarningModal.vue'
 import MinecraftAuthErrorModal from '@/components/ui/minecraft-auth-error-modal/MinecraftAuthErrorModal.vue'
@@ -52,24 +55,18 @@ import MinecraftRequiredModal from '@/components/ui/minecraft-required-modal/Min
 import AppSettingsModal from '@/components/ui/modal/AppSettingsModal.vue'
 import InstallToPlayModal from '@/components/ui/modal/InstallToPlayModal.vue'
 import ModpackAlreadyInstalledModal from '@/components/ui/modal/ModpackAlreadyInstalledModal.vue'
+import ModrinthAccountRequiredModal from '@/components/ui/modal/ModrinthAccountRequiredModal.vue'
 import UpdateToPlayModal from '@/components/ui/modal/UpdateToPlayModal.vue'
+import ModrinthCommunityModal from '@/components/ui/ModrinthCommunityModal.vue'
 import NavButton from '@/components/ui/NavButton.vue'
 import QuickInstanceSwitcher from '@/components/ui/QuickInstanceSwitcher.vue'
-import FirstRunSetup from '@/components/ui/FirstRunSetup.vue'
 import SplashScreen from '@/components/ui/SplashScreen.vue'
 import WindowControls from '@/components/ui/WindowControls.vue'
+import WindowsDesktop from '@/components/ui/WindowsDesktop.vue'
+import WindowsLogoIcon from '@/components/ui/WindowsLogoIcon.vue'
 import { useCheckDisableMouseover } from '@/composables/macCssFix.js'
 import { config } from '@/config'
-import { debugAnalytics, initAnalytics, trackEvent } from '@/helpers/analytics'
-import { check_reachable } from '@/helpers/auth.js'
-import { get_version } from '@/helpers/cache.js'
-import { downloadAndInstallEdenWorld } from '@/helpers/edenworld'
-import { command_listener, warning_listener, info_listener } from '@/helpers/events.js'
-import { install_create_modpack_instance, install_get_modpack_preview } from '@/helpers/install'
-import { get as getInstance, run } from '@/helpers/instance'
-import { mergeUrlQuery, parseModrinthLink } from '@/helpers/project-links.ts'
-import { get as getSettings, set as setSettings } from '@/helpers/settings.ts'
-import { get_opening_command, initialize_state } from '@/helpers/state'
+import { trackEvent } from '@/helpers/analytics'
 import {
 	downloadLatestRelease,
 	fetchRemote,
@@ -77,6 +74,20 @@ import {
 	isUpdateAvailable,
 	isUpdateInstalling,
 } from '@/helpers/astralrinth/update'
+import { check_reachable } from '@/helpers/auth.js'
+import { get_user, get_version } from '@/helpers/cache.js'
+import { downloadAndInstallEdenWorld } from '@/helpers/edenworld'
+import { command_listener, info_listener, warning_listener } from '@/helpers/events.js'
+import { install_create_modpack_instance, install_get_modpack_preview } from '@/helpers/install'
+import { get as getInstance, list as listInstances, run } from '@/helpers/instance'
+import {
+	get as getModrinthCredentials,
+	login as loginModrinth,
+	logout as logoutModrinth,
+} from '@/helpers/mr_auth.ts'
+import { mergeUrlQuery, parseModrinthLink } from '@/helpers/project-links.ts'
+import { get as getSettings, set as setSettings } from '@/helpers/settings.ts'
+import { get_opening_command, initialize_state } from '@/helpers/state'
 import { getOS, isDev } from '@/helpers/utils.js'
 import { start_join_server, start_join_singleplayer_world } from '@/helpers/worlds.ts'
 import i18n from '@/i18n.config'
@@ -114,7 +125,22 @@ function updateHistoryNavigationState() {
 updateHistoryNavigationState()
 
 const APP_LEFT_NAV_WIDTH = '4rem'
-const credentials = ref(null)
+const credentials = ref()
+const createHubModal = ref()
+const modrinthLoginModal = ref()
+const modrinthCommunityModal = ref()
+const desktopInstances = ref([])
+const startMenuOpen = ref(false)
+const windowsDesktopOpen = ref(true)
+const pilotActive = ref(false)
+const pilotElement = ref()
+const pilotBuffer = ref('')
+let previousPilotTheme = null
+
+const isWindowsTheme = computed(() => themeStore.visualTheme === 'windows10')
+const showWindowsDesktop = computed(
+	() => isWindowsTheme.value && windowsDesktopOpen.value && route.path === '/',
+)
 
 const notificationManager = new AppNotificationManager()
 provideNotificationManager(notificationManager)
@@ -204,16 +230,96 @@ const authUnreachable = computed(() => {
 	return false
 })
 
+function handlePilotKey(event) {
+	if (pilotActive.value) {
+		if (event.key === 'Escape') deactivatePilot()
+		return
+	}
+	if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return
+	pilotBuffer.value = `${pilotBuffer.value}${event.key.toLocaleLowerCase()}`.slice(-16)
+	if (pilotBuffer.value.endsWith('pilot')) activatePilot()
+}
+
+function activatePilot() {
+	if (pilotActive.value) return
+	previousPilotTheme = {
+		visual: themeStore.visualTheme,
+		base: themeStore.selectedTheme,
+		accent: themeStore.accentColor,
+	}
+	themeStore.setVisualTheme('standard')
+	themeStore.setThemeState('dark')
+	themeStore.setAccentColor('#7C3AED')
+	pilotActive.value = true
+	startMenuOpen.value = false
+	void nextTick(() => {
+		if (!pilotElement.value) return
+		pilotElement.value.currentTime = 0
+		pilotElement.value.volume = 1
+		void pilotElement.value.play().catch(() => undefined)
+	})
+}
+
+function deactivatePilot() {
+	pilotElement.value?.pause()
+	pilotActive.value = false
+	pilotBuffer.value = ''
+	if (previousPilotTheme) {
+		themeStore.setVisualTheme(previousPilotTheme.visual)
+		themeStore.setThemeState(previousPilotTheme.base)
+		themeStore.setAccentColor(previousPilotTheme.accent)
+		previousPilotTheme = null
+	}
+}
+
+function openWindowsRoute(path) {
+	startMenuOpen.value = false
+	windowsDesktopOpen.value = false
+	void router.push(path)
+}
+
+function openHome() {
+	if (isWindowsTheme.value) {
+		startMenuOpen.value = false
+		windowsDesktopOpen.value = true
+		void router.push('/')
+	} else {
+		void router.push('/')
+	}
+}
+
+function openCreateMenu() {
+	if (isWindowsTheme.value) startMenuOpen.value = !startMenuOpen.value
+	else createHubModal.value?.show()
+}
+
+function createGameInstance() {
+	startMenuOpen.value = false
+	installationModal.value?.show()
+}
+
+function createLocalServer() {
+	startMenuOpen.value = false
+	createHubModal.value?.showServerCreate()
+}
+
+function openWindowsSettings() {
+	startMenuOpen.value = false
+	appSettingsModal.value?.show()
+}
+
 onMounted(async () => {
 	await useCheckDisableMouseover()
 
 	document.querySelector('body').addEventListener('click', handleClick)
 	document.querySelector('body').addEventListener('auxclick', handleAuxClick)
+	window.addEventListener('keydown', handlePilotKey)
 })
 
 onUnmounted(async () => {
 	document.querySelector('body').removeEventListener('click', handleClick)
 	document.querySelector('body').removeEventListener('auxclick', handleAuxClick)
+	window.removeEventListener('keydown', handlePilotKey)
 	if (updateCheckTimer !== null) window.clearInterval(updateCheckTimer)
 })
 
@@ -376,6 +482,8 @@ async function setupApp() {
 	themeStore.devMode = developer_mode
 	themeStore.featureFlags = feature_flags
 	stateInitialized.value = true
+	desktopInstances.value = await listInstances().catch(() => [])
+	await fetchModrinthCredentials()
 
 	isMaximized.value = await getCurrentWindow().isMaximized()
 
@@ -442,11 +550,6 @@ initialize_state()
 		console.error('Failed to initialize app', err)
 		error.showError(err, null, false, 'state_init')
 	})
-
-const handleClose = async () => {
-	await saveWindowState(StateFlags.ALL)
-	await getCurrentWindow().close()
-}
 
 const loading = setupLoadingStateProvider()
 loading.setEnabled(false)
@@ -574,7 +677,55 @@ watch(incompatibilityWarningModal, (modal) => {
 	}
 })
 
-setupAuthProvider(credentials, async () => undefined)
+async function fetchModrinthCredentials() {
+	credentials.value = undefined
+	try {
+		const value = await getModrinthCredentials()
+		if (value?.user_id) {
+			value.user = await get_user(value.user_id, 'bypass').catch(() => null)
+		}
+		credentials.value = value ?? null
+	} catch (authError) {
+		credentials.value = null
+		console.warn('Не удалось загрузить аккаунт Modrinth.', authError)
+	}
+}
+
+async function signInToModrinth(flow = 'sign-in') {
+	try {
+		await loginModrinth(flow)
+		await fetchModrinthCredentials()
+	} catch (authError) {
+		if (!String(authError).toLocaleLowerCase().includes('cancel')) handleError(authError)
+	}
+}
+
+async function requestModrinthSignIn(flow = 'sign-in') {
+	await modrinthLoginModal.value?.showSigningIn(flow)
+}
+
+async function requestModrinthAuth(flow = 'sign-in') {
+	await signInToModrinth(flow)
+	return !!credentials.value?.session
+}
+
+async function logOutModrinth() {
+	await logoutModrinth().catch(handleError)
+	await fetchModrinthCredentials()
+}
+
+setupAuthProvider(credentials, async (_redirectPath, flow, options) => {
+	if (options?.showModal === false) await signInToModrinth(flow)
+	else await requestModrinthSignIn(flow)
+})
+
+watch(
+	() => themeStore.visualTheme,
+	(theme) => {
+		if (theme === 'windows10') windowsDesktopOpen.value = true
+		else startMenuOpen.value = false
+	},
+)
 
 onMounted(() => {
 	invoke('show_window')
@@ -728,6 +879,14 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		<Suspense>
 			<AppSettingsModal ref="appSettingsModal" />
 		</Suspense>
+		<CreateHubModal ref="createHubModal" @create-instance="createGameInstance" />
+		<ModrinthAccountRequiredModal ref="modrinthLoginModal" :request-auth="requestModrinthAuth" />
+		<ModrinthCommunityModal
+			ref="modrinthCommunityModal"
+			:credentials="credentials"
+			:sign-in="requestModrinthSignIn"
+			:log-out="logOutModrinth"
+		/>
 		<FirstRunSetup v-if="showOnboarding" @complete="completeFirstRun" />
 		<CreationFlowModal
 			ref="installationModal"
@@ -741,10 +900,27 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			@browse-modpacks="handleBrowseModpacks"
 		/>
 		<UnknownPackWarningModal ref="unknownPackWarningModal" />
+		<div v-if="isWindowsTheme && startMenuOpen" class="windows-start-menu">
+			<header>
+				<WindowsLogoIcon />
+				<div>
+					<strong>EdenLauncher</strong
+					><span>{{ credentials?.user?.username ?? 'Локальный пользователь' }}</span>
+				</div>
+			</header>
+			<button @click="openWindowsRoute('/')"><HomeIcon /> EdenWorld</button>
+			<button @click="openWindowsRoute('/library')"><LibraryIcon /> Библиотека</button>
+			<button @click="openWindowsRoute('/browse/modpack')"><CompassIcon /> Каталог Modrinth</button>
+			<button @click="createGameInstance"><PlusIcon /> Создать игровую сборку</button>
+			<button @click="createLocalServer"><WindowsLogoIcon /> Создать сервер</button>
+			<footer>
+				<button @click="openWindowsSettings"><SettingsIcon /> Параметры</button>
+			</footer>
+		</div>
 		<div
 			class="app-grid-navbar bg-bg-raised flex flex-col p-[0.5rem] pt-0 gap-[0.25rem] w-[--left-bar-width]"
 		>
-			<NavButton v-tooltip.right="formatMessage(messages.home)" to="/">
+			<NavButton v-tooltip.right="formatMessage(messages.home)" :to="openHome">
 				<HomeIcon />
 			</NavButton>
 			<NavButton
@@ -776,10 +952,12 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			</suspense>
 			<NavButton
 				v-tooltip.right="formatMessage(messages.createNewInstance)"
-				:to="() => installationModal?.show()"
+				:to="openCreateMenu"
 				:disabled="offline"
+				class="windows-start-button"
 			>
-				<PlusIcon />
+				<WindowsLogoIcon v-if="isWindowsTheme" />
+				<PlusIcon v-else />
 			</NavButton>
 			<div class="flex flex-grow"></div>
 			<NavButton
@@ -822,6 +1000,14 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 				<Breadcrumbs />
 			</div>
 			<section data-tauri-drag-region class="flex shrink-0 ml-auto items-center">
+				<button
+					class="modrinth-account-button"
+					:title="credentials?.user ? `Modrinth: ${credentials.user.username}` : 'Войти в Modrinth'"
+					@click="credentials?.user ? modrinthCommunityModal?.show() : requestModrinthSignIn()"
+				>
+					<Avatar v-if="credentials?.user" :src="credentials.user.avatar_url" size="28px" circle />
+					<LogInIcon v-else />
+				</button>
 				<div class="mr-2">
 					<Suspense>
 						<AccountSwitcherButton ref="accounts" />
@@ -872,7 +1058,15 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			>
 				{{ formatMessage(messages.authUnreachableBody) }}
 			</Admonition>
-			<RouterView v-slot="{ Component }">
+			<WindowsDesktop
+				v-if="showWindowsDesktop"
+				:instances="desktopInstances"
+				@navigate="openWindowsRoute"
+				@create="createHubModal?.show()"
+				@servers="createHubModal?.showServers()"
+				@settings="appSettingsModal?.show()"
+			/>
+			<RouterView v-else v-slot="{ Component }">
 				<template v-if="Component">
 					<Suspense @pending="onSuspensePending" @resolve="onSuspenseResolve">
 						<component :is="Component"></component>
@@ -932,6 +1126,14 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	/>
 	<InstallToPlayModal ref="installToPlayModal" :show-external-warnings="false" />
 	<UpdateToPlayModal ref="updateToPlayModal" :show-external-warnings="false" />
+	<div v-if="pilotActive" class="pilot-easter-egg">
+		<video ref="pilotElement" :src="pilotVideo" autoplay loop playsinline></video>
+		<div class="pilot-easter-egg__veil"></div>
+		<div class="pilot-easter-egg__label">
+			<strong>PILOT MODE</strong><span>Нажмите Esc, чтобы вернуться</span>
+		</div>
+		<button aria-label="Закрыть Pilot mode" @click="deactivatePilot">×</button>
+	</div>
 </template>
 
 <style lang="scss" scoped>
@@ -1080,6 +1282,157 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	.fade-enter-from {
 		opacity: 0;
 	}
+}
+
+.modrinth-account-button {
+	display: grid;
+	width: 2.25rem;
+	height: 2.25rem;
+	margin-right: 0.45rem;
+	padding: 0;
+	place-items: center;
+	border: 1px solid var(--color-button-border);
+	border-radius: 50%;
+	color: var(--color-brand);
+	background: var(--color-button-bg);
+	cursor: pointer;
+}
+
+.modrinth-account-button:hover {
+	border-color: var(--color-brand);
+}
+
+.modrinth-account-button svg {
+	width: 1rem;
+	height: 1rem;
+}
+
+.windows-start-menu {
+	position: fixed;
+	bottom: 3rem;
+	left: 0;
+	z-index: 120;
+	display: flex;
+	width: 23rem;
+	max-height: min(37rem, calc(100vh - 5rem));
+	box-sizing: border-box;
+	flex-direction: column;
+	padding: 0.55rem;
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	border-radius: 0;
+	color: white;
+	background: rgba(20, 31, 45, 0.98);
+	box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.42);
+	font-family: 'Segoe UI', sans-serif;
+}
+
+.windows-start-menu header {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	padding: 0.65rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.windows-start-menu header > svg {
+	width: 2.2rem;
+	height: 2.2rem;
+	color: #39a9ff;
+}
+
+.windows-start-menu header > div {
+	display: flex;
+	flex-direction: column;
+}
+
+.windows-start-menu header span {
+	color: #b8c2ce;
+	font-size: 0.75rem;
+}
+
+.windows-start-menu > button,
+.windows-start-menu footer button {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	min-height: 2.8rem;
+	padding: 0.55rem 0.7rem;
+	border: 0;
+	border-radius: 0;
+	color: white;
+	background: transparent;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.windows-start-menu button:hover {
+	background: rgba(255, 255, 255, 0.12);
+}
+
+.windows-start-menu button svg {
+	width: 1.15rem;
+	height: 1.15rem;
+}
+
+.windows-start-menu footer {
+	margin-top: 1rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.pilot-easter-egg {
+	position: fixed;
+	inset: 0;
+	z-index: 10000;
+	overflow: hidden;
+	background: #000;
+}
+
+.pilot-easter-egg video {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.pilot-easter-egg__veil {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.55));
+}
+
+.pilot-easter-egg__label {
+	position: absolute;
+	right: 2rem;
+	bottom: 2rem;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	color: white;
+	font-family: ui-monospace, Consolas, monospace;
+	text-shadow: 0 2px 8px #000;
+}
+
+.pilot-easter-egg__label strong {
+	font-size: 1.4rem;
+	letter-spacing: 0.16em;
+}
+
+.pilot-easter-egg > button {
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	display: grid;
+	width: 2.5rem;
+	height: 2.5rem;
+	padding: 0;
+	place-items: center;
+	border: 1px solid rgba(255, 255, 255, 0.45);
+	border-radius: 50%;
+	color: white;
+	background: rgba(0, 0, 0, 0.45);
+	font-size: 1.5rem;
+	cursor: pointer;
 }
 </style>
 <style>

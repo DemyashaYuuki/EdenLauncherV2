@@ -1110,4 +1110,3 @@ const handleOptionsClick = (args) => {
 	@apply p-4 flex flex-col gap-2 border-0 border-b-[1px] border-[--brand-gradient-border] border-solid;
 }
 </style>
-

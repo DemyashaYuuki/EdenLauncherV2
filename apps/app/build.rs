@@ -88,9 +88,14 @@ fn main() {
                 "local-server",
                 InlinedPlugin::new()
                     .commands(&[
+                        "local_server_list",
+                        "local_server_create",
+                        "local_server_remove",
                         "local_server_status",
                         "local_server_prepare",
                         "local_server_start",
+                        "local_server_add_content",
+                        "local_server_convert_instance",
                         "local_server_send_command",
                         "local_server_stop",
                         "local_server_force_stop",

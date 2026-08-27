@@ -4,7 +4,13 @@
 			:class="['p-6 pr-2 pb-4', { 'shrink-0': isFixedRender }]"
 			@contextmenu.prevent.stop="(event) => handleRightClick(event)"
 		>
-			<ExportModal v-if="!instance.quarantined" ref="exportModal" :instance="instance" />
+			<ExportModal
+				v-if="!instance.quarantined"
+				ref="exportModal"
+				:instance="instance"
+				@create-server="(instanceId) => localServerModal?.showCreate(instanceId)"
+			/>
+			<LocalServerModal ref="localServerModal" />
 			<ConfirmDeleteInstanceModal ref="deleteConfirmModal" @delete="deleteSelectedInstance" />
 			<InstanceSettingsModal
 				:key="instance.id"
@@ -127,6 +133,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ContextMenu from '@/components/ui/ContextMenu.vue'
 import ExportModal from '@/components/ui/ExportModal.vue'
 import InstancePageHeader from '@/components/ui/instance-page-header/index.vue'
+import LocalServerModal from '@/components/ui/LocalServerModal.vue'
 import ConfirmDeleteInstanceModal from '@/components/ui/modal/ConfirmDeleteInstanceModal.vue'
 import InstanceSettingsModal from '@/components/ui/modal/InstanceSettingsModal.vue'
 import UpdateToPlayModal from '@/components/ui/modal/UpdateToPlayModal.vue'
@@ -195,6 +202,7 @@ const loading = ref(false)
 const subpagePending = ref(false)
 const stopping = ref(false)
 const exportModal = ref<InstanceType<typeof ExportModal>>()
+const localServerModal = ref<InstanceType<typeof LocalServerModal>>()
 const updateToPlayModal = ref<InstanceType<typeof UpdateToPlayModal>>()
 const deleteConfirmModal = ref<InstanceType<typeof ConfirmDeleteInstanceModal>>()
 const selectedInstanceToDelete = ref<GameInstance | null>(null)

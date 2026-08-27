@@ -21,7 +21,6 @@ import edenLogo from '@/assets/edenworld-logo.jpg'
 import asunaBackground from '@/assets/theme-asuna.png'
 import errorBackground from '@/assets/theme-error.png'
 import RowDisplay from '@/components/RowDisplay.vue'
-import LocalServerModal from '@/components/ui/LocalServerModal.vue'
 import RecentWorldsList from '@/components/ui/world/RecentWorldsList.vue'
 import { get_search_results } from '@/helpers/cache.js'
 import {
@@ -43,6 +42,7 @@ const router = useRouter()
 const themeStore = useTheming()
 
 const EDENWORLD_SERVER_ADDRESS = 'EdenWorld.gomc.fun'
+const EDENWORLD_VOTE_URL = 'https://top-minecrafter.com/server/edenworld/'
 
 useRootBreadcrumb({
 	slot: 'root',
@@ -63,7 +63,6 @@ const serverStatus = ref<ServerStatus | null>(null)
 const serverStatusLoading = ref(true)
 const serverStatusFailed = ref(false)
 const playersModal = ref<InstanceType<typeof NewModal> | null>(null)
-const localServerModal = ref<InstanceType<typeof LocalServerModal> | null>(null)
 
 const recentInstances = computed(() =>
 	instances.value
@@ -269,9 +268,12 @@ onUnmounted(() => {
 						<GlobeIcon />
 						Сайт проекта
 					</button>
-					<button class="eden-button eden-button--glass" @click="localServerModal?.show()">
-						<ServerIcon />
-						Локальный сервер
+					<button
+						class="eden-button eden-button--glass"
+						@click="openProjectLink(EDENWORLD_VOTE_URL)"
+					>
+						<HomeIcon />
+						Проголосовать
 					</button>
 				</div>
 			</div>
@@ -438,7 +440,6 @@ onUnmounted(() => {
 				</button>
 			</div>
 		</NewModal>
-		<LocalServerModal ref="localServerModal" />
 	</div>
 </template>
 
