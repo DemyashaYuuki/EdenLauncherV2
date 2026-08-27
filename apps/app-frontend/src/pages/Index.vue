@@ -21,6 +21,7 @@ import edenLogo from '@/assets/edenworld-logo.jpg'
 import asunaBackground from '@/assets/theme-asuna.png'
 import errorBackground from '@/assets/theme-error.png'
 import RowDisplay from '@/components/RowDisplay.vue'
+import LocalServerModal from '@/components/ui/LocalServerModal.vue'
 import RecentWorldsList from '@/components/ui/world/RecentWorldsList.vue'
 import { get_search_results } from '@/helpers/cache.js'
 import {
@@ -62,6 +63,7 @@ const serverStatus = ref<ServerStatus | null>(null)
 const serverStatusLoading = ref(true)
 const serverStatusFailed = ref(false)
 const playersModal = ref<InstanceType<typeof NewModal> | null>(null)
+const localServerModal = ref<InstanceType<typeof LocalServerModal> | null>(null)
 
 const recentInstances = computed(() =>
 	instances.value
@@ -247,8 +249,8 @@ onUnmounted(() => {
 					</div>
 				</div>
 				<p class="eden-lead">
-					Один лаунчер для входа в мир EdenWorld: официальная сборка, быстрые ссылки и
-					автоматически подготовленное подключение для игроков из России.
+					Один лаунчер для входа в мир EdenWorld: официальная сборка, быстрые ссылки и автоматически
+					подготовленное подключение для игроков из России.
 				</p>
 				<div class="eden-hero__actions">
 					<button
@@ -266,6 +268,10 @@ onUnmounted(() => {
 					>
 						<GlobeIcon />
 						Сайт проекта
+					</button>
+					<button class="eden-button eden-button--glass" @click="localServerModal?.show()">
+						<ServerIcon />
+						Локальный сервер
 					</button>
 				</div>
 			</div>
@@ -422,12 +428,17 @@ onUnmounted(() => {
 						Ещё {{ hiddenOnlinePlayers }} игроков не отображаются в публичном ответе сервера.
 					</p>
 				</template>
-				<button class="eden-panel-action ml-auto" :disabled="serverStatusLoading" @click="fetchServerStatus">
+				<button
+					class="eden-panel-action ml-auto"
+					:disabled="serverStatusLoading"
+					@click="fetchServerStatus"
+				>
 					<RefreshCwIcon :class="{ 'animate-spin': serverStatusLoading }" />
 					Обновить
 				</button>
 			</div>
 		</NewModal>
+		<LocalServerModal ref="localServerModal" />
 	</div>
 </template>
 

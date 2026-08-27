@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MoonIcon, PaletteIcon, SunIcon } from '@modrinth/assets'
+import { BlendIcon, MonitorIcon, MoonIcon, PaletteIcon, SunIcon } from '@modrinth/assets'
 import { ButtonStyled, defineMessages, Toggle, useVIntl } from '@modrinth/ui'
 import { computed, ref, watch } from 'vue'
 
@@ -10,6 +10,8 @@ import { getOS } from '@/helpers/utils'
 import { useTheming } from '@/store/state'
 import {
 	DEFAULT_ACCENT_COLOR,
+	DEFAULT_CUSTOM_THEME,
+	type ColorTheme,
 	type CustomLauncherTheme,
 	type LauncherButtonEffect,
 	type LauncherTheme,
@@ -70,7 +72,7 @@ const messages = defineMessages({
 	},
 	resetColor: {
 		id: 'edenlauncher.appearance-settings.launcher-color.reset',
-		defaultMessage: 'Сбросить по умолчанию',
+		defaultMessage: 'Сбросить все настройки тем',
 	},
 	advancedRenderingTitle: {
 		id: 'app.appearance-settings.advanced-rendering.title',
@@ -86,12 +88,17 @@ const messages = defineMessages({
 	},
 	nativeDecorationsDescription: {
 		id: 'app.appearance-settings.native-decorations.description',
-		defaultMessage: 'Использовать заголовок и кнопки окна операционной системы. Требует перезапуска.',
+		defaultMessage:
+			'Использовать заголовок и кнопки окна операционной системы. Требует перезапуска.',
 	},
 })
 
 const buttonEffects: { value: LauncherButtonEffect; label: string; description: string }[] = [
-	{ value: 'none', label: 'Без эффекта', description: 'Кнопки нажимаются без дополнительной анимации.' },
+	{
+		value: 'none',
+		label: 'Без эффекта',
+		description: 'Кнопки нажимаются без дополнительной анимации.',
+	},
 	{ value: 'pulse', label: 'Импульс', description: 'Короткое мягкое уменьшение и свечение.' },
 	{ value: 'wave', label: 'Волна', description: 'Акцентная волна расходится от кнопки.' },
 	{
@@ -121,7 +128,10 @@ const customThemePreviewStyle = computed(() => ({
 }))
 const recentColors = ref<string[]>(readRecentColors())
 
-const initialTheme: LauncherTheme = settings.value.theme === 'light' ? 'light' : 'dark'
+const initialTheme: ColorTheme =
+	settings.value.theme === 'light' || settings.value.theme === 'system'
+		? settings.value.theme
+		: 'dark'
 settings.value.theme = initialTheme
 themeStore.setThemeState(initialTheme)
 
@@ -171,13 +181,20 @@ function chooseAccentColor(color: string, remember = true) {
 	if (remember) rememberColor(normalized)
 }
 
-function chooseLauncherTheme(theme: LauncherTheme) {
+function chooseLauncherTheme(theme: ColorTheme) {
 	settings.value.theme = theme
 	themeStore.setThemeState(theme)
 	themeStore.setVisualTheme('standard')
 }
 
-function chooseVisualTheme(theme: Exclude<LauncherVisualTheme, 'standard' | 'custom'>) {
+function chooseMicaTheme() {
+	settings.value.theme = 'system'
+	themeStore.setThemeState('system')
+	themeStore.setVisualTheme('mica')
+	accentColorInput.value = themeStore.accentColor
+}
+
+function chooseVisualTheme(theme: Exclude<LauncherVisualTheme, 'standard' | 'mica' | 'custom'>) {
 	themeStore.setVisualTheme(theme)
 	settings.value.theme = theme === 'asuna' ? 'light' : 'dark'
 	accentColorInput.value = themeStore.accentColor
@@ -213,7 +230,15 @@ function resetTheme() {
 	themeStore.resetToDefaults()
 	settings.value.theme = 'dark'
 	accentColorInput.value = DEFAULT_ACCENT_COLOR
-	rememberColor(DEFAULT_ACCENT_COLOR)
+	recentColors.value = []
+	localStorage.removeItem(RECENT_COLORS_STORAGE_KEY)
+	customThemeName.value = DEFAULT_CUSTOM_THEME.name
+	customBaseTheme.value = DEFAULT_CUSTOM_THEME.baseTheme
+	customAccentColor.value = DEFAULT_CUSTOM_THEME.accentColor
+	customBackground.value = DEFAULT_CUSTOM_THEME.backgroundDataUrl
+	customButtonEffect.value = DEFAULT_CUSTOM_THEME.buttonEffect
+	customThemeError.value = ''
+	customThemeSaved.value = false
 }
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -280,7 +305,8 @@ function saveCustomTheme() {
 	}
 
 	if (!themeStore.saveCustomTheme(customTheme)) {
-		customThemeError.value = 'Не удалось сохранить тему. Попробуйте выбрать изображение меньшего размера.'
+		customThemeError.value =
+			'Не удалось сохранить тему. Попробуйте выбрать изображение меньшего размера.'
 		return
 	}
 
@@ -302,7 +328,9 @@ function saveCustomTheme() {
 		<button
 			type="button"
 			class="theme-mode-option"
-			:class="{ active: themeStore.visualTheme === 'standard' && themeStore.selectedTheme === 'dark' }"
+			:class="{
+				active: themeStore.visualTheme === 'standard' && themeStore.selectedTheme === 'dark',
+			}"
 			@click="chooseLauncherTheme('dark')"
 		>
 			<span class="theme-mode-option__preview theme-mode-option__preview--dark"><MoonIcon /></span>
@@ -311,11 +339,41 @@ function saveCustomTheme() {
 		<button
 			type="button"
 			class="theme-mode-option"
-			:class="{ active: themeStore.visualTheme === 'standard' && themeStore.selectedTheme === 'light' }"
+			:class="{
+				active: themeStore.visualTheme === 'standard' && themeStore.selectedTheme === 'light',
+			}"
 			@click="chooseLauncherTheme('light')"
 		>
 			<span class="theme-mode-option__preview theme-mode-option__preview--light"><SunIcon /></span>
 			<span>Светлая тема</span>
+		</button>
+		<button
+			type="button"
+			class="theme-mode-option"
+			:class="{
+				active: themeStore.visualTheme === 'standard' && themeStore.selectedTheme === 'system',
+			}"
+			@click="chooseLauncherTheme('system')"
+		>
+			<span class="theme-mode-option__preview theme-mode-option__preview--system"
+				><MonitorIcon
+			/></span>
+			<span class="theme-mode-option__copy">
+				<strong>Как в системе</strong>
+				<small>Следует за светлым или тёмным режимом ОС</small>
+			</span>
+		</button>
+		<button
+			type="button"
+			class="theme-mode-option"
+			:class="{ active: themeStore.visualTheme === 'mica' }"
+			@click="chooseMicaTheme"
+		>
+			<span class="theme-mode-option__preview theme-mode-option__preview--mica"><BlendIcon /></span>
+			<span class="theme-mode-option__copy">
+				<strong>Mica</strong>
+				<small>Полупрозрачное системное окно Windows 11</small>
+			</span>
 		</button>
 		<button
 			type="button"
@@ -389,7 +447,12 @@ function saveCustomTheme() {
 		<div class="custom-theme-fields">
 			<label>
 				<span>Название темы</span>
-				<input v-model="customThemeName" type="text" maxlength="40" placeholder="Например, Ночной лес" />
+				<input
+					v-model="customThemeName"
+					type="text"
+					maxlength="40"
+					placeholder="Например, Ночной лес"
+				/>
 			</label>
 			<div class="custom-theme-row">
 				<label>
@@ -408,7 +471,9 @@ function saveCustomTheme() {
 					</select>
 				</label>
 			</div>
-			<small>{{ buttonEffects.find((effect) => effect.value === customButtonEffect)?.description }}</small>
+			<small>{{
+				buttonEffects.find((effect) => effect.value === customButtonEffect)?.description
+			}}</small>
 			<label>
 				<span>Акцентный цвет</span>
 				<div class="custom-theme-color">
@@ -598,6 +663,19 @@ function saveCustomTheme() {
 .theme-mode-option__preview--light {
 	color: #6f2ca8;
 	background: #ffffff;
+}
+
+.theme-mode-option__preview--system {
+	color: #d6a9ff;
+	background: linear-gradient(135deg, #17111f 0 50%, #ffffff 50% 100%);
+}
+
+.theme-mode-option__preview--mica {
+	color: #f1ddff;
+	background:
+		linear-gradient(135deg, rgba(255, 255, 255, 0.26), rgba(111, 44, 168, 0.24)),
+		linear-gradient(45deg, #3a2d49, #8e6aa8);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
 }
 
 .theme-mode-option__preview--image {

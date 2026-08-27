@@ -93,6 +93,27 @@ async fn toggle_decorations(b: bool, window: tauri::Window) -> api::Result<()> {
 }
 
 #[tauri::command]
+fn set_window_mica(enabled: bool, window: tauri::Window) -> api::Result<()> {
+    #[cfg(target_os = "windows")]
+    {
+        use tauri::window::{Effect, EffectsBuilder};
+
+        if enabled {
+            window.set_effects(
+                EffectsBuilder::new().effect(Effect::Mica).build(),
+            )?;
+        } else {
+            window.set_effects(None)?;
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    let _ = (enabled, window);
+
+    Ok(())
+}
+
+#[tauri::command]
 fn restart_app(app: tauri::AppHandle) {
     app.restart();
 }
@@ -234,6 +255,7 @@ fn main() {
         .plugin(api::install::init())
         .plugin(api::instance::init())
         .plugin(api::logs::init())
+        .plugin(api::local_server::init())
         .plugin(api::jre::init())
         .plugin(api::metadata::init())
         .plugin(api::minecraft_skins::init())
@@ -249,6 +271,7 @@ fn main() {
         // .plugin(api::ads::init())
         .plugin(api::friends::init())
         .plugin(api::worlds::init())
+        .manage(api::local_server::LocalServerManager::default())
         .manage(PendingUpdateData::default())
         .invoke_handler(tauri::generate_handler![
             initialize_state,
@@ -259,6 +282,7 @@ fn main() {
             remove_enqueued_update,
             set_restart_after_pending_update,
             toggle_decorations,
+            set_window_mica,
             show_window,
             restart_app,
         ]);

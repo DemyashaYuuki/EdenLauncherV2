@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core'
 import { defineStore } from 'pinia'
 
 export const DEFAULT_ACCENT_COLOR = '#AC58F5'
@@ -7,7 +8,7 @@ const BASE_THEME_STORAGE_KEY = 'edenlauncher-base-theme'
 const VISUAL_THEME_STORAGE_KEY = 'edenlauncher-visual-theme'
 const CUSTOM_THEME_STORAGE_KEY = 'edenlauncher-custom-theme'
 const LEGACY_THEME_OPTIONS = ['dark', 'light', 'oled', 'retro', 'system'] as const
-const VISUAL_THEME_OPTIONS = ['standard', 'asuna', 'error', 'custom'] as const
+const VISUAL_THEME_OPTIONS = ['standard', 'mica', 'asuna', 'error', 'custom'] as const
 const BUTTON_EFFECT_OPTIONS = ['none', 'pulse', 'wave', 'interference'] as const
 const ACCENT_COLOR_PATTERN = /^#[0-9A-F]{6}$/
 const ACCENT_PALETTE_NAMES = ['red', 'orange', 'green', 'blue', 'purple'] as const
@@ -197,8 +198,21 @@ function setCssVariable(
 	root.style.setProperty(name, value, priority)
 }
 
+let systemThemeListenerInstalled = false
+
 function normalizeLauncherTheme(theme: ColorTheme): LauncherTheme {
-	return theme === 'light' ? 'light' : 'dark'
+	if (theme === 'light') return 'light'
+	if (theme === 'system' && typeof window !== 'undefined') {
+		return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+	}
+	return 'dark'
+}
+
+function applyMicaEffect(enabled: boolean) {
+	if (typeof window === 'undefined') return
+	void invoke('set_window_mica', { enabled }).catch((error) => {
+		console.warn('Could not update the EdenLauncher Mica effect.', error)
+	})
 }
 
 export function applyAccentColor(color: string, theme: LauncherTheme = 'dark'): boolean {
@@ -356,8 +370,8 @@ export const useTheming = defineStore('themeStore', {
 		initializeTheme() {
 			let savedTheme: ColorTheme = 'dark'
 			try {
-				savedTheme =
-					window.localStorage.getItem(BASE_THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark'
+				const storedTheme = window.localStorage.getItem(BASE_THEME_STORAGE_KEY)
+				savedTheme = storedTheme === 'light' || storedTheme === 'system' ? storedTheme : 'dark'
 			} catch (error) {
 				console.warn('Could not read the saved EdenLauncher theme.', error)
 			}
@@ -388,6 +402,14 @@ export const useTheming = defineStore('themeStore', {
 				this.accentColor = this.customTheme.accentColor
 			}
 			this.setThemeClass(false)
+			applyMicaEffect(savedVisualTheme === 'mica')
+
+			if (!systemThemeListenerInstalled) {
+				systemThemeListenerInstalled = true
+				window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+					if (this.selectedTheme === 'system') this.setThemeClass(true)
+				})
+			}
 
 			let savedColor: string | null = null
 			try {
@@ -403,7 +425,8 @@ export const useTheming = defineStore('themeStore', {
 			)
 		},
 		setThemeState(newTheme: ColorTheme) {
-			this.selectedTheme = normalizeLauncherTheme(newTheme)
+			this.selectedTheme =
+				newTheme === 'light' || newTheme === 'system' || newTheme === 'dark' ? newTheme : 'dark'
 			this.setThemeClass(true)
 
 			try {
@@ -429,9 +452,11 @@ export const useTheming = defineStore('themeStore', {
 				html.classList.remove(`theme-${theme}`)
 			}
 			html.removeAttribute('data-theme')
-			html.classList.add(`${this.selectedTheme}-mode`)
+			const resolvedTheme = normalizeLauncherTheme(this.selectedTheme)
+			html.classList.add(`${resolvedTheme}-mode`)
 			html.classList.add(`theme-${this.visualTheme}`)
 			html.dataset.visualTheme = this.visualTheme
+			html.dataset.themePreference = this.selectedTheme
 			if (this.visualTheme === 'custom') {
 				html.dataset.buttonEffect = this.customTheme.buttonEffect
 				if (this.customTheme.backgroundDataUrl) {
@@ -446,7 +471,7 @@ export const useTheming = defineStore('themeStore', {
 				html.removeAttribute('data-button-effect')
 				html.style.removeProperty('--custom-theme-background-image')
 			}
-			applyAccentColor(this.accentColor, normalizeLauncherTheme(this.selectedTheme))
+			applyAccentColor(this.accentColor, resolvedTheme)
 		},
 		setVisualTheme(newTheme: LauncherVisualTheme) {
 			if (!VISUAL_THEME_OPTIONS.includes(newTheme)) return
@@ -463,6 +488,7 @@ export const useTheming = defineStore('themeStore', {
 				this.accentColor = this.customTheme.accentColor
 			}
 			this.setThemeClass(true)
+			applyMicaEffect(newTheme === 'mica')
 
 			try {
 				window.localStorage.setItem(VISUAL_THEME_STORAGE_KEY, newTheme)
@@ -509,12 +535,15 @@ export const useTheming = defineStore('themeStore', {
 			this.visualTheme = 'standard'
 			this.selectedTheme = 'dark'
 			this.accentColor = DEFAULT_ACCENT_COLOR
+			this.customTheme = { ...DEFAULT_CUSTOM_THEME }
 			this.setThemeClass(true)
+			applyMicaEffect(false)
 
 			try {
 				window.localStorage.setItem(VISUAL_THEME_STORAGE_KEY, 'standard')
 				window.localStorage.setItem(BASE_THEME_STORAGE_KEY, 'dark')
 				window.localStorage.setItem(ACCENT_COLOR_STORAGE_KEY, DEFAULT_ACCENT_COLOR)
+				window.localStorage.removeItem(CUSTOM_THEME_STORAGE_KEY)
 			} catch (error) {
 				console.warn('Could not reset the EdenLauncher theme.', error)
 			}

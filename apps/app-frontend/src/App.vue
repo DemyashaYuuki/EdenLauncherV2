@@ -307,13 +307,7 @@ async function installOnboardingPack() {
 	}
 }
 
-async function completeFirstRun({
-	autoUpdates,
-	discordRpc,
-	installPack,
-	locale,
-	memoryMb,
-}) {
+async function completeFirstRun({ autoUpdates, discordRpc, installPack, locale, memoryMb }) {
 	const settings = await getSettings()
 	settings.locale = locale
 	settings.theme = 'dark'
@@ -334,7 +328,8 @@ async function completeFirstRun({
 
 async function setupApp() {
 	const settings = await getSettings()
-	const savedTheme = settings.theme === 'light' ? 'light' : 'dark'
+	const savedTheme =
+		settings.theme === 'light' || settings.theme === 'system' ? settings.theme : 'dark'
 	settings.theme = savedTheme
 	if (!settings.onboarded) {
 		settings.locale = 'ru-RU'
