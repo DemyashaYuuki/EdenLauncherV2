@@ -467,6 +467,17 @@ function saveCustomTheme() {
 			<button type="button" @click="resetWindowsBackground">Вернуть стандартный</button>
 		</ButtonStyled>
 	</div>
+	<div v-if="themeStore.visualTheme === 'windows10'" class="windows-shortcut-grid-settings">
+		<div>
+			<strong>Выравнивать ярлыки по сетке</strong>
+			<small>При перемещении ярлыки фиксируются в ближайшей ячейке рабочего стола.</small>
+		</div>
+		<Toggle
+			id="windows-shortcut-grid"
+			:model-value="themeStore.windowsShortcutGrid"
+			@update:model-value="(enabled) => themeStore.setWindowsShortcutGrid(!!enabled)"
+		/>
+	</div>
 
 	<div class="custom-theme-heading">
 		<div>
@@ -705,6 +716,28 @@ function saveCustomTheme() {
 }
 
 .windows-background-settings small {
+	color: var(--color-text-tertiary);
+}
+
+.windows-shortcut-grid-settings {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin: -1rem 0 2rem;
+	padding: 0.8rem;
+	border: 1px solid var(--color-button-border);
+	border-radius: var(--radius-lg);
+	background: var(--surface-2);
+}
+
+.windows-shortcut-grid-settings > div {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.windows-shortcut-grid-settings small {
 	color: var(--color-text-tertiary);
 }
 

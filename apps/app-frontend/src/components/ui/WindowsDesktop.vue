@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { CompassIcon, LibraryIcon, PlusIcon, SettingsIcon, ShirtIcon } from '@modrinth/assets'
+import {
+	CompassIcon,
+	LibraryIcon,
+	MinecraftServerIcon,
+	PlusIcon,
+	SettingsIcon,
+	ShirtIcon,
+} from '@modrinth/assets'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import edenLogo from '@/assets/edenworld-logo.jpg'
 import type { GameInstance } from '@/helpers/types'
+import { useTheming } from '@/store/state'
 
 type ShortcutKind = 'home' | 'catalog' | 'library' | 'skins' | 'create' | 'settings' | 'instance'
 type DesktopShortcut = {
@@ -19,6 +27,7 @@ type DesktopWindow = {
 	id: string
 	path: string
 	title: string
+	iconPath?: string
 	x: number
 	y: number
 	width: number
@@ -36,6 +45,11 @@ const emit = defineEmits<{
 }>()
 
 const POSITION_STORAGE_KEY = 'edenlauncher-windows-shortcut-positions'
+const SHORTCUT_ORIGIN = 14
+const SHORTCUT_COLUMN_STEP = 100
+const SHORTCUT_ROW_STEP = 98
+const DOUBLE_CLICK_DELAY = 500
+const themeStore = useTheming()
 const shortcutPositions = ref<Record<string, { x: number; y: number }>>(loadShortcutPositions())
 const windows = ref<DesktopWindow[]>([])
 const activeWindowId = ref<string | null>(null)
@@ -45,6 +59,7 @@ const draggedShortcut = ref<string | null>(null)
 let zIndex = 10
 let mounted = false
 let cleanupPointerListeners: (() => void) | null = null
+let lastShortcutClick: { id: string; at: number } | null = null
 
 const shortcuts = computed<DesktopShortcut[]>(() => [
 	{
@@ -93,7 +108,7 @@ const shortcuts = computed<DesktopShortcut[]>(() => [
 		title: instance.name,
 		kind: 'instance' as const,
 		path: `/instance/${encodeURIComponent(instance.id)}`,
-		iconPath: instance.icon_path ? instanceIcon(instance.icon_path) : undefined,
+		iconPath: instance.icon_path ? instanceIcon(instance.icon_path) : MinecraftServerIcon,
 		details: `Игровая сборка · ${instance.game_version ?? 'Minecraft'}`,
 	})),
 ])
@@ -116,12 +131,56 @@ function instanceIcon(path: string) {
 
 function defaultShortcutPosition(index: number) {
 	const rows = Math.max(4, Math.floor((window.innerHeight - 150) / 98))
-	return { x: 14 + Math.floor(index / rows) * 100, y: 14 + (index % rows) * 98 }
+	return {
+		x: SHORTCUT_ORIGIN + Math.floor(index / rows) * SHORTCUT_COLUMN_STEP,
+		y: SHORTCUT_ORIGIN + (index % rows) * SHORTCUT_ROW_STEP,
+	}
+}
+
+function clampShortcutPosition(position: { x: number; y: number }) {
+	return {
+		x: Math.max(0, Math.min(window.innerWidth - 100, position.x)),
+		y: Math.max(0, Math.min(window.innerHeight - 170, position.y)),
+	}
+}
+
+function snapShortcutPosition(position: { x: number; y: number }) {
+	return clampShortcutPosition({
+		x:
+			SHORTCUT_ORIGIN +
+			Math.max(0, Math.round((position.x - SHORTCUT_ORIGIN) / SHORTCUT_COLUMN_STEP)) *
+				SHORTCUT_COLUMN_STEP,
+		y:
+			SHORTCUT_ORIGIN +
+			Math.max(0, Math.round((position.y - SHORTCUT_ORIGIN) / SHORTCUT_ROW_STEP)) *
+				SHORTCUT_ROW_STEP,
+	})
+}
+
+function snapAllShortcutsToGrid() {
+	const positions = { ...shortcutPositions.value }
+	shortcuts.value.forEach((shortcut, index) => {
+		positions[shortcut.id] = snapShortcutPosition(
+			positions[shortcut.id] ?? defaultShortcutPosition(index),
+		)
+	})
+	shortcutPositions.value = positions
+	saveShortcutPositions()
 }
 
 function shortcutStyle(shortcut: DesktopShortcut, index: number) {
 	const position = shortcutPositions.value[shortcut.id] ?? defaultShortcutPosition(index)
 	return { left: `${position.x}px`, top: `${position.y}px` }
+}
+
+function registerShortcutClick(shortcut: DesktopShortcut) {
+	const now = Date.now()
+	if (lastShortcutClick?.id === shortcut.id && now - lastShortcutClick.at <= DOUBLE_CLICK_DELAY) {
+		lastShortcutClick = null
+		openShortcut(shortcut)
+		return
+	}
+	lastShortcutClick = { id: shortcut.id, at: now }
 }
 
 function beginShortcutDrag(event: PointerEvent, shortcut: DesktopShortcut, index: number) {
@@ -136,29 +195,44 @@ function beginShortcutDrag(event: PointerEvent, shortcut: DesktopShortcut, index
 	const move = (moveEvent: PointerEvent) => {
 		const dx = moveEvent.clientX - startX
 		const dy = moveEvent.clientY - startY
-		if (Math.abs(dx) + Math.abs(dy) > 4) moved = true
+		if (!moved && Math.abs(dx) + Math.abs(dy) <= 6) return
+		moved = true
 		shortcutPositions.value = {
 			...shortcutPositions.value,
-			[shortcut.id]: {
-				x: Math.max(0, Math.min(window.innerWidth - 100, origin.x + dx)),
-				y: Math.max(0, Math.min(window.innerHeight - 170, origin.y + dy)),
-			},
+			[shortcut.id]: clampShortcutPosition({ x: origin.x + dx, y: origin.y + dy }),
 		}
 	}
-	const stop = () => {
+	const stop = (commit: boolean) => {
 		window.removeEventListener('pointermove', move)
-		window.removeEventListener('pointerup', stop)
+		window.removeEventListener('pointerup', finish)
+		window.removeEventListener('pointercancel', cancel)
 		cleanupPointerListeners = null
-		if (moved) saveShortcutPositions()
-		window.setTimeout(() => (draggedShortcut.value = null), 0)
+		draggedShortcut.value = null
+		if (!commit) return
+		if (moved) {
+			lastShortcutClick = null
+			if (themeStore.windowsShortcutGrid) {
+				shortcutPositions.value = {
+					...shortcutPositions.value,
+					[shortcut.id]: snapShortcutPosition(shortcutPositions.value[shortcut.id] ?? origin),
+				}
+			}
+			saveShortcutPositions()
+		} else {
+			registerShortcutClick(shortcut)
+		}
 	}
+	const finish = () => stop(true)
+	const cancel = () => stop(false)
 	window.addEventListener('pointermove', move)
-	window.addEventListener('pointerup', stop, { once: true })
-	cleanupPointerListeners = stop
+	window.addEventListener('pointerup', finish, { once: true })
+	window.addEventListener('pointercancel', cancel, { once: true })
+	cleanupPointerListeners = cancel
 }
 
 function showContextMenu(event: MouseEvent, shortcut: DesktopShortcut) {
 	event.preventDefault()
+	lastShortcutClick = null
 	contextMenu.value = {
 		x: Math.min(event.clientX, window.innerWidth - 230),
 		y: Math.min(event.clientY, window.innerHeight - 150),
@@ -179,6 +253,15 @@ function routeTitle(path: string) {
 	return 'EdenLauncher'
 }
 
+function routeIcon(path: string) {
+	if (path.startsWith('/instance/')) {
+		const id = decodeURIComponent(path.split('/')[2] ?? '')
+		const instance = props.instances.find((item) => item.id === id)
+		return instance?.icon_path ? instanceIcon(instance.icon_path) : MinecraftServerIcon
+	}
+	return edenLogo
+}
+
 function openShortcut(shortcut: DesktopShortcut) {
 	if (draggedShortcut.value === shortcut.id) return
 	contextMenu.value = null
@@ -195,6 +278,7 @@ function openWindow(path: string, title = routeTitle(path), navigate = false) {
 			id: `window-${Date.now()}-${windows.value.length}`,
 			path,
 			title,
+			iconPath: routeIcon(path),
 			x: 105 + offset * 28,
 			y: 38 + offset * 24,
 			width: Math.min(1040, Math.max(680, window.innerWidth - 250)),
@@ -205,6 +289,8 @@ function openWindow(path: string, title = routeTitle(path), navigate = false) {
 		}
 		windows.value.push(target)
 	}
+	target.title = title
+	target.iconPath = routeIcon(path)
 	target.minimized = false
 	target.z = ++zIndex
 	activeWindowId.value = target.id
@@ -216,6 +302,14 @@ function focusWindow(target: DesktopWindow) {
 	target.minimized = false
 	activeWindowId.value = target.id
 	if (props.activePath !== target.path) emit('navigate', target.path)
+}
+
+function toggleTaskbarWindow(target: DesktopWindow) {
+	if (activeWindowId.value === target.id && !target.minimized) {
+		minimizeWindow(target)
+	} else {
+		focusWindow(target)
+	}
 }
 
 function beginWindowDrag(event: PointerEvent, target: DesktopWindow) {
@@ -282,8 +376,16 @@ watch(
 	},
 )
 
+watch(
+	() => themeStore.windowsShortcutGrid,
+	(enabled) => {
+		if (enabled) snapAllShortcutsToGrid()
+	},
+)
+
 onMounted(() => {
 	mounted = true
+	if (themeStore.windowsShortcutGrid) snapAllShortcutsToGrid()
 	window.addEventListener('pointerdown', closeMenus)
 })
 
@@ -301,7 +403,6 @@ onBeforeUnmount(() => {
 				:key="shortcut.id"
 				:style="shortcutStyle(shortcut, index)"
 				@pointerdown.stop="beginShortcutDrag($event, shortcut, index)"
-				@dblclick.stop="openShortcut(shortcut)"
 				@contextmenu.stop="showContextMenu($event, shortcut)"
 			>
 				<img v-if="shortcut.iconPath" :src="shortcut.iconPath" alt="" />
@@ -362,16 +463,19 @@ onBeforeUnmount(() => {
 			</div>
 		</section>
 
-		<div v-if="windows.length" class="windows-open-apps">
-			<button
-				v-for="appWindow in windows"
-				:key="appWindow.id"
-				:class="{ active: activeWindowId === appWindow.id && !appWindow.minimized }"
-				@click="focusWindow(appWindow)"
-			>
-				<img :src="edenLogo" alt="" /><span>{{ appWindow.title }}</span>
-			</button>
-		</div>
+		<Teleport to=".app-grid-navbar">
+			<div v-if="windows.length" class="windows-open-apps">
+				<button
+					v-for="appWindow in windows"
+					:key="appWindow.id"
+					:title="appWindow.title"
+					:class="{ active: activeWindowId === appWindow.id && !appWindow.minimized }"
+					@click="toggleTaskbarWindow(appWindow)"
+				>
+					<img :src="appWindow.iconPath || edenLogo" alt="" /><span>{{ appWindow.title }}</span>
+				</button>
+			</div>
+		</Teleport>
 
 		<div
 			v-if="contextMenu"
@@ -585,19 +689,27 @@ onBeforeUnmount(() => {
 }
 
 .windows-open-apps {
-	position: fixed;
-	bottom: 0.25rem;
-	left: 19rem;
-	z-index: 110;
 	display: flex;
-	height: 2.5rem;
+	min-width: 0;
+	height: 100%;
+	flex: 1 1 auto;
 	gap: 1px;
+	order: -5;
+	overflow-x: auto;
+	overflow-y: hidden;
 	text-shadow: none;
+	scrollbar-width: none;
+}
+
+.windows-open-apps::-webkit-scrollbar {
+	display: none;
 }
 
 .windows-open-apps button {
 	display: flex;
+	min-width: 3rem;
 	max-width: 12rem;
+	height: 100%;
 	align-items: center;
 	gap: 0.45rem;
 	padding: 0 0.8rem;
@@ -609,6 +721,10 @@ onBeforeUnmount(() => {
 	font:
 		0.76rem 'Segoe UI',
 		sans-serif;
+}
+
+.windows-open-apps button:hover {
+	background: rgba(255, 255, 255, 0.13);
 }
 
 .windows-open-apps button.active {

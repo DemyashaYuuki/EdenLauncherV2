@@ -6,6 +6,7 @@ const ACCENT_COLOR_STORAGE_KEY = 'edenlauncher-accent-color'
 const BASE_THEME_STORAGE_KEY = 'edenlauncher-base-theme'
 const VISUAL_THEME_STORAGE_KEY = 'edenlauncher-visual-theme'
 const CUSTOM_THEME_STORAGE_KEY = 'edenlauncher-custom-theme'
+const WINDOWS_SHORTCUT_GRID_STORAGE_KEY = 'edenlauncher-windows-shortcut-grid'
 const LEGACY_THEME_OPTIONS = ['dark', 'light', 'oled', 'retro', 'system'] as const
 const VISUAL_THEME_OPTIONS = ['standard', 'windows10', 'asuna', 'error', 'custom'] as const
 const BUTTON_EFFECT_OPTIONS = ['none', 'pulse', 'wave', 'interference'] as const
@@ -87,6 +88,7 @@ export type ThemeStore = {
 	visualTheme: LauncherVisualTheme
 	accentColor: string
 	customTheme: CustomLauncherTheme
+	windowsShortcutGrid: boolean
 	advancedRendering: boolean
 	hideNametagSkinsPage: boolean
 
@@ -99,6 +101,7 @@ export const DEFAULT_THEME_STORE: ThemeStore = {
 	visualTheme: 'standard',
 	accentColor: DEFAULT_ACCENT_COLOR,
 	customTheme: DEFAULT_CUSTOM_THEME,
+	windowsShortcutGrid: true,
 	advancedRendering: true,
 	hideNametagSkinsPage: false,
 
@@ -361,6 +364,12 @@ export const useTheming = defineStore('themeStore', {
 	actions: {
 		initializeTheme() {
 			try {
+				this.windowsShortcutGrid =
+					window.localStorage.getItem(WINDOWS_SHORTCUT_GRID_STORAGE_KEY) !== 'false'
+			} catch (error) {
+				console.warn('Could not read the Windows shortcut grid setting.', error)
+			}
+			try {
 				const windowsBackground = window.localStorage.getItem(
 					'edenlauncher-windows-desktop-background',
 				)
@@ -532,6 +541,14 @@ export const useTheming = defineStore('themeStore', {
 
 			return true
 		},
+		setWindowsShortcutGrid(enabled: boolean) {
+			this.windowsShortcutGrid = enabled
+			try {
+				window.localStorage.setItem(WINDOWS_SHORTCUT_GRID_STORAGE_KEY, String(enabled))
+			} catch (error) {
+				console.warn('Could not save the Windows shortcut grid setting.', error)
+			}
+		},
 		resetAccentColor() {
 			this.setAccentColor(DEFAULT_ACCENT_COLOR)
 		},
@@ -540,6 +557,7 @@ export const useTheming = defineStore('themeStore', {
 			this.selectedTheme = 'dark'
 			this.accentColor = DEFAULT_ACCENT_COLOR
 			this.customTheme = { ...DEFAULT_CUSTOM_THEME }
+			this.windowsShortcutGrid = true
 			this.setThemeClass(true)
 
 			try {
@@ -547,6 +565,7 @@ export const useTheming = defineStore('themeStore', {
 				window.localStorage.setItem(BASE_THEME_STORAGE_KEY, 'dark')
 				window.localStorage.setItem(ACCENT_COLOR_STORAGE_KEY, DEFAULT_ACCENT_COLOR)
 				window.localStorage.removeItem(CUSTOM_THEME_STORAGE_KEY)
+				window.localStorage.setItem(WINDOWS_SHORTCUT_GRID_STORAGE_KEY, 'true')
 			} catch (error) {
 				console.warn('Could not reset the EdenLauncher theme.', error)
 			}
