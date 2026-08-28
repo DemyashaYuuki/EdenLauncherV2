@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { LogInIcon, LogOutIcon, MessageIcon, UserIcon } from '@modrinth/assets'
+import { LogInIcon, LogOutIcon, UserIcon } from '@modrinth/assets'
 import { Avatar, NewModal } from '@modrinth/ui'
-import { openUrl } from '@tauri-apps/plugin-opener'
 import { ref } from 'vue'
 
 import FriendsList from '@/components/ui/friends/FriendsList.vue'
-import { EDENWORLD_DISCORD_URL } from '@/helpers/edenworld'
 import type { ModrinthCredentials } from '@/helpers/mr_auth'
 
 type CredentialsWithUser = ModrinthCredentials & {
@@ -19,7 +17,6 @@ defineProps<{
 }>()
 
 const modal = ref<InstanceType<typeof NewModal> | null>(null)
-const tab = ref<'friends' | 'chat'>('friends')
 defineExpose({ show: () => modal.value?.show() })
 </script>
 
@@ -41,23 +38,8 @@ defineExpose({ show: () => modal.value?.show() })
 				</div>
 				<button class="primary" @click="signIn"><LogInIcon /> Войти</button>
 			</header>
-			<nav>
-				<button :class="{ active: tab === 'friends' }" @click="tab = 'friends'">Друзья</button
-				><button :class="{ active: tab === 'chat' }" @click="tab = 'chat'">Чат</button>
-			</nav>
-			<section v-if="tab === 'friends'" class="friends-panel">
+			<section class="friends-panel">
 				<FriendsList :credentials="credentials ?? null" :sign-in="signIn" />
-			</section>
-			<section v-else class="chat-panel">
-				<MessageIcon />
-				<h3>Чат сообщества EdenWorld</h3>
-				<p>
-					Ваш аккаунт Modrinth используется как профиль в лаунчере. Сам Modrinth не предоставляет
-					API личных сообщений, поэтому живой чат проекта открывается в Discord.
-				</p>
-				<button class="primary" :disabled="!credentials" @click="openUrl(EDENWORLD_DISCORD_URL)">
-					<MessageIcon /> Открыть чат проекта
-				</button>
 			</section>
 		</div>
 	</NewModal>
@@ -113,43 +95,9 @@ defineExpose({ show: () => modal.value?.show() })
 	color: var(--color-brand);
 	background: var(--color-brand-highlight);
 }
-nav {
-	display: flex;
-	gap: 0.25rem;
-	margin: 0.8rem 0;
-}
-nav button {
-	border-color: transparent !important;
-	background: transparent !important;
-}
-nav button.active {
-	color: var(--color-brand) !important;
-	background: var(--color-brand-highlight) !important;
-}
 .friends-panel {
 	max-height: 27rem;
 	overflow: auto;
-	padding: 0.4rem;
-}
-.chat-panel {
-	display: grid;
-	min-height: 20rem;
-	place-content: center;
-	justify-items: center;
-	text-align: center;
-}
-.chat-panel > svg {
-	width: 3rem;
-	height: 3rem;
-	color: var(--color-brand);
-}
-.chat-panel h3 {
-	margin: 0.8rem 0 0.25rem;
-}
-.chat-panel p {
-	max-width: 32rem;
-	margin: 0.2rem 0 1rem;
-	color: var(--color-text-tertiary);
-	line-height: 1.5;
+	padding: 0.9rem 0.4rem 0.4rem;
 }
 </style>

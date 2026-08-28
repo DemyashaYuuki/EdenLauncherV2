@@ -1,5 +1,5 @@
 <script setup>
-import { ServerIcon, XIcon } from '@modrinth/assets'
+import { XIcon } from '@modrinth/assets'
 import {
 	ButtonStyled,
 	commonMessages,
@@ -20,9 +20,8 @@ import {
 	get_full_path,
 	get_pack_export_candidates,
 } from '@/helpers/instance'
-import { convertInstanceToServer } from '@/helpers/local-server'
 
-const { addNotification, handleError } = injectNotificationManager()
+const { handleError } = injectNotificationManager()
 const { formatMessage } = useVIntl()
 
 const messages = defineMessages({
@@ -53,14 +52,9 @@ const props = defineProps({
 		required: true,
 	},
 })
-const emit = defineEmits(['create-server'])
-const exportType = ref('modpack')
-const serverExportBusy = ref(false)
-
 defineExpose({
 	show: () => {
 		resetExportState()
-		exportType.value = 'modpack'
 		exportModal.value.show()
 		void initFiles().catch(handleError)
 	},
@@ -119,38 +113,6 @@ const exportPack = async () => {
 		).catch((err) => handleError(err))
 		exportModal.value.hide()
 	}
-}
-
-const exportServerZip = async () => {
-	const outputPath = await save({
-		defaultPath: `${props.instance.name} — сервер.zip`,
-		filters: [{ name: 'Серверная сборка ZIP', extensions: ['zip'] }],
-	})
-	if (!outputPath) return
-
-	serverExportBusy.value = true
-	try {
-		const result = await convertInstanceToServer({
-			instanceId: props.instance.id,
-			exportPath: outputPath,
-		})
-		exportModal.value.hide()
-		addNotification({
-			type: 'success',
-			title: 'Серверная сборка готова',
-			text: `Скопировано модов: ${result.copied_mods}; исключено клиентских: ${result.excluded_mods}.`,
-			autoCloseMs: 10_000,
-		})
-	} catch (error) {
-		handleError(error)
-	} finally {
-		serverExportBusy.value = false
-	}
-}
-
-function createServerFromPack() {
-	exportModal.value.hide()
-	emit('create-server', props.instance.id)
 }
 
 function resetExportState() {
@@ -277,15 +239,7 @@ function isExportCandidateDisabled(path) {
 		width="46rem"
 		max-width="calc(100vw - 2rem)"
 	>
-		<div class="export-type-tabs">
-			<button :class="{ active: exportType === 'modpack' }" @click="exportType = 'modpack'">
-				<PackageIcon /> Клиентская сборка
-			</button>
-			<button :class="{ active: exportType === 'server' }" @click="exportType = 'server'">
-				<ServerIcon /> Серверная сборка
-			</button>
-		</div>
-		<div v-if="exportType === 'modpack'" class="flex flex-col gap-4">
+		<div class="flex flex-col gap-4">
 			<div class="grid grid-cols-2 gap-4">
 				<div class="labeled_input w-full">
 					<p class="text-contrast font-semibold">{{ formatMessage(messages.modpackNameLabel) }}</p>
@@ -329,24 +283,6 @@ function isExportCandidateDisabled(path) {
 				@navigate="loadExportDirectory"
 			/>
 		</div>
-		<div v-else class="server-pack-export">
-			<ServerIcon />
-			<div>
-				<h3>Сделать сервер из «{{ instance.name }}»</h3>
-				<p>
-					EdenLauncher проверит метаданные JAR-файлов, удалит только клиентские моды, перенесёт
-					конфигурацию и оставит серверный контент.
-				</p>
-			</div>
-			<button class="server-pack-option" @click="createServerFromPack">
-				<strong>Создать сервер в лаунчере</strong>
-				<span>Открыть полный мастер ядра, ОЗУ, порта и offline mode.</span>
-			</button>
-			<button class="server-pack-option" :disabled="serverExportBusy" @click="exportServerZip">
-				<strong>{{ serverExportBusy ? 'Создаём ZIP…' : 'Экспортировать в .zip' }}</strong>
-				<span>Готовая серверная часть для переноса на другой компьютер или хостинг.</span>
-			</button>
-		</div>
 		<template #actions>
 			<div class="flex items-center justify-end gap-2">
 				<ButtonStyled type="outlined">
@@ -355,7 +291,7 @@ function isExportCandidateDisabled(path) {
 						{{ formatMessage(commonMessages.cancelButton) }}
 					</button>
 				</ButtonStyled>
-				<ButtonStyled v-if="exportType === 'modpack'" color="brand">
+				<ButtonStyled color="brand">
 					<button @click="exportPack">
 						<PackageIcon />
 						{{ formatMessage(messages.exportButton) }}
@@ -365,81 +301,3 @@ function isExportCandidateDisabled(path) {
 		</template>
 	</NewModal>
 </template>
-
-<style scoped lang="scss">
-.export-type-tabs {
-	display: flex;
-	gap: 0.35rem;
-	margin-bottom: 1rem;
-	padding: 0.25rem;
-	border-radius: 0.65rem;
-	background: var(--surface-2);
-}
-.export-type-tabs button {
-	display: flex;
-	flex: 1;
-	align-items: center;
-	justify-content: center;
-	gap: 0.45rem;
-	padding: 0.6rem;
-	border: 0;
-	border-radius: 0.5rem;
-	color: var(--color-text-tertiary);
-	background: transparent;
-	font: inherit;
-	font-weight: 700;
-	cursor: pointer;
-}
-.export-type-tabs button.active {
-	color: var(--color-brand);
-	background: var(--color-brand-highlight);
-}
-.export-type-tabs svg {
-	width: 1rem;
-}
-.server-pack-export {
-	display: grid;
-	min-height: 23rem;
-	grid-template-columns: 3.5rem 1fr;
-	align-content: center;
-	gap: 0.75rem;
-	padding: 1rem;
-}
-.server-pack-export > svg {
-	width: 2.5rem;
-	height: 2.5rem;
-	color: var(--color-brand);
-}
-.server-pack-export h3 {
-	margin: 0;
-	color: var(--color-text-primary);
-}
-.server-pack-export p {
-	max-width: 34rem;
-	margin: 0.35rem 0 1rem;
-	color: var(--color-text-tertiary);
-	line-height: 1.45;
-}
-.server-pack-option {
-	grid-column: 1/-1;
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: 0.2rem;
-	padding: 0.8rem;
-	border: 1px solid var(--color-button-border);
-	border-radius: 0.65rem;
-	color: var(--color-text-primary);
-	background: var(--surface-2);
-	font: inherit;
-	text-align: left;
-	cursor: pointer;
-}
-.server-pack-option:hover {
-	border-color: var(--color-brand);
-}
-.server-pack-option span {
-	color: var(--color-text-tertiary);
-	font-size: 0.8rem;
-}
-</style>

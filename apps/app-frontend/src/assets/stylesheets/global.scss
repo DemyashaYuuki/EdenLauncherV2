@@ -235,6 +235,7 @@ html.theme-custom [role='dialog'] {
 html.theme-windows10 {
 	--top-bar-height: 2.45rem;
 	--left-bar-width: 0rem;
+	color-scheme: dark;
 }
 
 html.theme-windows10 .app-grid-layout,
@@ -302,14 +303,35 @@ html.theme-windows10 .app-viewport {
 
 html.theme-windows10 [role='dialog'],
 html.theme-windows10 .v-popper__inner {
-	border: 1px solid #787878 !important;
+	--color-bg: #181818;
+	--color-raised-bg: #202020;
+	--surface-1: #181818;
+	--surface-2: #242424;
+	--surface-3: #303030;
+	--color-text-primary: #f5f5f5;
+	--color-text-secondary: #dedede;
+	--color-text-tertiary: #a8a8a8;
+	--color-divider: #464646;
+	--color-button-bg: #292929;
+	--color-button-border: #606060;
+	border: 1px solid #666 !important;
 	border-radius: 0 !important;
-	background: #f2f2f2 !important;
+	color: #f5f5f5 !important;
+	background: #202020 !important;
 	box-shadow: 0 10px 35px rgba(0, 0, 0, 0.42) !important;
 }
 
-html.theme-windows10.light-mode [role='dialog'] {
-	color: #111;
+html.theme-windows10 [role='dialog'] button,
+html.theme-windows10 [role='dialog'] input,
+html.theme-windows10 [role='dialog'] textarea,
+html.theme-windows10 [role='dialog'] select,
+html.theme-windows10 .v-popper__inner,
+html.theme-windows10 .v-popper__inner * {
+	border-radius: 0 !important;
+}
+
+html.theme-windows10 .app-viewport > :not(.windows-desktop) {
+	border-radius: 0 !important;
 }
 
 html.theme-custom[data-button-effect='pulse'] button:active:not(:disabled) {

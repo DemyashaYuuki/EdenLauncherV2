@@ -10,7 +10,6 @@ pub mod install;
 pub mod instance;
 pub mod jre;
 pub mod logs;
-pub mod local_server;
 pub mod metadata;
 pub mod minecraft_skins;
 pub mod mr_auth;

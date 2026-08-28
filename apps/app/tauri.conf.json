@@ -103,13 +103,13 @@
 			"capabilities": ["core", "plugins"],
 			"csp": {
 				"default-src": "'self' customprotocol: asset:",
-				"connect-src": "ipc: https://xorison.dev https://*.xorison.dev https://astralium.su https://*.astralium.su https://authserver.ely.by https://account.ely.by https://ely.by http://ipc.localhost https://modrinth.com https://*.modrinth.com https://drive.google.com https://drive.usercontent.google.com https://*.googleusercontent.com https://edenworld.fun https://*.edenworld.fun https://api.github.com https://github.com https://objects.githubusercontent.com https://release-assets.githubusercontent.com https://*.posthog.com https://posthog.modrinth.com https://*.sentry.io https://api.mclo.gs http://textures.minecraft.net https://textures.minecraft.net https://app.getsentry.com https://*.taila228c5.ts.net wss://*.taila228c5.ts.net https://fill.papermc.io https://api.purpurmc.org 'self' data: blob:",
+				"connect-src": "ipc: https://xorison.dev https://*.xorison.dev https://astralium.su https://*.astralium.su https://authserver.ely.by https://account.ely.by https://ely.by https://api.mojang.com https://skinsystem.ely.by http://ipc.localhost https://modrinth.com https://*.modrinth.com https://drive.google.com https://drive.usercontent.google.com https://*.googleusercontent.com https://edenworld.fun https://*.edenworld.fun https://api.github.com https://github.com https://objects.githubusercontent.com https://release-assets.githubusercontent.com https://*.posthog.com https://posthog.modrinth.com https://*.sentry.io https://api.mclo.gs http://textures.minecraft.net https://textures.minecraft.net https://app.getsentry.com https://*.taila228c5.ts.net wss://*.taila228c5.ts.net 'self' data: blob:",
 				"font-src": ["https://cdn-raw.modrinth.com/fonts/"],
 				"img-src": "https: 'unsafe-inline' 'self' asset: http://asset.localhost http://textures.minecraft.net blob: data:",
 				"style-src": "'unsafe-inline' 'self'",
 				"script-src": "https://*.posthog.com https://posthog.modrinth.com https://tally.so/widgets/embed.js 'self'",
 				"frame-src": "https://www.youtube.com https://www.youtube-nocookie.com https://discord.com https://tally.so/popup/ 'self'",
-				"media-src": "https://*.githubusercontent.com"
+				"media-src": "'self' asset: blob: data: https://*.githubusercontent.com"
 			}
 		}
 	}

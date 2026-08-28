@@ -38,14 +38,13 @@ import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { type } from '@tauri-apps/plugin-os'
-import { computed, nextTick, onMounted, onUnmounted, provide, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import pilotVideo from '@/assets/pilot.mp4'
 import AccountSwitcherButton from '@/components/ui/AccountSwitcherButton.vue'
 import AppActionBar from '@/components/ui/AppActionBar.vue'
 import Breadcrumbs from '@/components/ui/Breadcrumbs.vue'
-import CreateHubModal from '@/components/ui/CreateHubModal.vue'
 import ErrorModal from '@/components/ui/ErrorModal.vue'
 import FirstRunSetup from '@/components/ui/FirstRunSetup.vue'
 import AddServerToInstanceModal from '@/components/ui/install_flow/AddServerToInstanceModal.vue'
@@ -126,21 +125,18 @@ updateHistoryNavigationState()
 
 const APP_LEFT_NAV_WIDTH = '4rem'
 const credentials = ref()
-const createHubModal = ref()
 const modrinthLoginModal = ref()
 const modrinthCommunityModal = ref()
 const desktopInstances = ref([])
+const windowsDesktop = ref()
 const startMenuOpen = ref(false)
-const windowsDesktopOpen = ref(true)
 const pilotActive = ref(false)
 const pilotElement = ref()
 const pilotBuffer = ref('')
 let previousPilotTheme = null
 
 const isWindowsTheme = computed(() => themeStore.visualTheme === 'windows10')
-const showWindowsDesktop = computed(
-	() => isWindowsTheme.value && windowsDesktopOpen.value && route.path === '/',
-)
+const showWindowsDesktop = computed(() => isWindowsTheme.value)
 
 const notificationManager = new AppNotificationManager()
 provideNotificationManager(notificationManager)
@@ -252,11 +248,11 @@ function activatePilot() {
 	themeStore.setAccentColor('#7C3AED')
 	pilotActive.value = true
 	startMenuOpen.value = false
-	void nextTick(() => {
-		if (!pilotElement.value) return
-		pilotElement.value.currentTime = 0
-		pilotElement.value.volume = 1
-		void pilotElement.value.play().catch(() => undefined)
+	if (!pilotElement.value) return
+	pilotElement.value.currentTime = 0
+	pilotElement.value.volume = 1
+	void pilotElement.value.play().catch((error) => {
+		console.warn('Не удалось запустить Pilot mode.', error)
 	})
 }
 
@@ -274,15 +270,19 @@ function deactivatePilot() {
 
 function openWindowsRoute(path) {
 	startMenuOpen.value = false
-	windowsDesktopOpen.value = false
+	if (isWindowsTheme.value) windowsDesktop.value?.openPath(path)
+	else void router.push(path)
+}
+
+function navigateFromWindowsDesktop(path) {
+	startMenuOpen.value = false
 	void router.push(path)
 }
 
 function openHome() {
 	if (isWindowsTheme.value) {
 		startMenuOpen.value = false
-		windowsDesktopOpen.value = true
-		void router.push('/')
+		windowsDesktop.value?.openPath('/')
 	} else {
 		void router.push('/')
 	}
@@ -290,17 +290,12 @@ function openHome() {
 
 function openCreateMenu() {
 	if (isWindowsTheme.value) startMenuOpen.value = !startMenuOpen.value
-	else createHubModal.value?.show()
+	else createGameInstance()
 }
 
 function createGameInstance() {
 	startMenuOpen.value = false
 	installationModal.value?.show()
-}
-
-function createLocalServer() {
-	startMenuOpen.value = false
-	createHubModal.value?.showServerCreate()
 }
 
 function openWindowsSettings() {
@@ -722,8 +717,7 @@ setupAuthProvider(credentials, async (_redirectPath, flow, options) => {
 watch(
 	() => themeStore.visualTheme,
 	(theme) => {
-		if (theme === 'windows10') windowsDesktopOpen.value = true
-		else startMenuOpen.value = false
+		if (theme !== 'windows10') startMenuOpen.value = false
 	},
 )
 
@@ -879,7 +873,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		<Suspense>
 			<AppSettingsModal ref="appSettingsModal" />
 		</Suspense>
-		<CreateHubModal ref="createHubModal" @create-instance="createGameInstance" />
 		<ModrinthAccountRequiredModal ref="modrinthLoginModal" :request-auth="requestModrinthAuth" />
 		<ModrinthCommunityModal
 			ref="modrinthCommunityModal"
@@ -912,7 +905,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			<button @click="openWindowsRoute('/library')"><LibraryIcon /> Библиотека</button>
 			<button @click="openWindowsRoute('/browse/modpack')"><CompassIcon /> Каталог Modrinth</button>
 			<button @click="createGameInstance"><PlusIcon /> Создать игровую сборку</button>
-			<button @click="createLocalServer"><WindowsLogoIcon /> Создать сервер</button>
 			<footer>
 				<button @click="openWindowsSettings"><SettingsIcon /> Параметры</button>
 			</footer>
@@ -947,7 +939,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			>
 				<LibraryIcon />
 			</NavButton>
-			<suspense>
+			<suspense v-if="!isWindowsTheme">
 				<QuickInstanceSwitcher />
 			</suspense>
 			<NavButton
@@ -1060,12 +1052,21 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			</Admonition>
 			<WindowsDesktop
 				v-if="showWindowsDesktop"
+				ref="windowsDesktop"
 				:instances="desktopInstances"
-				@navigate="openWindowsRoute"
-				@create="createHubModal?.show()"
-				@servers="createHubModal?.showServers()"
+				:active-path="route.fullPath"
+				@navigate="navigateFromWindowsDesktop"
+				@create="createGameInstance"
 				@settings="appSettingsModal?.show()"
-			/>
+			>
+				<RouterView v-slot="{ Component }">
+					<template v-if="Component">
+						<Suspense @pending="onSuspensePending" @resolve="onSuspenseResolve">
+							<component :is="Component"></component>
+						</Suspense>
+					</template>
+				</RouterView>
+			</WindowsDesktop>
 			<RouterView v-else v-slot="{ Component }">
 				<template v-if="Component">
 					<Suspense @pending="onSuspensePending" @resolve="onSuspenseResolve">
@@ -1126,7 +1127,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	/>
 	<InstallToPlayModal ref="installToPlayModal" :show-external-warnings="false" />
 	<UpdateToPlayModal ref="updateToPlayModal" :show-external-warnings="false" />
-	<div v-if="pilotActive" class="pilot-easter-egg">
+	<div v-show="pilotActive" class="pilot-easter-egg" :aria-hidden="!pilotActive">
 		<video ref="pilotElement" :src="pilotVideo" autoplay loop playsinline></video>
 		<div class="pilot-easter-egg__veil"></div>
 		<div class="pilot-easter-egg__label">

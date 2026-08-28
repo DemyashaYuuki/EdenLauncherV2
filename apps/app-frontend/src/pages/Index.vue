@@ -21,6 +21,8 @@ import edenLogo from '@/assets/edenworld-logo.jpg'
 import asunaBackground from '@/assets/theme-asuna.png'
 import errorBackground from '@/assets/theme-error.png'
 import RowDisplay from '@/components/RowDisplay.vue'
+import PlayerHead from '@/components/ui/PlayerHead.vue'
+import TelegramIcon from '@/components/ui/TelegramIcon.vue'
 import RecentWorldsList from '@/components/ui/world/RecentWorldsList.vue'
 import { get_search_results } from '@/helpers/cache.js'
 import {
@@ -350,7 +352,7 @@ onUnmounted(() => {
 						aria-label="Открыть Telegram EdenWorld"
 						@click="openProjectLink(EDENWORLD_TELEGRAM_URL)"
 					>
-						<MessageIcon /> TG
+						<TelegramIcon /> TG
 					</button>
 					<button
 						aria-label="Открыть Discord EdenWorld"
@@ -419,7 +421,7 @@ onUnmounted(() => {
 					</div>
 					<div v-if="onlinePlayers.length" class="eden-players-list">
 						<div v-for="player in onlinePlayers" :key="player.id || player.name">
-							<span>{{ player.name.slice(0, 1).toUpperCase() }}</span>
+							<PlayerHead :name="player.name" :uuid="player.id" />
 							<strong>{{ player.name }}</strong>
 						</div>
 					</div>
@@ -916,15 +918,10 @@ onUnmounted(() => {
 	background: var(--surface-2);
 }
 
-.eden-players-list > div > span {
-	display: grid;
+.eden-players-list > div > :deep(.player-head) {
 	width: 2rem;
 	height: 2rem;
-	place-items: center;
 	border-radius: 0.6rem;
-	color: var(--color-accent-contrast);
-	background: var(--color-brand);
-	font-weight: 850;
 }
 
 .eden-players-hidden {

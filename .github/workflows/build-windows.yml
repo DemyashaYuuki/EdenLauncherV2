@@ -240,11 +240,12 @@ jobs:
         run: |
           VERSION="$(node -p "require('./apps/app-frontend/package.json').version")"
           TAG="v${VERSION}"
+          NOTES='EdenLauncher 2.8.0 добавляет тёмную угловатую тему Windows 10 с полноценным рабочим столом, перемещаемыми ярлыками, свойствами по правой кнопке, окнами разделов, панелью задач, меню «Пуск» и отдельным фоном. Исправлена пасхалка pilot с видео и звуком, Mica удалена. Возвращены аккаунт и друзья Modrinth без раздела чата, добавлены настоящая иконка Telegram, кнопка голосования EdenWorld и головы игроков с приоритетом Minecraft → Ely.by → Steve. Экспериментальная система локальных серверов временно удалена. Сборки доступны для Windows x64 и Linux x64 (AppImage и DEB).'
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "EdenLauncher $TAG" --latest
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "EdenLauncher $TAG" --notes "$NOTES" --latest
           else
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "EdenLauncher $TAG" --notes "EdenLauncher 2.8.0 добавляет тему Windows 10 с рабочим столом, панелью задач, меню «Пуск» и отдельным фоном, а также пасхалку pilot. Mica удалена. Новый менеджер локальных серверов поддерживает создание и импорт сервера, выбор ядра, Java, ОЗУ, порта, offline mode, иконки, встроенную консоль и контент по типу ядра. Клиентскую сборку можно преобразовать в серверный профиль или ZIP с фильтрацией клиентских модов. Возвращены аккаунт и друзья Modrinth, добавлена кнопка голосования EdenWorld. Сборки доступны для Windows x64 и Linux x64 (AppImage и DEB)." --latest
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "EdenLauncher $TAG" --notes "$NOTES" --latest
           fi
 
           mapfile -d '' assets < <(find release-assets -type f \( -name '*.exe' -o -name '*.msi' -o -name '*.AppImage' -o -name '*.deb' \) -print0)

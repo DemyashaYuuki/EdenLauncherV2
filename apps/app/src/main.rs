@@ -234,7 +234,6 @@ fn main() {
         .plugin(api::install::init())
         .plugin(api::instance::init())
         .plugin(api::logs::init())
-        .plugin(api::local_server::init())
         .plugin(api::jre::init())
         .plugin(api::metadata::init())
         .plugin(api::minecraft_skins::init())
@@ -250,7 +249,6 @@ fn main() {
         // .plugin(api::ads::init())
         .plugin(api::friends::init())
         .plugin(api::worlds::init())
-        .manage(api::local_server::LocalServerManager::default())
         .manage(PendingUpdateData::default())
         .invoke_handler(tauri::generate_handler![
             initialize_state,
