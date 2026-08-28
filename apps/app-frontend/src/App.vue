@@ -1128,7 +1128,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	<InstallToPlayModal ref="installToPlayModal" :show-external-warnings="false" />
 	<UpdateToPlayModal ref="updateToPlayModal" :show-external-warnings="false" />
 	<div v-show="pilotActive" class="pilot-easter-egg" :aria-hidden="!pilotActive">
-		<video ref="pilotElement" :src="pilotVideo" autoplay loop playsinline></video>
+		<video ref="pilotElement" :src="pilotVideo" preload="auto" loop playsinline></video>
 		<div class="pilot-easter-egg__veil"></div>
 		<div class="pilot-easter-egg__label">
 			<strong>PILOT MODE</strong><span>Нажмите Esc, чтобы вернуться</span>

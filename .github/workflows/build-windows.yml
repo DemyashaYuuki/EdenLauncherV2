@@ -240,7 +240,7 @@ jobs:
         run: |
           VERSION="$(node -p "require('./apps/app-frontend/package.json').version")"
           TAG="v${VERSION}"
-          NOTES='EdenLauncher 2.8.1 добавляет тёмную угловатую тему Windows 10 с полноценным рабочим столом, перемещаемыми ярлыками, свойствами по правой кнопке, окнами разделов, панелью задач, меню «Пуск» и отдельным фоном. Исправлена пасхалка pilot с видео и звуком, Mica удалена. Возвращены аккаунт и друзья Modrinth без раздела чата, добавлены настоящая иконка Telegram, кнопка голосования EdenWorld и головы игроков с приоритетом Minecraft → Ely.by → Steve. Экспериментальная система локальных серверов временно удалена. Сборки доступны для Windows x64 и Linux x64 (AppImage и DEB).'
+          NOTES='EdenLauncher 2.8.2 исправляет самопроизвольный запуск музыки пасхалки при открытии лаунчера. Видео и звук Pilot Mode теперь запускаются только после ввода слова pilot. Также включены тёмная угловатая тема Windows 10 с рабочим столом, перемещаемыми ярлыками и окнами разделов, аккаунт и друзья Modrinth без чата, иконка Telegram и головы игроков с приоритетом Minecraft → Ely.by → Steve. Экспериментальная система локальных серверов временно удалена. Сборки доступны для Windows x64 и Linux x64 (AppImage и DEB).'
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "EdenLauncher $TAG" --notes "$NOTES" --latest
