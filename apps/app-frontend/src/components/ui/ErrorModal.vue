@@ -11,23 +11,27 @@ import {
 } from '@modrinth/assets'
 import { ButtonStyled, Collapsible, injectNotificationManager } from '@modrinth/ui'
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { ChatIcon } from '@/assets/icons'
+import EdenIcon from '@/components/ui/eden/EdenIcon.vue'
 import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { trackEvent } from '@/helpers/analytics'
 import { login as login_flow, set_default_user } from '@/helpers/auth.js'
 import { install_existing_instance } from '@/helpers/install'
 import { cancel_directory_change } from '@/helpers/settings.ts'
+import { showLauncherLogsFolder } from '@/helpers/utils.js'
 import { handleSevereError } from '@/store/error.js'
 
 const { handleError } = injectNotificationManager()
+const router = useRouter()
 
 const errorModal = ref()
 const error = ref()
 const closable = ref(true)
 const errorCollapsed = ref(false)
 
-const title = ref('An error occurred')
+const title = ref('Что-то пошло не так')
 const errorType = ref('unknown')
 const supportLink = ref('https://edenworld.fun/')
 const metadata = ref({})
@@ -36,9 +40,10 @@ defineExpose({
 	async show(errorVal, context, canClose = true, source = null) {
 		console.log(errorVal, context, canClose, source)
 		closable.value = canClose
+		metadata.value = {}
 
 		if (errorVal.message && errorVal.message.includes('Minecraft authentication error:')) {
-			title.value = 'Unable to sign in to Minecraft'
+			title.value = 'Не удалось войти в Minecraft'
 			errorType.value = 'minecraft_auth'
 			supportLink.value = 'https://edenworld.fun/'
 
@@ -52,7 +57,7 @@ defineExpose({
 				metadata.value.hostsFile = true
 			}
 		} else if (errorVal.message && errorVal.message.includes('Move directory error:')) {
-			title.value = 'Could not change app directory'
+			title.value = 'Не удалось сменить папку приложения'
 			errorType.value = 'directory_move'
 			supportLink.value = 'https://edenworld.fun/'
 
@@ -64,24 +69,24 @@ defineExpose({
 				metadata.value.notEnoughSpace = true
 			}
 		} else if (errorVal.message && errorVal.message.includes('No loader version selected for')) {
-			title.value = 'No loader selected'
+			title.value = 'Не выбрана версия загрузчика'
 			errorType.value = 'no_loader_version'
 			supportLink.value = 'https://edenworld.fun/'
 			metadata.value.instanceId = context.instanceId
 		} else if (errorVal.code === 'external_auth_library_not_installed') {
-			title.value = 'Authentication library required'
+			title.value = 'Нужна библиотека авторизации'
 			errorType.value = 'external_auth_library_not_installed'
 			supportLink.value = 'https://edenworld.fun/'
 			metadata.value = {}
 		} else if (source === 'state_init') {
-			title.value = 'Error initializing EdenLauncher App'
+			title.value = 'Не удалось запустить EdenLauncher'
 			errorType.value = 'state_init'
 			supportLink.value = 'https://edenworld.fun/'
 		} else {
-			title.value = 'An error occurred'
+			title.value = context?.instanceId ? 'Не удалось запустить игру' : 'Что-то пошло не так'
 			errorType.value = 'unknown'
 			supportLink.value = 'https://edenworld.fun/'
-			metadata.value = {}
+			metadata.value = { instanceId: context?.instanceId }
 		}
 
 		error.value = errorVal
@@ -142,7 +147,16 @@ const hasDebugInfo = computed(
 		errorType.value === 'external_auth_library_not_installed',
 )
 
-const debugInfo = computed(() => error.value.message ?? error.value ?? 'No error message.')
+const debugInfo = computed(() => error.value?.message ?? error.value ?? 'Причина не указана.')
+
+async function openLogs() {
+	errorModal.value.hide()
+	if (metadata.value.instanceId) {
+		await router.push(`/instance/${encodeURIComponent(metadata.value.instanceId)}/logs`)
+	} else {
+		await showLauncherLogsFolder().catch(handleError)
+	}
+}
 
 const copied = ref(false)
 
@@ -161,127 +175,135 @@ async function copyToClipboard(text) {
 			<div class="markdown-body">
 				<template v-if="errorType === 'minecraft_auth'">
 					<template v-if="metadata.network">
-						<h3>Network issues</h3>
+						<h3>Проблема с сетью</h3>
 						<p>
-							It looks like there were issues with the EdenLauncher App connecting to Microsoft's
-							servers. This is often the result of a poor connection, so we recommend trying again
-							to see if it works. If issues continue to persist, follow the steps in
-							<a href="https://edenworld.fun/"> our support article </a>
-							to troubleshoot.
+							EdenLauncher не смог связаться с серверами Microsoft. Обычно это временная проблема
+							соединения — попробуйте ещё раз. Если ошибка повторяется, загляните в
+							<a href="https://edenworld.fun/">раздел помощи</a>.
 						</p>
 					</template>
 					<template v-else-if="metadata.hostsFile">
-						<h3>Network issues</h3>
+						<h3>Проблема с сетью</h3>
 						<p>
-							The EdenLauncher App tried to connect to Microsoft / Xbox / Minecraft services, but
-							the remote server rejected the connection. This may indicate that these services are
-							blocked by the hosts file. Please visit
-							<a href="https://edenworld.fun/"> our support article </a>
-							for steps on how to fix the issue.
+							Сервисы Microsoft, Xbox или Minecraft отклонили подключение. Возможно, они
+							заблокированы в файле hosts. Подробности — в
+							<a href="https://edenworld.fun/">разделе помощи</a>.
 						</p>
 					</template>
 					<template v-else>
-						<h3>Try another Microsoft account</h3>
+						<h3>Попробуйте другой аккаунт Microsoft</h3>
 						<p>
-							Double check you've signed in with the right account. You may own Minecraft on a
-							different Microsoft account.
+							Проверьте, что вы вошли в нужный аккаунт: Minecraft может быть куплен на другом
+							аккаунте Microsoft.
 						</p>
 						<div class="cta-button">
 							<button class="btn btn-primary" :disabled="loadingMinecraft" @click="loginMinecraft">
-								<LogInIcon /> Try another account
+								<LogInIcon /> Войти в другой аккаунт
 							</button>
 						</div>
-						<h3>Using PC Game Pass, coming from Bedrock, or just bought the game?</h3>
+						<h3>PC Game Pass, Bedrock или игра только что куплена?</h3>
 						<p>
-							Try signing in with the
-							<a href="https://www.minecraft.net/en-us/download">official Minecraft Launcher</a>
-							first. Once you're done, come back here and sign in!
+							Сначала войдите через
+							<a href="https://www.minecraft.net/en-us/download">официальный Minecraft Launcher</a>,
+							затем вернитесь сюда.
 						</p>
 					</template>
 					<div class="cta-button">
 						<button class="btn btn-primary" :disabled="loadingMinecraft" @click="loginMinecraft">
-							<LogInIcon /> Try signing in again
+							<LogInIcon /> Войти ещё раз
 						</button>
 					</div>
 				</template>
 				<template v-if="errorType === 'directory_move'">
 					<template v-if="metadata.readOnly">
-						<h3>Change directory permissions</h3>
+						<h3>Нет прав на запись</h3>
 						<p>
-							It looks like the EdenLauncher App is unable to write to the directory you selected.
-							Please adjust the permissions of the directory and try again or cancel the directory
-							change.
+							EdenLauncher не может записывать файлы в выбранную папку. Измените права доступа и
+							повторите попытку или отмените смену папки.
 						</p>
 					</template>
 					<template v-else-if="metadata.notEnoughSpace">
-						<h3>Not enough space</h3>
+						<h3>Недостаточно места</h3>
 						<p>
-							It looks like there is not enough space on the disk containing the directory you
-							selected. Please free up some space and try again or cancel the directory change.
+							На диске с выбранной папкой не хватает места. Освободите место и повторите попытку или
+							отмените смену папки.
 						</p>
 					</template>
 					<template v-else>
 						<p>
-							The EdenLauncher App is unable to migrate to the new directory you selected. Please
-							contact support for help or cancel the directory change.
+							EdenLauncher не смог перенести данные в новую папку. Обратитесь в поддержку или
+							отмените смену папки.
 						</p>
 					</template>
 
 					<div class="cta-button">
 						<button class="btn" @click="retryDirectoryChange">
-							<UpdatedIcon /> Retry directory change
+							<UpdatedIcon /> Повторить перенос
 						</button>
 						<button class="btn btn-danger" @click="cancelDirectoryChange">
-							<XIcon /> Cancel directory change
+							<XIcon /> Отменить смену папки
 						</button>
 					</div>
 				</template>
 				<template v-else-if="errorType === 'state_init'">
 					<p>
-						EdenLauncher App failed to load correctly. This may be because of a corrupted file, or
-						because the app is missing crucial files.
+						EdenLauncher не смог корректно загрузиться. Возможно, повреждён или отсутствует файл
+						приложения.
 					</p>
-					<p>You may be able to fix it through one of the following ways:</p>
+					<p>Что можно сделать:</p>
 					<ul>
-						<li>Ensuring you are connected to the internet, then try restarting the app.</li>
-						<li>Redownloading the app.</li>
+						<li>Проверьте подключение к интернету и перезапустите лаунчер.</li>
+						<li>Скачайте и установите лаунчер заново.</li>
 					</ul>
 				</template>
 				<template v-else-if="errorType === 'no_loader_version'">
-					<p>The EdenLauncher App failed to find the loader version for this instance.</p>
-					<p>To resolve this, you need to repair the instance. Click the button below to do so.</p>
+					<p>EdenLauncher не нашёл версию загрузчика для этой сборки.</p>
+					<p>Исправьте сборку — кнопка ниже переустановит недостающие файлы.</p>
 					<div class="cta-button">
 						<button class="btn btn-primary" :disabled="loadingRepair" @click="repairInstance">
-							<HammerIcon /> Repair instance
+							<HammerIcon /> Исправить сборку
 						</button>
 					</div>
 				</template>
 				<template v-else-if="errorType === 'external_auth_library_not_installed'">
 					<p>{{ debugInfo }}</p>
 					<p>
-						Choose and install a version under Settings → EdenLauncher → Authentication libraries,
-						then launch the instance again.
+						Выберите и установите версию в разделе «Настройки → EdenLauncher → Библиотеки
+						аутентификации», затем снова запустите сборку.
 					</p>
 				</template>
 				<template v-else>
-					{{ debugInfo }}
+					<div class="eden-error-reason" role="alert">
+						<span class="eden-error-reason__icon"><EdenIcon name="warning" :size="22" /></span>
+						<div>
+							<strong>Причина</strong>
+							<p>{{ debugInfo }}</p>
+						</div>
+					</div>
 				</template>
 				<template v-if="hasDebugInfo">
 					<div class="w-full h-[1px] bg-surface-5 mb-3"></div>
 					<p>
-						If nothing is working and you need help, visit
-						<a :href="supportLink">our support page</a>
-						and start a chat using the widget in the bottom right and we will be more than happy to
-						assist! Make sure to provide the following debug information to the agent:
+						Если ничего не помогает, обратитесь в
+						<a :href="supportLink">поддержку EdenWorld</a> и приложите сведения для отладки ниже.
 					</p>
 				</template>
 			</div>
-			<div class="flex items-center gap-2">
+			<div class="flex flex-wrap items-center gap-2">
+				<button
+					v-if="errorType === 'unknown'"
+					type="button"
+					class="eden-btn eden-btn--secondary eden-btn--compact"
+					@click="openLogs"
+				>
+					<EdenIcon name="folder" :size="16" />
+					{{ metadata.instanceId ? 'Открыть журнал' : 'Папка журналов' }}
+				</button>
 				<ButtonStyled>
-					<a :href="supportLink" @click="errorModal.hide()"><ChatIcon /> Get support</a>
+					<a :href="supportLink" @click="errorModal.hide()"><ChatIcon /> Поддержка</a>
 				</ButtonStyled>
 				<ButtonStyled v-if="closable">
-					<button @click="errorModal.hide()"><XIcon /> Close</button>
+					<button @click="errorModal.hide()"><XIcon /> Закрыть</button>
 				</ButtonStyled>
 			</div>
 			<template v-if="hasDebugInfo">
@@ -295,7 +317,7 @@ async function copyToClipboard(text) {
 						>
 							<span class="flex items-center gap-2 text-contrast font-extrabold m-0">
 								<WrenchIcon class="h-4 w-4" />
-								Debug information
+								Сведения для отладки
 							</span>
 							<DropdownIcon
 								class="h-5 w-5 text-secondary transition-transform"
@@ -313,7 +335,7 @@ async function copyToClipboard(text) {
 								</div>
 								<ButtonStyled circular>
 									<button
-										v-tooltip="'Copy debug info'"
+										v-tooltip="'Скопировать сведения'"
 										:disabled="copied"
 										@click="copyToClipboard(debugInfo)"
 									>
@@ -372,6 +394,40 @@ async function copyToClipboard(text) {
 		height: 1.5rem;
 		width: 1.5rem;
 	}
+}
+
+.eden-error-reason {
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+	padding: 16px;
+	border: 1px solid var(--eden-border);
+	border-radius: var(--eden-radius-card);
+	background: var(--eden-surface);
+
+	strong {
+		color: var(--eden-text);
+		font-size: 14px;
+	}
+
+	p {
+		margin: 6px 0 0;
+		color: var(--eden-text-secondary);
+		font-size: 13px;
+		line-height: 1.6;
+		overflow-wrap: anywhere;
+	}
+}
+
+.eden-error-reason__icon {
+	display: grid;
+	width: 44px;
+	height: 44px;
+	flex: 0 0 auto;
+	place-items: center;
+	border-radius: 10px;
+	color: var(--eden-error);
+	background: var(--eden-error-soft);
 }
 
 .modal-body {

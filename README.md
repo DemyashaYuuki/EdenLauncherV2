@@ -1,6 +1,13 @@
-# EdenLauncher 2.0
+# EdenLauncher 2.9
 
 Брендированный лаунчер для проекта [EdenWorld](https://edenworld.fun/) на базе Theseus.
+
+## Обновление 2.9.0
+
+- новое оформление Eden Portal, Асуна / Bloom и Error / Signal;
+- обновлённые заставка, первый запуск, библиотека, загрузки и друзья;
+- единые значки, предпросмотр своей темы и сохранение режима Windows 10;
+- [голосование за EdenWorld](https://top-minecrafter.com/server/edenworld/).
 
 ## Что добавлено
 

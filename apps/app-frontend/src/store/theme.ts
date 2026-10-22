@@ -1,6 +1,108 @@
 import { defineStore } from 'pinia'
 
-export const DEFAULT_ACCENT_COLOR = '#AC58F5'
+import asunaBloomBackground from '@/assets/eden/backgrounds/asuna-bloom.webp'
+import edenPortalBackground from '@/assets/eden/backgrounds/eden-portal.webp'
+import errorSignalBackground from '@/assets/eden/backgrounds/error-signal.webp'
+
+export const DEFAULT_ACCENT_COLOR = '#BC9BFF'
+/** Accent used by the standard light palette when the default accent is selected. */
+export const DEFAULT_LIGHT_ACCENT_COLOR = '#7140B2'
+/** Default accent of EdenLauncher before the Portal redesign. Treated as "not chosen by the user". */
+const LEGACY_DEFAULT_ACCENT_COLOR = '#AC58F5'
+const LEGACY_THEME_ACCENT_COLORS: Partial<Record<LauncherVisualTheme, string>> = {
+	asuna: '#D86C9B',
+	error: '#E11D48',
+	windows10: '#0078D4',
+}
+
+export type EdenPaletteName = 'portal' | 'light' | 'bloom' | 'signal'
+
+export type EdenPalette = {
+	canvas: string
+	sidebar: string
+	surface: string
+	surfaceRaised: string
+	border: string
+	text: string
+	textSecondary: string
+	accent: string
+	onAccent: string
+	success: string
+	error: string
+}
+
+/** Semantic colour roles of the EdenLauncher design system. */
+export const EDEN_PALETTES: Record<EdenPaletteName, EdenPalette> = {
+	portal: {
+		canvas: '#0D0D14',
+		sidebar: '#111119',
+		surface: '#171720',
+		surfaceRaised: '#1E1D2A',
+		border: '#32313F',
+		text: '#F5F3FA',
+		textSecondary: '#AAA8BC',
+		accent: '#BC9BFF',
+		onAccent: '#201134',
+		success: '#8ED9BC',
+		error: '#FF9DAD',
+	},
+	bloom: {
+		canvas: '#F7F4F0',
+		sidebar: '#FFFCF8',
+		surface: '#FFFEFC',
+		surfaceRaised: '#F4ECE6',
+		border: '#DED5CC',
+		text: '#332A28',
+		textSecondary: '#70625F',
+		accent: '#99513F',
+		onAccent: '#FFF9F1',
+		success: '#3F6B54',
+		error: '#B52D4B',
+	},
+	signal: {
+		canvas: '#101113',
+		sidebar: '#131416',
+		surface: '#1A1B1E',
+		surfaceRaised: '#232427',
+		border: '#3A3B3E',
+		text: '#F2F0EA',
+		textSecondary: '#B7B4AF',
+		accent: '#F2F0EA',
+		onAccent: '#121315',
+		success: '#B9DBC9',
+		error: '#FF9D9D',
+	},
+	light: {
+		canvas: '#F3F2F7',
+		sidebar: '#FCFBFE',
+		surface: '#FFFFFF',
+		surfaceRaised: '#F0EEF5',
+		border: '#D9D5E3',
+		text: '#262231',
+		textSecondary: '#655F73',
+		accent: '#7140B2',
+		onAccent: '#FFFFFF',
+		success: '#28694F',
+		error: '#B52D4B',
+	},
+}
+
+/** Accent that each ready-made mode applies when it is selected. */
+export const VISUAL_THEME_ACCENTS: Record<Exclude<LauncherVisualTheme, 'custom'>, string> = {
+	standard: DEFAULT_ACCENT_COLOR,
+	windows10: DEFAULT_ACCENT_COLOR,
+	asuna: EDEN_PALETTES.bloom.accent,
+	error: EDEN_PALETTES.signal.accent,
+}
+
+/** Preset swatches offered in the appearance settings. */
+export const ACCENT_SWATCHES = ['#BC9BFF', '#9CC7F2', '#8ED9BC', '#F0CF86', '#FF9DAD'] as const
+
+export const EDEN_BACKGROUNDS = {
+	portal: edenPortalBackground,
+	bloom: asunaBloomBackground,
+	signal: errorSignalBackground,
+} as const
 
 const ACCENT_COLOR_STORAGE_KEY = 'edenlauncher-accent-color'
 const BASE_THEME_STORAGE_KEY = 'edenlauncher-base-theme'
@@ -91,6 +193,8 @@ export type ThemeStore = {
 	windowsShortcutGrid: boolean
 	advancedRendering: boolean
 	hideNametagSkinsPage: boolean
+	/** Mirrors the OS colour scheme so "system" mode stays reactive. */
+	systemPrefersLight: boolean
 
 	devMode: boolean
 	featureFlags: FeatureFlags
@@ -104,6 +208,7 @@ export const DEFAULT_THEME_STORE: ThemeStore = {
 	windowsShortcutGrid: true,
 	advancedRendering: true,
 	hideNametagSkinsPage: false,
+	systemPrefersLight: false,
 
 	devMode: false,
 	featureFlags: DEFAULT_FEATURE_FLAGS,
@@ -168,13 +273,6 @@ function relativeLuminance(color: RgbColor): number {
 	return 0.2126 * red + 0.7152 * green + 0.0722 * blue
 }
 
-function readableTextColor(color: RgbColor): string {
-	const luminance = relativeLuminance(color)
-	const whiteContrast = 1.05 / (luminance + 0.05)
-	const darkContrast = (luminance + 0.05) / 0.05
-	return whiteContrast >= darkContrast ? '#FFFFFF' : '#09060D'
-}
-
 function buildAccentPalette(accent: RgbColor): Record<number, RgbColor> {
 	return {
 		50: mixColor(accent, WHITE, 0.92),
@@ -189,6 +287,23 @@ function buildAccentPalette(accent: RgbColor): Record<number, RgbColor> {
 		900: mixColor(accent, BLACK, 0.6),
 		950: mixColor(accent, BLACK, 0.74),
 	}
+}
+
+function contrastRatio(first: RgbColor, second: RgbColor): number {
+	const a = relativeLuminance(first)
+	const b = relativeLuminance(second)
+	return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+}
+
+/** Darkens (or lightens) a colour until it reaches the requested contrast against a surface. */
+function ensureContrast(color: RgbColor, surface: RgbColor, minimum: number): RgbColor {
+	if (contrastRatio(color, surface) >= minimum) return color
+	const target = relativeLuminance(surface) > 0.4 ? BLACK : WHITE
+	for (let amount = 0.05; amount <= 1; amount += 0.05) {
+		const candidate = mixColor(color, target, amount)
+		if (contrastRatio(candidate, surface) >= minimum) return candidate
+	}
+	return target
 }
 
 function setCssVariable(
@@ -210,149 +325,218 @@ function normalizeLauncherTheme(theme: ColorTheme): LauncherTheme {
 	return 'dark'
 }
 
-export function applyAccentColor(color: string, theme: LauncherTheme = 'dark'): boolean {
+/** Picks the design palette for a visual mode and the resolved light/dark base. */
+export function resolvePaletteName(
+	visualTheme: LauncherVisualTheme,
+	theme: LauncherTheme,
+): EdenPaletteName {
+	if (visualTheme === 'asuna') return 'bloom'
+	if (visualTheme === 'error') return 'signal'
+	if (visualTheme === 'windows10') return 'portal'
+	return theme === 'light' ? 'light' : 'portal'
+}
+
+/**
+ * Colour a button really gets. The default dark accent is swapped for the
+ * darker light-palette accent so the light mode keeps readable controls.
+ */
+export function resolveAccentForPalette(color: string, paletteName: EdenPaletteName): string {
+	const normalized = normalizeAccentColor(color) ?? EDEN_PALETTES[paletteName].accent
+	if (paletteName === 'light' && normalized === DEFAULT_ACCENT_COLOR)
+		return DEFAULT_LIGHT_ACCENT_COLOR
+	return normalized
+}
+
+/** Text colour placed on top of an accent-coloured button. */
+export function textOnAccent(color: string, paletteName: EdenPaletteName): string {
+	const palette = EDEN_PALETTES[paletteName]
 	const normalized = normalizeAccentColor(color)
-	if (!normalized || typeof document === 'undefined') return false
+	if (!normalized) return palette.onAccent
+	if (normalized === palette.accent) return palette.onAccent
+	const accent = hexToRgb(normalized)
+	const darkText = mixColor(hexToRgb('#0D0B14'), accent, 0.12)
+	return contrastRatio(darkText, accent) >= contrastRatio(WHITE, accent)
+		? rgbToHex(darkText)
+		: '#FFFFFF'
+}
+
+export function applyAccentColor(
+	color: string,
+	theme: LauncherTheme = 'dark',
+	paletteName: EdenPaletteName = theme === 'light' ? 'light' : 'portal',
+): boolean {
+	const requested = normalizeAccentColor(color)
+	if (!requested || typeof document === 'undefined') return false
 
 	const root = document.documentElement
+	const palette = EDEN_PALETTES[paletteName]
+	const isLight = relativeLuminance(hexToRgb(palette.canvas)) > 0.4
+	const normalized = resolveAccentForPalette(requested, paletteName)
 	const accent = hexToRgb(normalized)
-	const palette = buildAccentPalette(accent)
-	const isLight = theme === 'light'
-	const base = hexToRgb(isLight ? '#F7F5FA' : '#09060D')
-	const surfaceMixes = isLight
-		? [0.018, 0.012, 0.006, 0.025, 0.04, 0.07]
-		: [0.04, 0.055, 0.075, 0.095, 0.125, 0.17]
-	const surfaces = surfaceMixes.map((amount) => mixColor(base, accent, amount))
-	const shadeEntries = Object.entries(palette)
+	const shades = buildAccentPalette(accent)
+	const canvas = hexToRgb(palette.canvas)
+	const surface = hexToRgb(palette.surface)
+	const raised = hexToRgb(palette.surfaceRaised)
+	const border = hexToRgb(palette.border)
+	const text = hexToRgb(palette.text)
+	const textSecondary = hexToRgb(palette.textSecondary)
+	const success = hexToRgb(palette.success)
+	const error = hexToRgb(palette.error)
+	// Accent used as text/icon colour: must stay readable on cards.
+	const accentText = ensureContrast(accent, surface, 4.5)
+	const onAccent = textOnAccent(normalized, paletteName)
+	const accentHover = mixColor(accent, isLight ? BLACK : WHITE, isLight ? 0.1 : 0.16)
+	const accentPressed = mixColor(accent, BLACK, isLight ? 0.22 : 0.12)
 
 	root.dataset.accentColor = normalized
-	root.dataset.launcherTheme = theme
-	root.style.colorScheme = theme
+	root.dataset.launcherTheme = isLight ? 'light' : 'dark'
+	root.dataset.edenPalette = paletteName
+	root.style.colorScheme = isLight ? 'light' : 'dark'
 
-	for (const paletteName of ACCENT_PALETTE_NAMES) {
-		for (const [shade, shadeColor] of shadeEntries) {
-			setCssVariable(root, `--color-${paletteName}-${shade}`, rgbToHex(shadeColor))
+	// Eden semantic tokens (used by the redesigned components).
+	setCssVariable(root, '--eden-canvas', palette.canvas)
+	setCssVariable(root, '--eden-sidebar', palette.sidebar)
+	setCssVariable(root, '--eden-surface', palette.surface)
+	setCssVariable(root, '--eden-surface-raised', palette.surfaceRaised)
+	setCssVariable(root, '--eden-border', palette.border)
+	setCssVariable(root, '--eden-border-strong', rgbToHex(mixColor(border, text, 0.18)))
+	setCssVariable(root, '--eden-text', palette.text)
+	setCssVariable(root, '--eden-text-secondary', palette.textSecondary)
+	setCssVariable(root, '--eden-accent', normalized)
+	setCssVariable(root, '--eden-accent-hover', rgbToHex(accentHover))
+	setCssVariable(root, '--eden-accent-pressed', rgbToHex(accentPressed))
+	setCssVariable(root, '--eden-accent-text', rgbToHex(accentText))
+	setCssVariable(root, '--eden-accent-soft', rgba(accent, isLight ? 0.12 : 0.14))
+	setCssVariable(root, '--eden-accent-soft-strong', rgba(accent, isLight ? 0.2 : 0.24))
+	setCssVariable(root, '--eden-on-accent', onAccent)
+	setCssVariable(root, '--eden-success', palette.success)
+	setCssVariable(root, '--eden-success-soft', rgba(success, isLight ? 0.12 : 0.14))
+	setCssVariable(root, '--eden-error', palette.error)
+	setCssVariable(root, '--eden-error-soft', rgba(error, isLight ? 0.1 : 0.14))
+	setCssVariable(root, '--eden-focus', rgbToHex(ensureContrast(accent, canvas, 3)))
+	setCssVariable(root, '--eden-shadow', isLight ? 'rgba(52, 40, 66, 0.08)' : 'rgba(0, 0, 0, 0.28)')
+
+	for (const paletteKey of ACCENT_PALETTE_NAMES) {
+		const base = paletteKey === 'red' ? error : paletteKey === 'green' ? success : accent
+		const baseHex = rgbToHex(base)
+		for (const [shade, shadeColor] of Object.entries(buildAccentPalette(base))) {
+			setCssVariable(root, `--color-${paletteKey}-${shade}`, rgbToHex(shadeColor))
 		}
-		setCssVariable(root, `--color-${paletteName}`, normalized)
-		setCssVariable(root, `--color-${paletteName}-highlight`, rgba(accent, 0.27))
-		setCssVariable(root, `--color-${paletteName}-bg`, rgba(accent, 0.16))
+		setCssVariable(
+			root,
+			`--color-${paletteKey}`,
+			paletteKey === 'red' || paletteKey === 'green' ? baseHex : rgbToHex(accentText),
+		)
+		setCssVariable(root, `--color-${paletteKey}-highlight`, rgba(base, 0.22))
+		setCssVariable(root, `--color-${paletteKey}-bg`, rgba(base, 0.14))
 	}
 
-	setCssVariable(root, '--surface-1', rgbToHex(surfaces[0]))
-	setCssVariable(root, '--surface-1-5', rgbToHex(surfaces[1]))
-	setCssVariable(root, '--surface-2', isLight ? '#FFFFFF' : rgbToHex(surfaces[2]))
-	setCssVariable(root, '--surface-2-5', rgbToHex(surfaces[3]))
-	setCssVariable(root, '--surface-3', isLight ? '#FFFFFF' : rgbToHex(surfaces[4]))
-	setCssVariable(root, '--surface-4', isLight ? '#FFFFFF' : rgbToHex(surfaces[5]))
-	setCssVariable(root, '--surface-5', rgbToHex(mixColor(base, accent, isLight ? 0.14 : 0.24)))
+	setCssVariable(root, '--surface-1', palette.canvas)
+	setCssVariable(root, '--surface-1-5', palette.sidebar)
+	setCssVariable(root, '--surface-2', rgbToHex(mixColor(canvas, surface, 0.55)))
+	setCssVariable(root, '--surface-2-5', rgbToHex(mixColor(canvas, surface, 0.8)))
+	setCssVariable(root, '--surface-3', palette.surface)
+	setCssVariable(root, '--surface-4', palette.surfaceRaised)
+	setCssVariable(root, '--surface-5', palette.border)
 
-	setCssVariable(root, '--color-text-primary', isLight ? '#18121D' : '#FFFAFF')
-	setCssVariable(
-		root,
-		'--color-text-default',
-		isLight
-			? rgbToHex(mixColor(hexToRgb('#39333F'), accent, 0.07))
-			: rgbToHex(mixColor(WHITE, accent, 0.14)),
-	)
-	setCssVariable(
-		root,
-		'--color-text-tertiary',
-		isLight
-			? rgbToHex(mixColor(hexToRgb('#716A77'), accent, 0.09))
-			: rgbToHex(mixColor(WHITE, accent, 0.32)),
-	)
+	setCssVariable(root, '--color-text-primary', palette.text)
+	setCssVariable(root, '--color-text-default', rgbToHex(mixColor(text, textSecondary, 0.35)))
+	setCssVariable(root, '--color-text-secondary', rgbToHex(mixColor(text, textSecondary, 0.6)))
+	setCssVariable(root, '--color-text-tertiary', palette.textSecondary)
 	setCssVariable(root, '--color-bg', 'var(--surface-1)')
 	setCssVariable(root, '--color-raised-bg', 'var(--surface-3)')
 	setCssVariable(root, '--color-super-raised-bg', 'var(--surface-4)')
 	setCssVariable(root, '--color-button-bg', 'var(--surface-4)')
-	setCssVariable(root, '--color-button-border', rgba(isLight ? palette[700] : palette[300], 0.2))
-	setCssVariable(root, '--color-scrollbar', rgbToHex(isLight ? palette[300] : palette[800]))
-	setCssVariable(
-		root,
-		'--color-divider',
-		rgba(isLight ? palette[700] : palette[400], isLight ? 0.16 : 0.18),
-	)
-	setCssVariable(root, '--color-divider-dark', rgba(isLight ? palette[800] : palette[300], 0.28))
+	setCssVariable(root, '--color-button-border', palette.border)
+	setCssVariable(root, '--color-scrollbar', rgbToHex(mixColor(border, text, isLight ? 0.12 : 0.18)))
+	setCssVariable(root, '--color-divider', palette.border)
+	setCssVariable(root, '--color-divider-dark', rgbToHex(mixColor(border, text, 0.16)))
 	setCssVariable(root, '--color-base', 'var(--color-text-default)')
 	setCssVariable(root, '--color-secondary', 'var(--color-text-tertiary)')
 	setCssVariable(root, '--color-contrast', 'var(--color-text-primary)')
-	setCssVariable(root, '--color-accent-contrast', readableTextColor(accent))
-	setCssVariable(
-		root,
-		'--color-gray',
-		rgbToHex(mixColor(isLight ? hexToRgb('#6F6874') : WHITE, accent, isLight ? 0.12 : 0.42)),
-	)
-	setCssVariable(root, '--color-gray-highlight', rgba(accent, 0.2))
+	setCssVariable(root, '--color-accent-contrast', onAccent)
+	setCssVariable(root, '--color-gray', palette.textSecondary)
+	setCssVariable(root, '--color-gray-highlight', rgba(textSecondary, 0.18))
 
 	setCssVariable(root, '--color-brand', normalized)
-	setCssVariable(root, '--color-brand-highlight', rgba(accent, 0.26))
-	setCssVariable(root, '--color-brand-shadow', rgba(accent, 0.62))
-	setCssVariable(root, '--color-button-bg-selected', rgba(accent, 0.24))
-	setCssVariable(
-		root,
-		'--color-button-text-selected',
-		rgbToHex(isLight ? palette[700] : palette[300]),
-	)
-	setCssVariable(root, '--color-link', rgbToHex(isLight ? palette[700] : palette[300]), 'important')
+	setCssVariable(root, '--color-brand-highlight', rgba(accent, isLight ? 0.16 : 0.2))
+	setCssVariable(root, '--color-brand-shadow', rgba(accent, 0.45))
+	setCssVariable(root, '--color-button-bg-selected', rgba(accent, isLight ? 0.14 : 0.2))
+	setCssVariable(root, '--color-button-text-selected', rgbToHex(accentText))
+	setCssVariable(root, '--color-link', rgbToHex(accentText), 'important')
 	setCssVariable(
 		root,
 		'--color-link-hover',
-		rgbToHex(isLight ? palette[600] : palette[200]),
+		rgbToHex(mixColor(accentText, isLight ? BLACK : WHITE, 0.15)),
 		'important',
 	)
 	setCssVariable(
 		root,
 		'--color-link-active',
-		rgbToHex(isLight ? palette[800] : palette[100]),
+		rgbToHex(mixColor(accentText, isLight ? BLACK : WHITE, 0.28)),
 		'important',
 	)
-	setCssVariable(root, '--color-focus-ring', rgbToHex(isLight ? palette[600] : palette[300]))
-	setCssVariable(root, '--color-tooltip-bg', 'var(--surface-4)')
-	setCssVariable(root, '--color-tooltip-text', isLight ? '#18121D' : '#FFFAFF')
-	setCssVariable(root, '--color-ad', rgba(palette[700], 0.2))
-	setCssVariable(root, '--color-ad-raised', rgba(palette[400], 0.34))
-	setCssVariable(root, '--color-ad-highlight', rgbToHex(palette[400]))
+	setCssVariable(root, '--color-focus-ring', rgbToHex(ensureContrast(accent, canvas, 3)))
+	setCssVariable(root, '--color-tooltip-bg', isLight ? palette.text : palette.surfaceRaised)
+	setCssVariable(root, '--color-tooltip-text', isLight ? palette.surface : palette.text)
+	setCssVariable(root, '--color-ad', rgba(shades[700], 0.2))
+	setCssVariable(root, '--color-ad-raised', rgba(shades[400], 0.34))
+	setCssVariable(root, '--color-ad-highlight', rgbToHex(accentText))
 
 	setCssVariable(
 		root,
 		'--loading-bar-gradient',
-		`linear-gradient(90deg, ${rgbToHex(palette[800])} 0%, ${rgbToHex(palette[300])} 55%, ${rgbToHex(palette[600])} 100%)`,
+		`linear-gradient(90deg, ${normalized} 0%, ${rgbToHex(accentHover)} 100%)`,
 	)
 	setCssVariable(
 		root,
 		'--color-gradient-button-bg',
-		`linear-gradient(180deg, ${isLight ? '#FFFFFF' : rgbToHex(surfaces[5])} 0%, ${rgbToHex(surfaces[4])} 100%)`,
+		`linear-gradient(180deg, ${palette.surfaceRaised} 0%, ${palette.surfaceRaised} 100%)`,
 	)
 	setCssVariable(
 		root,
 		'--brand-gradient-bg',
-		isLight
-			? `linear-gradient(0deg, ${rgba(surfaces[0], 0.98)}, ${rgba(palette[100], 0.68)})`
-			: `linear-gradient(0deg, ${rgba(surfaces[0], 0.97)}, ${rgba(palette[800], 0.58)})`,
+		`linear-gradient(0deg, ${rgba(canvas, 0.98)}, ${rgba(raised, 0.9)})`,
 	)
 	setCssVariable(
 		root,
 		'--brand-gradient-strong-bg',
-		`linear-gradient(270deg, ${rgbToHex(surfaces[0])} 10%, ${isLight ? '#FFFFFF' : rgbToHex(surfaces[5])} 100%)`,
+		`linear-gradient(270deg, ${palette.canvas} 10%, ${palette.surfaceRaised} 100%)`,
 	)
 	setCssVariable(root, '--brand-gradient-button', rgba(accent, 0.12))
-	setCssVariable(root, '--brand-gradient-border', rgba(palette[300], 0.18))
+	setCssVariable(root, '--brand-gradient-border', palette.border)
 	setCssVariable(
 		root,
 		'--brand-gradient-fade-out-color',
-		`linear-gradient(to bottom, ${rgba(surfaces[0], 0)}, ${rgbToHex(surfaces[0])} 80%)`,
+		`linear-gradient(to bottom, ${rgba(canvas, 0)}, ${palette.canvas} 80%)`,
 	)
 
 	PLATFORM_COLOR_NAMES.forEach((platform, index) => {
-		const shades = [300, 400, 500, 600] as const
+		const platformShades = [300, 400, 500, 600] as const
 		setCssVariable(
 			root,
 			`--color-platform-${platform}`,
-			rgbToHex(palette[shades[index % shades.length]]),
+			rgbToHex(ensureContrast(shades[platformShades[index % platformShades.length]], surface, 3)),
 		)
 	})
 
 	return true
+}
+
+/** Accent that should replace a stored value from the previous design, or null to keep it. */
+function migrateStoredAccent(
+	color: string | null,
+	visualTheme: LauncherVisualTheme,
+): string | null {
+	const normalized = color ? normalizeAccentColor(color) : null
+	if (!normalized) return null
+	if (normalized === LEGACY_DEFAULT_ACCENT_COLOR) {
+		return visualTheme === 'custom' ? null : VISUAL_THEME_ACCENTS[visualTheme]
+	}
+	if (visualTheme !== 'custom' && LEGACY_THEME_ACCENT_COLORS[visualTheme] === normalized) {
+		return VISUAL_THEME_ACCENTS[visualTheme]
+	}
+	return null
 }
 
 export const useTheming = defineStore('themeStore', {
@@ -361,6 +545,16 @@ export const useTheming = defineStore('themeStore', {
 		customTheme: { ...DEFAULT_CUSTOM_THEME },
 		featureFlags: { ...DEFAULT_FEATURE_FLAGS },
 	}),
+	getters: {
+		/** Light or dark base after resolving the "system" preference. */
+		resolvedTheme(state): LauncherTheme {
+			if (state.selectedTheme === 'system') return state.systemPrefersLight ? 'light' : 'dark'
+			return state.selectedTheme === 'light' ? 'light' : 'dark'
+		},
+		paletteName(): EdenPaletteName {
+			return resolvePaletteName(this.visualTheme, this.resolvedTheme)
+		},
+	},
 	actions: {
 		initializeTheme() {
 			try {
@@ -416,9 +610,12 @@ export const useTheming = defineStore('themeStore', {
 				this.accentColor = this.customTheme.accentColor
 			}
 			this.setThemeClass(false)
+			const systemQuery = window.matchMedia('(prefers-color-scheme: light)')
+			this.systemPrefersLight = systemQuery.matches
 			if (!systemThemeListenerInstalled) {
 				systemThemeListenerInstalled = true
-				window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+				systemQuery.addEventListener('change', (event) => {
+					this.systemPrefersLight = event.matches
 					if (this.selectedTheme === 'system') this.setThemeClass(true)
 				})
 			}
@@ -429,11 +626,14 @@ export const useTheming = defineStore('themeStore', {
 			} catch (error) {
 				console.warn('Could not read the saved EdenLauncher color.', error)
 			}
+			// Accents that were only the previous design's defaults move to the new palette.
+			// A colour the user picked on purpose is kept as is.
+			const migratedColor = migrateStoredAccent(savedColor, savedVisualTheme)
 
 			this.setAccentColor(
 				savedVisualTheme === 'custom'
 					? this.customTheme.accentColor
-					: (savedColor ?? DEFAULT_ACCENT_COLOR),
+					: (migratedColor ?? savedColor ?? VISUAL_THEME_ACCENTS[savedVisualTheme]),
 			)
 		},
 		setThemeState(newTheme: ColorTheme) {
@@ -469,9 +669,14 @@ export const useTheming = defineStore('themeStore', {
 			html.classList.add(`theme-${this.visualTheme}`)
 			html.dataset.visualTheme = this.visualTheme
 			html.dataset.themePreference = this.selectedTheme
+			const paletteName = resolvePaletteName(this.visualTheme, resolvedTheme)
+			let heroImage: string = EDEN_BACKGROUNDS.portal
+			if (paletteName === 'bloom') heroImage = EDEN_BACKGROUNDS.bloom
+			if (paletteName === 'signal') heroImage = EDEN_BACKGROUNDS.signal
 			if (this.visualTheme === 'custom') {
 				html.dataset.buttonEffect = this.customTheme.buttonEffect
 				if (this.customTheme.backgroundDataUrl) {
+					heroImage = this.customTheme.backgroundDataUrl
 					html.style.setProperty(
 						'--custom-theme-background-image',
 						`url(${JSON.stringify(this.customTheme.backgroundDataUrl)})`,
@@ -483,7 +688,16 @@ export const useTheming = defineStore('themeStore', {
 				html.removeAttribute('data-button-effect')
 				html.style.removeProperty('--custom-theme-background-image')
 			}
-			applyAccentColor(this.accentColor, resolvedTheme)
+			// Text on the hero stays light on dark artwork and dark on the light Bloom/custom art.
+			html.dataset.heroTone =
+				paletteName === 'bloom' ||
+				(this.visualTheme === 'custom' &&
+					resolvedTheme === 'light' &&
+					!!this.customTheme.backgroundDataUrl)
+					? 'light'
+					: 'dark'
+			html.style.setProperty('--eden-hero-image', `url(${JSON.stringify(heroImage)})`)
+			applyAccentColor(this.accentColor, resolvedTheme, paletteName)
 		},
 		setVisualTheme(newTheme: LauncherVisualTheme) {
 			if (!VISUAL_THEME_OPTIONS.includes(newTheme)) return
@@ -491,13 +705,17 @@ export const useTheming = defineStore('themeStore', {
 			this.visualTheme = newTheme
 			if (newTheme === 'asuna') {
 				this.selectedTheme = 'light'
-				this.accentColor = '#D86C9B'
+				this.accentColor = VISUAL_THEME_ACCENTS.asuna
 			} else if (newTheme === 'error') {
 				this.selectedTheme = 'dark'
-				this.accentColor = '#E11D48'
+				this.accentColor = VISUAL_THEME_ACCENTS.error
 			} else if (newTheme === 'windows10') {
 				this.selectedTheme = 'dark'
-				this.accentColor = '#0078D4'
+				this.accentColor = VISUAL_THEME_ACCENTS.windows10
+			} else if (newTheme === 'standard') {
+				// Leaving a ready-made mode restores the Eden accent instead of keeping its colour.
+				const previousModeAccents = [VISUAL_THEME_ACCENTS.asuna, VISUAL_THEME_ACCENTS.error]
+				if (previousModeAccents.includes(this.accentColor)) this.accentColor = DEFAULT_ACCENT_COLOR
 			} else if (newTheme === 'custom') {
 				this.selectedTheme = this.customTheme.baseTheme
 				this.accentColor = this.customTheme.accentColor
@@ -531,7 +749,12 @@ export const useTheming = defineStore('themeStore', {
 			if (!normalized) return false
 
 			this.accentColor = normalized
-			applyAccentColor(normalized, normalizeLauncherTheme(this.selectedTheme))
+			const resolvedTheme = normalizeLauncherTheme(this.selectedTheme)
+			applyAccentColor(
+				normalized,
+				resolvedTheme,
+				resolvePaletteName(this.visualTheme, resolvedTheme),
+			)
 
 			try {
 				window.localStorage.setItem(ACCENT_COLOR_STORAGE_KEY, normalized)

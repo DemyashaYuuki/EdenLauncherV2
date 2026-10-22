@@ -27,7 +27,11 @@ jobs:
 
       - name: Clone upstream launcher source
         shell: pwsh
-        run: git clone --depth 1 --branch release https://git.xorison.dev/didirus/AstralRinth.git source
+        run: |
+          git init source
+          git -C source remote add origin https://git.xorison.dev/didirus/AstralRinth.git
+          git -C source fetch --depth 1 origin 80a011e8008ce4f0fd828b98a4a5a2fdcbc01c86
+          git -C source checkout --detach FETCH_HEAD
 
       - name: Apply EdenLauncher source changes
         shell: pwsh
@@ -110,7 +114,7 @@ jobs:
       - name: Generate EdenWorld application icons
         shell: pwsh
         working-directory: source/apps/app
-        run: pnpm exec tauri icon ../app-frontend/src/assets/edenworld-logo.jpg -o icons
+        run: pnpm exec tauri icon ../app-frontend/src/assets/eden/brand/eden-app-icon-512.png -o icons
 
       - name: Build EdenLauncher for Windows
         shell: pwsh
@@ -151,7 +155,11 @@ jobs:
             wget
 
       - name: Clone upstream launcher source
-        run: git clone --depth 1 --branch release https://git.xorison.dev/didirus/AstralRinth.git source
+        run: |
+          git init source
+          git -C source remote add origin https://git.xorison.dev/didirus/AstralRinth.git
+          git -C source fetch --depth 1 origin 80a011e8008ce4f0fd828b98a4a5a2fdcbc01c86
+          git -C source checkout --detach FETCH_HEAD
 
       - name: Apply EdenLauncher source changes
         run: |
@@ -205,7 +213,7 @@ jobs:
 
       - name: Generate EdenWorld application icons
         working-directory: source/apps/app
-        run: pnpm exec tauri icon ../app-frontend/src/assets/edenworld-logo.jpg -o icons
+        run: pnpm exec tauri icon ../app-frontend/src/assets/eden/brand/eden-app-icon-512.png -o icons
 
       - name: Build EdenLauncher for Linux
         working-directory: source
@@ -240,7 +248,7 @@ jobs:
         run: |
           VERSION="$(node -p "require('./apps/app-frontend/package.json').version")"
           TAG="v${VERSION}"
-          NOTES='EdenLauncher 2.8.3 улучшает тему Windows 10: ярлыки снова надёжно открываются двойным нажатием ЛКМ, в настройках добавлена привязка ярлыков к сетке, а все открытые разделы и игровые сборки отображаются отдельными кнопками на панели задач со своими иконками. Повторное нажатие активной кнопки сворачивает окно. Также сохранено исправление самопроизвольного запуска музыки Pilot Mode. Сборки доступны для Windows x64 и Linux x64 (AppImage и DEB).'
+          NOTES='EdenLauncher 2.9.0: новый интерфейс Eden Portal, светлая тема Асуна / Bloom, Error / Signal, обновлённые заставка и первый запуск, библиотека, загрузки, друзья и настройки оформления. Сохранён режим Windows 10, подключён новый знак EW и обновлена ссылка голосования: https://top-minecrafter.com/server/edenworld/. Установщики доступны для Windows x64 и Linux x64 (AppImage и DEB).'
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "EdenLauncher $TAG" --notes "$NOTES" --latest

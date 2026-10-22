@@ -1,7 +1,7 @@
 <template>
 	<div v-if="instance" :class="{ 'flex h-full flex-col': isFixedRender }">
 		<div
-			:class="['p-6 pr-2 pb-4', { 'shrink-0': isFixedRender }]"
+			:class="['eden-instance-page__header', { 'shrink-0': isFixedRender }]"
 			@contextmenu.prevent.stop="(event) => handleRightClick(event)"
 		>
 			<ExportModal v-if="!instance.quarantined" ref="exportModal" :instance="instance" />
@@ -40,10 +40,10 @@
 				@create-shortcut="() => createShortcut()"
 			/>
 		</div>
-		<div :class="['px-6', { 'shrink-0': isFixedRender }]">
+		<div :class="['eden-instance-page__tabs', { 'shrink-0': isFixedRender }]">
 			<NavTabs :links="tabs" />
 		</div>
-		<div :class="['p-6 pt-4', { 'min-h-0 flex-1 overflow-y-auto': isFixedRender }]">
+		<div :class="['eden-instance-page__body', { 'min-h-0 flex-1 overflow-y-auto': isFixedRender }]">
 			<RouterView v-slot="{ Component }" :key="instance.id" :route="displayedInstanceRoute">
 				<template v-if="Component">
 					<Suspense
@@ -69,25 +69,25 @@
 			</RouterView>
 		</div>
 		<ContextMenu ref="options" @option-clicked="handleOptionsClick">
-			<template #play> <PlayIcon /> Play </template>
-			<template #stop> <StopCircleIcon /> Stop </template>
-			<template #add_content> <PlusIcon /> Add content </template>
-			<template #edit> <EditIcon /> Edit </template>
-			<template #copy_path> <ClipboardCopyIcon /> Copy path </template>
-			<template #open_folder> <FolderOpenIcon /> Open folder </template>
-			<template #copy_link> <ClipboardCopyIcon /> Copy link </template>
-			<template #open_link> <GlobeIcon /> Open in Modrinth <ExternalIcon /> </template>
-			<template #copy_names><EditIcon />Copy names</template>
-			<template #copy_slugs><HashIcon />Copy slugs</template>
-			<template #copy_links><GlobeIcon />Copy links</template>
-			<template #toggle><EditIcon />Toggle selected</template>
-			<template #disable><XIcon />Disable selected</template>
-			<template #enable><CheckCircleIcon />Enable selected</template>
-			<template #hide_show><EyeIcon />Show/Hide unselected</template>
+			<template #play> <PlayIcon /> Играть </template>
+			<template #stop> <StopCircleIcon /> Остановить </template>
+			<template #add_content> <PlusIcon /> Добавить контент </template>
+			<template #edit> <EditIcon /> Изменить </template>
+			<template #copy_path> <ClipboardCopyIcon /> Скопировать путь </template>
+			<template #open_folder> <FolderOpenIcon /> Открыть папку </template>
+			<template #copy_link> <ClipboardCopyIcon /> Скопировать ссылку </template>
+			<template #open_link> <GlobeIcon /> Открыть на Modrinth <ExternalIcon /> </template>
+			<template #copy_names><EditIcon />Скопировать названия</template>
+			<template #copy_slugs><HashIcon />Скопировать идентификаторы</template>
+			<template #copy_links><GlobeIcon />Скопировать ссылки</template>
+			<template #toggle><EditIcon />Переключить выбранные</template>
+			<template #disable><XIcon />Отключить выбранные</template>
+			<template #enable><CheckCircleIcon />Включить выбранные</template>
+			<template #hide_show><EyeIcon />Показать или скрыть остальные</template>
 			<template #update_all
-				><UpdatedIcon />Update {{ selected.length > 0 ? 'selected' : 'all' }}</template
+				><UpdatedIcon />Обновить {{ selected.length > 0 ? 'выбранные' : 'всё' }}</template
 			>
-			<template #filter_update><UpdatedIcon />Select Updatable</template>
+			<template #filter_update><UpdatedIcon />Выбрать обновляемые</template>
 		</ContextMenu>
 	</div>
 </template>
@@ -377,22 +377,22 @@ const contentSubpageProps = computed(() =>
 const tabs = computed(() => {
 	const instanceTabs = [
 		{
-			label: 'Content',
+			label: 'Контент',
 			href: `${basePath.value}`,
 			icon: BoxesIcon,
 		},
 		{
-			label: 'Files',
+			label: 'Файлы',
 			href: `${basePath.value}/files`,
 			icon: FolderOpenIcon,
 		},
 		{
-			label: 'Worlds',
+			label: 'Миры',
 			href: `${basePath.value}/worlds`,
 			icon: GlobeIcon,
 		},
 		{
-			label: 'Logs',
+			label: 'Логи',
 			href: `${basePath.value}/logs`,
 			icon: TerminalSquareIcon,
 		},
@@ -627,6 +627,18 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+.eden-instance-page__header {
+	padding: 28px var(--eden-page-padding-x) 0;
+}
+
+.eden-instance-page__tabs {
+	padding: 22px var(--eden-page-padding-x) 0;
+}
+
+.eden-instance-page__body {
+	padding: 18px var(--eden-page-padding-x) 32px;
+}
+
 .instance-card {
 	display: flex;
 	flex-direction: column;

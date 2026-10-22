@@ -26,15 +26,10 @@ import { getVersion } from '@tauri-apps/api/app'
 import { platform as getOsPlatform, version as getOsVersion } from '@tauri-apps/plugin-os'
 import { computed, provide, ref, watch } from 'vue'
 
+import edenWorldLogo from '@/assets/edenworld-logo.jpg'
 import LauncherUpdateModal from '@/components/ui/astralrinth/LauncherUpdateModal.vue'
 import ExternalAuthLibrarySettings from '@/components/ui/settings/astralrinth/ExternalAuthLibrarySettings.vue'
 import UpdateSettings from '@/components/ui/settings/astralrinth/UpdateSettings.vue'
-import {
-	isUpdateAvailable,
-	isUpdateInstalling,
-	latestLauncherReleases,
-} from '@/helpers/astralrinth/update'
-import edenWorldLogo from '@/assets/edenworld-logo.jpg'
 import AppearanceSettings from '@/components/ui/settings/display/AppearanceSettings.vue'
 import BehaviorSettings from '@/components/ui/settings/display/BehaviorSettings.vue'
 import FeatureFlagSettings from '@/components/ui/settings/display/FeatureFlagSettings.vue'
@@ -42,6 +37,11 @@ import LanguageSettings from '@/components/ui/settings/display/LanguageSettings.
 import DefaultInstanceSettings from '@/components/ui/settings/instances/DefaultInstanceSettings.vue'
 import JavaSettings from '@/components/ui/settings/instances/JavaSettings.vue'
 import ResourceManagementSettings from '@/components/ui/settings/instances/ResourceManagementSettings.vue'
+import {
+	isUpdateAvailable,
+	isUpdateInstalling,
+	latestLauncherReleases,
+} from '@/helpers/astralrinth/update'
 import { get, set } from '@/helpers/settings.ts'
 import {
 	appSettingsModalContextKey,
@@ -280,7 +280,7 @@ const messages = defineMessages({
 	<TabbedModal
 		ref="modal"
 		:tabs="availableTabs"
-		:width="'min(928px, calc(95vw - 10rem))'"
+		:width="'min(1120px, calc(100vw - 6rem))'"
 		:before-hide="canLeaveCurrentTab"
 		:before-tab-change="canLeaveCurrentTab"
 		:floating-action-bar-shown="hasUnsavedChanges"
@@ -342,22 +342,22 @@ const messages = defineMessages({
 					>
 						<template v-if="isUpdateInstalling">
 							<SpinnerIcon
-								class="size-6 animate-spin"
 								v-tooltip.bottom="formatMessage(messages.updateInstalling)"
+								class="size-6 animate-spin"
 							/>
 						</template>
 						<template v-else>
 							<DownloadIcon
-								class="size-6"
 								v-tooltip.bottom="formatMessage(messages.viewUpdateInfo)"
+								class="size-6"
 								@click="showUpdateModal()"
 							/>
 						</template>
 					</div>
 					<BadgeCheckIcon
 						v-else-if="latestLauncherReleases"
-						class="size-7 shrink-0 text-green"
 						v-tooltip.bottom="formatMessage(messages.updatesInstalled)"
+						class="size-7 shrink-0 text-green"
 					/>
 				</div>
 			</div>

@@ -1,6 +1,8 @@
 import Browse from './Browse.vue'
+import Downloads from './Downloads.vue'
+import Friends from './Friends.vue'
 import Index from './Index.vue'
 import Skins from './Skins.vue'
 import User from './User.vue'
 
-export { Browse, Index, Skins, User }
+export { Browse, Downloads, Friends, Index, Skins, User }

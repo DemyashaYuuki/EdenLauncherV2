@@ -1,0 +1,715 @@
+// EdenLauncher design system: shared primitives for the Portal / Bloom / Signal palettes.
+// Colours come from the --eden-* tokens that store/theme.ts writes for the active mode.
+
+html:root {
+	--font-standard:
+		'Segoe UI', 'Segoe UI Variable Text', system-ui, -apple-system, 'Noto Sans', 'Helvetica Neue',
+		Arial, sans-serif;
+	--eden-radius-control: 10px;
+	--eden-radius-card: 16px;
+	--eden-radius-hero: 20px;
+	--eden-titlebar-height: 40px;
+	--eden-sidebar-width: 216px;
+	--eden-page-padding-x: 32px;
+	--eden-motion-hover: 140ms;
+	--eden-motion-press: 80ms;
+	--eden-motion-page: 170ms;
+	--eden-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body {
+	font-family: var(--font-standard);
+	color: var(--eden-text, var(--color-text-default));
+	background: var(--eden-canvas, var(--color-bg));
+	-webkit-font-smoothing: antialiased;
+}
+
+@media (max-width: 1279px) {
+	html:root {
+		--eden-sidebar-width: 72px;
+		--eden-page-padding-x: 24px;
+	}
+}
+
+@media (max-width: 1099px) {
+	html:root {
+		--eden-page-padding-x: 20px;
+	}
+}
+
+// ---------- Page scaffold ----------
+
+.eden-page {
+	display: flex;
+	min-height: 100%;
+	box-sizing: border-box;
+	flex-direction: column;
+	gap: 24px;
+	padding: 28px var(--eden-page-padding-x) 40px;
+	color: var(--eden-text);
+	animation: eden-page-in var(--eden-motion-page) var(--eden-ease);
+}
+
+.eden-page-header {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 16px;
+	min-height: 56px;
+
+	h1 {
+		margin: 0;
+		color: var(--eden-text);
+		font-size: 29px;
+		font-weight: 650;
+		line-height: 1.2;
+		letter-spacing: -0.01em;
+	}
+
+	p {
+		margin: 6px 0 0;
+		color: var(--eden-text-secondary);
+		font-size: 13px;
+	}
+}
+
+.eden-page-header__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 12px;
+}
+
+.eden-eyebrow {
+	margin: 0;
+	color: var(--eden-text-secondary);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+}
+
+.eden-eyebrow--accent {
+	color: var(--eden-accent-text);
+}
+
+.eden-section-title {
+	margin: 0;
+	color: var(--eden-text);
+	font-size: 21px;
+	font-weight: 650;
+	line-height: 1.25;
+}
+
+// ---------- Cards ----------
+
+.eden-card {
+	position: relative;
+	min-width: 0;
+	box-sizing: border-box;
+	padding: 20px;
+	border: 1px solid var(--eden-border);
+	border-radius: var(--eden-radius-card);
+	color: var(--eden-text);
+	background: var(--eden-surface);
+}
+
+.eden-card--interactive {
+	cursor: pointer;
+	transition:
+		border-color var(--eden-motion-hover) ease,
+		background-color var(--eden-motion-hover) ease;
+
+	&:hover {
+		border-color: var(--eden-border-strong);
+		background: color-mix(in srgb, var(--eden-surface) 86%, var(--eden-surface-raised));
+	}
+}
+
+.eden-icon-tile {
+	display: grid;
+	width: 40px;
+	height: 40px;
+	flex: 0 0 auto;
+	place-items: center;
+	border-radius: var(--eden-radius-control);
+	color: var(--eden-accent-text);
+	background: var(--eden-surface-raised);
+
+	svg {
+		width: 20px;
+		height: 20px;
+	}
+}
+
+// ---------- Buttons ----------
+
+.eden-btn {
+	position: relative;
+	display: inline-flex;
+	min-height: 46px;
+	box-sizing: border-box;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 0 20px;
+	border: 1px solid transparent;
+	border-radius: var(--eden-radius-control);
+	color: var(--eden-text);
+	background: var(--eden-surface-raised);
+	font: inherit;
+	font-size: 14px;
+	font-weight: 650;
+	line-height: 1;
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+	user-select: none;
+	transition:
+		background-color var(--eden-motion-hover) ease,
+		border-color var(--eden-motion-hover) ease,
+		color var(--eden-motion-hover) ease;
+
+	svg {
+		width: 18px;
+		height: 18px;
+		flex: 0 0 auto;
+	}
+
+	&:active:not(:disabled) {
+		transition-duration: var(--eden-motion-press);
+	}
+
+	&:disabled,
+	&[aria-disabled='true'] {
+		cursor: not-allowed;
+		opacity: 1;
+		color: color-mix(in srgb, var(--eden-text-secondary) 70%, transparent);
+		background: var(--eden-surface-raised);
+		border-color: transparent;
+	}
+}
+
+.eden-btn--primary {
+	color: var(--eden-on-accent);
+	background: var(--eden-accent);
+
+	&:hover:not(:disabled) {
+		background: var(--eden-accent-hover);
+	}
+
+	&:active:not(:disabled) {
+		background: var(--eden-accent-pressed);
+	}
+}
+
+.eden-btn--secondary {
+	border-color: var(--eden-border);
+	background: var(--eden-surface-raised);
+
+	&:hover:not(:disabled) {
+		border-color: var(--eden-border-strong);
+		background: color-mix(in srgb, var(--eden-surface-raised) 80%, var(--eden-text) 6%);
+	}
+
+	&:active:not(:disabled) {
+		background: color-mix(in srgb, var(--eden-surface-raised) 70%, var(--eden-text) 12%);
+	}
+}
+
+.eden-btn--ghost {
+	min-height: 36px;
+	padding: 0 12px;
+	color: var(--eden-text-secondary);
+	background: transparent;
+
+	&:hover:not(:disabled) {
+		color: var(--eden-text);
+		background: var(--eden-surface-raised);
+	}
+
+	&:disabled {
+		background: transparent;
+	}
+}
+
+.eden-btn--link {
+	min-height: 32px;
+	padding: 0 4px;
+	color: var(--eden-accent-text);
+	background: transparent;
+
+	&:hover:not(:disabled) {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+}
+
+.eden-btn--compact {
+	min-height: 36px;
+	padding: 0 14px;
+	font-size: 13px;
+}
+
+.eden-btn--icon {
+	width: 46px;
+	padding: 0;
+}
+
+.eden-btn--icon.eden-btn--compact {
+	width: 36px;
+}
+
+.eden-btn--block {
+	width: 100%;
+}
+
+.eden-btn--success {
+	color: var(--eden-success);
+	background: var(--eden-success-soft);
+	border-color: transparent;
+}
+
+// ---------- Inputs ----------
+
+.eden-input {
+	display: flex;
+	min-height: 46px;
+	box-sizing: border-box;
+	align-items: center;
+	gap: 12px;
+	padding: 0 16px;
+	border: 1px solid var(--eden-border);
+	border-radius: var(--eden-radius-control);
+	color: var(--eden-text);
+	background: var(--eden-surface);
+	transition: border-color var(--eden-motion-hover) ease;
+
+	&:focus-within {
+		border-color: var(--eden-focus);
+		box-shadow: 0 0 0 1px var(--eden-focus);
+	}
+
+	> svg {
+		width: 18px;
+		height: 18px;
+		flex: 0 0 auto;
+		color: var(--eden-text-secondary);
+	}
+
+	input,
+	select {
+		width: 100%;
+		min-width: 0;
+		min-height: 0;
+		flex: 1;
+		padding: 0;
+		border: 0;
+		outline: none;
+		color: inherit;
+		background: transparent;
+		box-shadow: none !important;
+		font: inherit;
+		font-size: 14px;
+		font-weight: 400;
+
+		&::placeholder {
+			color: var(--eden-text-secondary);
+			opacity: 1;
+		}
+	}
+}
+
+.eden-input--invalid {
+	border-color: var(--eden-error);
+}
+
+.eden-field-error {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 6px 0 0;
+	color: var(--eden-error);
+	font-size: 12px;
+}
+
+// ---------- Chips, tabs, status ----------
+
+.eden-chip {
+	display: inline-flex;
+	min-height: 26px;
+	box-sizing: border-box;
+	align-items: center;
+	gap: 6px;
+	padding: 0 10px;
+	border-radius: 6px;
+	color: var(--eden-text);
+	background: var(--eden-surface-raised);
+	font-size: 12px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.eden-chip--accent {
+	color: var(--eden-accent-text);
+	background: var(--eden-accent-soft);
+}
+
+.eden-chip--success {
+	color: var(--eden-success);
+	background: var(--eden-success-soft);
+}
+
+.eden-chip--error {
+	color: var(--eden-error);
+	background: var(--eden-error-soft);
+}
+
+.eden-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.eden-tab {
+	display: inline-flex;
+	min-height: 32px;
+	box-sizing: border-box;
+	align-items: center;
+	gap: 6px;
+	padding: 0 14px;
+	border: 0;
+	border-radius: 6px;
+	color: var(--eden-text-secondary);
+	background: transparent;
+	font: inherit;
+	font-size: 13px;
+	font-weight: 500;
+	text-decoration: none;
+	cursor: pointer;
+	transition:
+		color var(--eden-motion-hover) ease,
+		background-color var(--eden-motion-hover) ease;
+
+	&:hover {
+		color: var(--eden-text);
+	}
+
+	&.active,
+	&.router-link-exact-active,
+	&[aria-selected='true'] {
+		color: var(--eden-accent-text);
+		background: var(--eden-accent-soft);
+		font-weight: 650;
+	}
+}
+
+.eden-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--eden-text-secondary);
+	font-size: 12px;
+}
+
+.eden-status-dot {
+	width: 7px;
+	height: 7px;
+	flex: 0 0 auto;
+	border-radius: 50%;
+	background: var(--eden-text-secondary);
+}
+
+.eden-status--success {
+	color: var(--eden-success);
+
+	.eden-status-dot {
+		background: var(--eden-success);
+	}
+}
+
+.eden-status--error {
+	color: var(--eden-error);
+
+	.eden-status-dot {
+		background: var(--eden-error);
+	}
+}
+
+.eden-status--pending .eden-status-dot {
+	background: var(--eden-accent);
+	animation: eden-pulse 1.6s ease-in-out infinite;
+}
+
+// ---------- Progress ----------
+
+.eden-progress {
+	position: relative;
+	width: 100%;
+	height: 6px;
+	overflow: hidden;
+	border-radius: 999px;
+	background: var(--eden-surface-raised);
+}
+
+.eden-progress__bar {
+	height: 100%;
+	border-radius: inherit;
+	background: var(--eden-accent);
+	transition: width 200ms ease;
+}
+
+.eden-progress--indeterminate .eden-progress__bar {
+	width: 32%;
+	animation: eden-indeterminate 1.4s var(--eden-ease) infinite;
+}
+
+// ---------- Empty and error states ----------
+
+.eden-state {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 28px;
+	border: 1px solid var(--eden-border);
+	border-radius: var(--eden-radius-card);
+	background: var(--eden-surface);
+
+	h3 {
+		margin: 8px 0 0;
+		color: var(--eden-text);
+		font-size: 21px;
+		font-weight: 650;
+	}
+
+	p {
+		max-width: 34rem;
+		margin: 0;
+		color: var(--eden-text-secondary);
+		font-size: 13px;
+		line-height: 1.7;
+	}
+}
+
+.eden-state--center {
+	align-items: center;
+	text-align: center;
+}
+
+.eden-state__icon {
+	display: grid;
+	width: 64px;
+	height: 64px;
+	place-items: center;
+	border-radius: 14px;
+	color: var(--eden-accent-text);
+	background: var(--eden-surface-raised);
+
+	svg {
+		width: 26px;
+		height: 26px;
+	}
+}
+
+.eden-state--error .eden-state__icon {
+	color: var(--eden-error);
+}
+
+// ---------- Hero banner (home, instance, custom theme preview) ----------
+
+.eden-hero {
+	--hero-text: #f5f3fa;
+	--hero-text-secondary: rgba(245, 243, 250, 0.84);
+	--hero-chip-bg: rgba(30, 29, 42, 0.86);
+	--hero-scrim: linear-gradient(
+		90deg,
+		rgba(12, 11, 21, 0.94) 0%,
+		rgba(12, 11, 21, 0.78) 30%,
+		rgba(12, 11, 21, 0.18) 58%,
+		rgba(12, 11, 21, 0) 75%
+	);
+	position: relative;
+	min-height: 330px;
+	overflow: hidden;
+	border: 1px solid var(--eden-border);
+	border-radius: var(--eden-radius-hero);
+	color: var(--hero-text);
+	background: #0d0d14;
+	isolation: isolate;
+}
+
+html[data-hero-tone='light'] .eden-hero {
+	--hero-text: #332a28;
+	--hero-text-secondary: rgba(51, 42, 40, 0.86);
+	--hero-chip-bg: rgba(255, 252, 248, 0.88);
+	--hero-scrim: linear-gradient(
+		90deg,
+		rgba(255, 251, 246, 0.95) 0%,
+		rgba(255, 251, 246, 0.8) 32%,
+		rgba(255, 251, 246, 0.2) 58%,
+		rgba(255, 251, 246, 0) 75%
+	);
+	background: #f7f4f0;
+}
+
+.eden-hero__art {
+	position: absolute;
+	z-index: -2;
+	inset: 0;
+	background: var(--eden-hero-image) 72% 38% / cover no-repeat;
+}
+
+.eden-hero__scrim {
+	position: absolute;
+	z-index: -1;
+	inset: 0;
+	background: var(--hero-scrim);
+}
+
+.eden-hero__content {
+	display: flex;
+	max-width: 560px;
+	min-height: 330px;
+	box-sizing: border-box;
+	flex-direction: column;
+	justify-content: center;
+	padding: 34px 32px;
+}
+
+.eden-hero__eyebrow {
+	color: var(--hero-text);
+	opacity: 0.92;
+}
+
+.eden-hero__title {
+	margin: 14px 0 0;
+	color: var(--hero-text);
+	font-size: clamp(42px, 4.2vw, 58px);
+	font-weight: 700;
+	line-height: 1.05;
+	letter-spacing: -0.02em;
+}
+
+.eden-hero__lead {
+	margin: 14px 0 0;
+	color: var(--hero-text-secondary);
+	font-size: 16px;
+	line-height: 1.6;
+}
+
+.eden-hero__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 20px;
+}
+
+.eden-hero__chip {
+	display: inline-flex;
+	min-height: 26px;
+	align-items: center;
+	padding: 0 12px;
+	border-radius: 6px;
+	color: var(--hero-text);
+	background: var(--hero-chip-bg);
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.eden-hero__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+	margin-top: 26px;
+}
+
+// ---------- Focus ----------
+
+:is(
+	.eden-btn,
+	.eden-tab,
+	.eden-nav-item,
+	.eden-card--interactive,
+	.eden-swatch,
+	.eden-choice
+):focus-visible {
+	outline: 2px solid var(--eden-focus);
+	outline-offset: 3px;
+}
+
+// ---------- Motion ----------
+
+@keyframes eden-page-in {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes eden-pulse {
+	50% {
+		opacity: 0.35;
+	}
+}
+
+@keyframes eden-indeterminate {
+	from {
+		transform: translateX(-110%);
+	}
+	to {
+		transform: translateX(320%);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.eden-page,
+	.eden-status--pending .eden-status-dot,
+	.eden-progress--indeterminate .eden-progress__bar {
+		animation: none;
+	}
+
+	.eden-progress--indeterminate .eden-progress__bar {
+		width: 100%;
+		opacity: 0.45;
+	}
+}
+
+html.eden-reduced-effects {
+	.eden-page {
+		animation: none;
+	}
+}
+
+// ---------- Existing pages framed in the Eden layout ----------
+
+// Skins: keep the working 3D preview and skin list, only adopt Eden spacing and surfaces.
+.skin-layout {
+	gap: 24px;
+	padding: 28px var(--eden-page-padding-x) 32px !important;
+
+	> .sticky:first-child {
+		border: 1px solid var(--eden-border);
+		border-radius: var(--eden-radius-card);
+		background: radial-gradient(
+			circle at 50% 48%,
+			var(--eden-surface-raised) 0%,
+			var(--eden-surface) 68%
+		);
+		padding: 20px 20px 24px !important;
+
+		h1 {
+			color: var(--eden-text);
+			font-size: 29px;
+			font-weight: 650;
+		}
+	}
+}

@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @import '@modrinth/ui/src/styles/tailwind-utilities.css';
+@import './eden.scss';
 
 @font-face {
 	font-family: 'bundled-minecraft-font-mrapp';
@@ -62,276 +63,67 @@ body {
 	overflow: hidden;
 }
 
-html.theme-asuna .app-grid-layout {
-	background: linear-gradient(160deg, rgba(255, 250, 253, 0.96), rgba(248, 225, 239, 0.88));
-}
+// ---------- EdenLauncher visual modes ----------
+// Colours come from store/theme.ts (--eden-* and Modrinth surface tokens).
+// Portal (standard dark), the light palette, Bloom (Асуна) and Signal (Error) share one layout.
 
-html.theme-asuna .app-contents {
-	background:
-		linear-gradient(90deg, rgba(255, 252, 254, 0.9), rgba(255, 246, 251, 0.7)),
-		url('../theme-asuna.png') 68% center / cover fixed;
-}
-
-html.theme-asuna .app-viewport {
-	background: rgba(255, 250, 253, 0.38);
-	backdrop-filter: saturate(1.06);
-}
-
-html.theme-asuna .app-grid-navbar,
-html.theme-asuna .app-grid-statusbar,
-html.theme-asuna .v-popper__inner,
-html.theme-asuna [role='dialog'] {
-	background-color: rgba(255, 250, 253, 0.88) !important;
-	backdrop-filter: blur(18px) saturate(1.12);
-}
-
-html.theme-asuna .app-contents::after {
-	content: '✿';
-	position: fixed;
-	z-index: 0;
-	top: 7%;
-	left: 10%;
-	color: rgba(222, 104, 160, 0.2);
-	font-size: 1.15rem;
-	pointer-events: none;
-	text-shadow:
-		18vw 11vh rgba(255, 255, 255, 0.74),
-		39vw 3vh rgba(222, 104, 160, 0.2),
-		64vw 16vh rgba(255, 255, 255, 0.7),
-		75vw 42vh rgba(222, 104, 160, 0.2),
-		8vw 57vh rgba(255, 255, 255, 0.7),
-		31vw 71vh rgba(222, 104, 160, 0.18),
-		58vw 66vh rgba(255, 255, 255, 0.68),
-		82vw 78vh rgba(222, 104, 160, 0.18);
-	animation: asuna-petals 9s ease-in-out infinite alternate;
-}
-
-html.theme-asuna :is(.card, .eden-panel, .theme-mode-option, .accent-color-panel) {
-	box-shadow: 0 0.8rem 2.4rem rgba(188, 92, 137, 0.12);
-}
-
-html.theme-error .app-grid-layout {
-	background: #050308;
-}
-
-html.theme-error .app-contents {
-	background:
-		linear-gradient(90deg, rgba(4, 3, 7, 0.96), rgba(8, 3, 10, 0.72)),
-		url('../theme-error.png') 70% center / cover fixed;
-}
-
-html.theme-error .app-viewport {
-	background: rgba(4, 3, 7, 0.46);
-	backdrop-filter: saturate(0.78) contrast(1.05);
-}
-
-html.theme-error .app-grid-navbar,
-html.theme-error .app-grid-statusbar,
-html.theme-error .v-popper__inner,
-html.theme-error [role='dialog'] {
-	background-color: rgba(7, 4, 10, 0.92) !important;
-	backdrop-filter: blur(14px) saturate(0.72);
-}
-
-html.theme-error .app-contents::after {
-	content: '';
-	position: fixed;
-	z-index: 40;
-	inset: 0;
-	pointer-events: none;
-	background:
-		linear-gradient(
-			90deg,
-			transparent 0 8%,
-			rgba(255, 20, 64, 0.07) 8% 8.4%,
-			transparent 8.4% 100%
-		),
-		repeating-linear-gradient(
-			0deg,
-			rgba(255, 255, 255, 0.035) 0,
-			rgba(255, 255, 255, 0.035) 1px,
-			transparent 1px,
-			transparent 4px
-		),
-		repeating-linear-gradient(
-			90deg,
-			rgba(225, 29, 72, 0.018) 0,
-			rgba(225, 29, 72, 0.018) 2px,
-			transparent 2px,
-			transparent 7px
-		);
-	background-size:
-		170% 100%,
-		100% 8px,
-		13px 100%;
-	mix-blend-mode: screen;
-	animation: error-interference 1.8s steps(2, end) infinite;
-}
-
-html.theme-error body::after {
-	content: '';
-	position: fixed;
-	z-index: 41;
-	inset: 0;
-	pointer-events: none;
-	background:
-		radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.055) 0 1px, transparent 1.5px),
-		radial-gradient(circle at 72% 63%, rgba(225, 29, 72, 0.055) 0 1px, transparent 1.5px),
-		linear-gradient(transparent 47%, rgba(255, 255, 255, 0.08) 49%, transparent 52%);
-	background-size:
-		5px 7px,
-		9px 6px,
-		100% 240px;
-	opacity: 0.5;
-	mix-blend-mode: screen;
-	animation: error-signal-noise 420ms steps(3, end) infinite;
-}
-
-html.theme-error button {
-	position: relative;
-	text-shadow:
-		1px 0 rgba(255, 0, 64, 0.42),
-		-1px 0 rgba(123, 44, 255, 0.34);
-}
-
-html.theme-error button:hover:not(:disabled) {
-	border-color: rgba(255, 38, 85, 0.72) !important;
-	box-shadow:
-		-2px 0 rgba(255, 0, 55, 0.18),
-		2px 0 rgba(120, 32, 255, 0.14),
-		0 0 1.3rem rgba(225, 29, 72, 0.28) !important;
-}
-
-html.theme-error button:active:not(:disabled) {
-	filter: contrast(1.14) brightness(1.08);
-	box-shadow:
-		inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-		0 0 1rem rgba(225, 29, 72, 0.34) !important;
+.app-grid-layout,
+.app-contents {
+	background: var(--eden-canvas);
 }
 
 html.theme-custom .app-contents {
 	background:
-		linear-gradient(90deg, color-mix(in srgb, var(--color-bg) 92%, transparent), transparent 78%),
-		var(
-				--custom-theme-background-image,
-				linear-gradient(145deg, var(--surface-1), var(--surface-4))
-			)
-			center / cover fixed;
+		linear-gradient(
+			90deg,
+			color-mix(in srgb, var(--eden-canvas) 94%, transparent) 0%,
+			color-mix(in srgb, var(--eden-canvas) 84%, transparent) 55%,
+			color-mix(in srgb, var(--eden-canvas) 72%, transparent) 100%
+		),
+		var(--custom-theme-background-image, var(--eden-canvas)) center / cover no-repeat;
 }
 
 html.theme-custom .app-viewport {
-	background: color-mix(in srgb, var(--color-bg) 32%, transparent);
-	backdrop-filter: saturate(1.04);
+	background: transparent;
 }
 
-html.theme-custom .app-grid-navbar,
-html.theme-custom .app-grid-statusbar,
-html.theme-custom .v-popper__inner,
-html.theme-custom [role='dialog'] {
-	background-color: color-mix(in srgb, var(--surface-2) 88%, transparent) !important;
-	backdrop-filter: blur(16px) saturate(1.08);
+// Signal: a single short interference on the artwork when it appears, never on controls.
+html.theme-error .eden-hero__art {
+	animation: eden-signal-glitch 120ms steps(2, end) 1 both;
 }
 
 html.theme-windows10 {
-	--top-bar-height: 2.45rem;
-	--left-bar-width: 0rem;
+	--top-bar-height: 40px;
+	--left-bar-width: 0px;
 	color-scheme: dark;
 }
 
 html.theme-windows10 .app-grid-layout,
 html.theme-windows10 .app-contents {
-	--top-bar-height: 2.45rem;
-	--left-bar-width: 0rem;
+	--top-bar-height: 40px;
+	--left-bar-width: 0px;
 }
 
 html.theme-windows10 .app-grid-layout {
 	background: transparent !important;
 }
 
-html.theme-windows10 .app-grid-navbar {
-	position: fixed;
-	right: 0;
-	bottom: 0;
-	left: 0;
-	z-index: 100;
-	display: flex !important;
-	width: 100% !important;
-	height: 3rem;
-	box-sizing: border-box;
-	flex-direction: row !important;
-	align-items: center;
-	padding: 0 0.25rem !important;
-	gap: 0 !important;
-	border-top: 1px solid rgba(255, 255, 255, 0.12);
-	background: rgba(12, 23, 38, 0.94) !important;
-	box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.28);
-}
-
-html.theme-windows10 .app-grid-navbar > .flex-grow {
-	display: none;
-}
-
-html.theme-windows10 .app-grid-navbar > * {
-	border-radius: 0 !important;
-}
-
-html.theme-windows10 .windows-start-button {
-	order: -10;
-}
-
-html.theme-windows10 .app-grid-statusbar {
-	left: 0 !important;
-	background: rgba(13, 27, 44, 0.96) !important;
-}
-
 html.theme-windows10 .app-contents {
 	left: 0 !important;
-	bottom: 3rem !important;
-	height: calc(100vh - var(--top-bar-height) - 3rem) !important;
+	bottom: 48px !important;
+	height: calc(100vh - var(--top-bar-height) - 48px) !important;
+	border-radius: 0 !important;
 	background:
-		linear-gradient(135deg, rgba(0, 70, 145, 0.2), rgba(0, 20, 52, 0.15)),
-		var(
-				--windows-desktop-background-image,
-				linear-gradient(135deg, #0b75c9 0%, #00366d 52%, #071b32 100%)
-			)
-			center / cover fixed !important;
+		linear-gradient(90deg, rgba(13, 13, 20, 0.62), rgba(13, 13, 20, 0.08) 45%, rgba(13, 13, 20, 0)),
+		var(--windows-desktop-background-image, var(--eden-hero-image)) center / cover no-repeat !important;
 }
 
 html.theme-windows10 .app-viewport {
 	background: transparent !important;
 }
 
-html.theme-windows10 [role='dialog'],
 html.theme-windows10 .v-popper__inner {
-	--color-bg: #181818;
-	--color-raised-bg: #202020;
-	--surface-1: #181818;
-	--surface-2: #242424;
-	--surface-3: #303030;
-	--color-text-primary: #f5f5f5;
-	--color-text-secondary: #dedede;
-	--color-text-tertiary: #a8a8a8;
-	--color-divider: #464646;
-	--color-button-bg: #292929;
-	--color-button-border: #606060;
-	border: 1px solid #666 !important;
-	border-radius: 0 !important;
-	color: #f5f5f5 !important;
-	background: #202020 !important;
-	box-shadow: 0 10px 35px rgba(0, 0, 0, 0.42) !important;
-}
-
-html.theme-windows10 [role='dialog'] button,
-html.theme-windows10 [role='dialog'] input,
-html.theme-windows10 [role='dialog'] textarea,
-html.theme-windows10 [role='dialog'] select,
-html.theme-windows10 .v-popper__inner,
-html.theme-windows10 .v-popper__inner * {
-	border-radius: 0 !important;
-}
-
-html.theme-windows10 .app-viewport > :not(.windows-desktop) {
-	border-radius: 0 !important;
+	border-radius: 4px !important;
 }
 
 html.theme-custom[data-button-effect='pulse'] button:active:not(:disabled) {
@@ -346,75 +138,28 @@ html.theme-custom[data-button-effect='interference'] button:active:not(:disabled
 	animation: custom-button-interference 240ms steps(3, end);
 }
 
-html.theme-transitioning .app-grid-layout {
-	animation: launcher-theme-transition 480ms cubic-bezier(0.22, 1, 0.36, 1);
+html.theme-transitioning :is(.app-grid-layout, .app-contents) {
+	animation: launcher-theme-transition 220ms ease-out;
 }
 
-@keyframes asuna-petals {
-	from {
-		transform: translate3d(0, -0.4rem, 0) rotate(-3deg);
-	}
-	to {
-		transform: translate3d(1.3rem, 1.1rem, 0) rotate(7deg);
-	}
-}
-
-@keyframes error-interference {
+@keyframes eden-signal-glitch {
 	0% {
-		background-position:
-			0 0,
-			0 0,
-			0 0;
-		opacity: 0.68;
-	}
-	35% {
-		background-position:
-			43% 0,
-			0 13px,
-			5px 0;
-		opacity: 0.42;
-	}
-	36% {
-		background-position:
-			91% 0,
-			0 -7px,
-			-3px 0;
-		opacity: 0.82;
-	}
-	100% {
-		background-position:
-			170% 0,
-			0 31px,
-			13px 0;
-		opacity: 0.58;
-	}
-}
-
-@keyframes error-signal-noise {
-	0% {
-		background-position:
-			0 0,
-			0 0,
-			0 -180px;
+		filter: contrast(1.2) brightness(1.15);
+		transform: translateX(3px);
 	}
 	50% {
-		background-position:
-			3px -2px,
-			-4px 3px,
-			0 70px;
+		filter: contrast(1.1);
+		transform: translateX(-2px);
 	}
 	100% {
-		background-position:
-			-2px 4px,
-			5px -3px,
-			0 240px;
+		filter: none;
+		transform: none;
 	}
 }
 
 @keyframes custom-button-pulse {
 	50% {
-		transform: scale(0.96);
-		box-shadow: 0 0 1.4rem var(--color-brand-shadow);
+		box-shadow: 0 0 0 4px var(--color-brand-highlight);
 	}
 }
 
@@ -434,30 +179,21 @@ html.theme-transitioning .app-grid-layout {
 	}
 	50% {
 		filter: contrast(1.25) saturate(0.55) brightness(1.18);
-		text-shadow:
-			2px 0 var(--color-brand),
-			-2px 0 var(--color-link);
 	}
 }
 
 @keyframes launcher-theme-transition {
 	from {
-		opacity: 0.62;
-		filter: blur(12px) saturate(0.72);
-		transform: scale(0.992);
+		opacity: 0.86;
 	}
 	to {
 		opacity: 1;
-		filter: none;
-		transform: scale(1);
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-	html.theme-asuna .app-contents::after,
-	html.theme-error .app-contents::after,
-	html.theme-error body::after,
-	html.theme-transitioning .app-grid-layout,
+	html.theme-error .eden-hero__art,
+	html.theme-transitioning :is(.app-grid-layout, .app-contents),
 	html.theme-custom button:active:not(:disabled) {
 		animation: none;
 	}
@@ -647,99 +383,86 @@ html.dark-mode,
 html.oled-mode,
 html.retro-mode,
 html:root[data-theme='dark'] {
+	// Portal fallbacks used before store/theme.ts applies the active palette.
 	color-scheme: dark;
 
-	--surface-1: #0d0914;
-	--surface-1-5: #110b1b;
-	--surface-2: #160d23;
-	--surface-2-5: #1b102b;
-	--surface-3: #211333;
-	--surface-4: #2b1940;
-	--surface-5: #3a2254;
+	--eden-canvas: #0d0d14;
+	--eden-sidebar: #111119;
+	--eden-surface: #171720;
+	--eden-surface-raised: #1e1d2a;
+	--eden-border: #32313f;
+	--eden-border-strong: #535161;
+	--eden-text: #f5f3fa;
+	--eden-text-secondary: #aaa8bc;
+	--eden-accent: #bc9bff;
+	--eden-accent-hover: #c9afff;
+	--eden-accent-pressed: #a588e0;
+	--eden-accent-text: #bc9bff;
+	--eden-accent-soft: rgba(188, 155, 255, 0.14);
+	--eden-on-accent: #201134;
+	--eden-success: #8ed9bc;
+	--eden-error: #ff9dad;
+	--eden-focus: #bc9bff;
 
-	--color-text-primary: #fffaff;
-	--color-text-default: #d5c3e7;
-	--color-text-tertiary: #ab94c2;
+	--surface-1: #0d0d14;
+	--surface-1-5: #111119;
+	--surface-2: #13131b;
+	--surface-2-5: #15151e;
+	--surface-3: #171720;
+	--surface-4: #1e1d2a;
+	--surface-5: #32313f;
+
+	--color-text-primary: #f5f3fa;
+	--color-text-default: #d8d6e3;
+	--color-text-tertiary: #aaa8bc;
 	--color-bg: var(--surface-1);
 	--color-raised-bg: var(--surface-3);
 	--color-super-raised-bg: var(--surface-4);
 	--color-button-bg: var(--surface-4);
-	--color-button-border: rgba(205, 155, 255, 0.18);
-	--color-scrollbar: #6e3a9a;
-	--color-divider: #3b2353;
-	--color-divider-dark: #51306f;
+	--color-button-border: #32313f;
+	--color-scrollbar: #4a4857;
+	--color-divider: #32313f;
+	--color-divider-dark: #4a4857;
 	--color-base: var(--color-text-default);
 	--color-secondary: var(--color-text-tertiary);
 	--color-contrast: var(--color-text-primary);
-	--color-accent-contrast: #ffffff;
+	--color-accent-contrast: #201134;
 
-	--color-green-50: #f8f0ff;
-	--color-green-100: #f0dfff;
-	--color-green-200: #e3c4ff;
-	--color-green-300: #d09cff;
-	--color-green-400: #bb72ff;
-	--color-green-500: #a855f7;
-	--color-green-600: #9333ea;
-	--color-green-700: #7e22ce;
-	--color-green-800: #6b21a8;
-	--color-green-900: #581c87;
-	--color-green-950: #3b0764;
-	--color-red: #a759f3;
-	--color-orange: #b66cff;
-	--color-green: #9f55ee;
-	--color-blue: #ae68f6;
-	--color-purple: #c386ff;
-	--color-gray: #967aaa;
-	--color-red-highlight: rgba(167, 89, 243, 0.27);
-	--color-orange-highlight: rgba(182, 108, 255, 0.27);
-	--color-green-highlight: rgba(159, 85, 238, 0.27);
-	--color-blue-highlight: rgba(174, 104, 246, 0.27);
-	--color-purple-highlight: rgba(195, 134, 255, 0.27);
-	--color-gray-highlight: rgba(150, 122, 170, 0.24);
-	--color-red-bg: rgba(167, 89, 243, 0.15);
-	--color-orange-bg: rgba(182, 108, 255, 0.15);
-	--color-green-bg: rgba(159, 85, 238, 0.15);
-	--color-blue-bg: rgba(174, 104, 246, 0.15);
-	--color-purple-bg: rgba(195, 134, 255, 0.15);
+	--color-red: #ff9dad;
+	--color-green: #8ed9bc;
+	--color-orange: #bc9bff;
+	--color-blue: #bc9bff;
+	--color-purple: #bc9bff;
+	--color-gray: #aaa8bc;
+	--color-red-highlight: rgba(255, 157, 173, 0.22);
+	--color-green-highlight: rgba(142, 217, 188, 0.22);
+	--color-orange-highlight: rgba(188, 155, 255, 0.22);
+	--color-blue-highlight: rgba(188, 155, 255, 0.22);
+	--color-purple-highlight: rgba(188, 155, 255, 0.22);
+	--color-gray-highlight: rgba(170, 168, 188, 0.18);
+	--color-red-bg: rgba(255, 157, 173, 0.14);
+	--color-green-bg: rgba(142, 217, 188, 0.14);
+	--color-orange-bg: rgba(188, 155, 255, 0.14);
+	--color-blue-bg: rgba(188, 155, 255, 0.14);
+	--color-purple-bg: rgba(188, 155, 255, 0.14);
 
-	--color-brand: #ac58f5;
-	--color-brand-highlight: rgba(172, 88, 245, 0.26);
-	--color-brand-shadow: rgba(157, 68, 237, 0.62);
-	--color-button-bg-selected: rgba(172, 88, 245, 0.24);
-	--color-button-text-selected: #e1bcff;
-	--color-link: #c783ff !important;
-	--color-link-hover: #d9a7ff !important;
-	--color-link-active: #e6c6ff !important;
-	--color-focus-ring: #c679ff;
-	--color-tooltip-bg: #2b1940;
-	--color-tooltip-text: #fffaff;
-	--color-ad: rgba(119, 55, 176, 0.18);
-	--color-ad-raised: rgba(171, 95, 235, 0.35);
-	--color-ad-highlight: #b96dff;
+	--color-brand: #bc9bff;
+	--color-brand-highlight: rgba(188, 155, 255, 0.2);
+	--color-brand-shadow: rgba(188, 155, 255, 0.45);
+	--color-button-bg-selected: rgba(188, 155, 255, 0.2);
+	--color-button-text-selected: #bc9bff;
+	--color-link: #bc9bff !important;
+	--color-link-hover: #c9afff !important;
+	--color-link-active: #d6c3ff !important;
+	--color-focus-ring: #bc9bff;
+	--color-tooltip-bg: #1e1d2a;
+	--color-tooltip-text: #f5f3fa;
 
-	--loading-bar-gradient: linear-gradient(90deg, #6e20c7 0%, #c577ff 55%, #8e3ce2 100%);
-	--color-gradient-button-bg: linear-gradient(180deg, #3b2056 0%, #2b193f 100%);
-	--brand-gradient-bg: linear-gradient(0deg, rgba(17, 9, 28, 0.97), rgba(58, 22, 91, 0.58));
-	--brand-gradient-strong-bg: linear-gradient(270deg, #0f0a17 10%, #29123d 100%);
-	--brand-gradient-button: rgba(172, 88, 245, 0.12);
-	--brand-gradient-border: rgba(200, 136, 255, 0.18);
-	--brand-gradient-fade-out-color: linear-gradient(to bottom, rgba(15, 10, 23, 0), #0f0a17 80%);
-
-	--color-platform-fabric: #a982c7;
-	--color-platform-quilt: #bd7df2;
-	--color-platform-forge: #8d65c9;
-	--color-platform-neoforge: #c47ce8;
-	--color-platform-liteloader: #9c75d8;
-	--color-platform-bukkit: #b982db;
-	--color-platform-bungeecord: #aa72d1;
-	--color-platform-folia: #9b63c6;
-	--color-platform-paper: #c18fe0;
-	--color-platform-purpur: #a469db;
-	--color-platform-spigot: #b272d7;
-	--color-platform-velocity: #9363c8;
-	--color-platform-waterfall: #8157b8;
-	--color-platform-sponge: #b786d9;
-	--color-platform-ornithe: #a271d5;
-	--color-platform-bta-babric: #8f5ec1;
-	--color-platform-nilloader: #c476ed;
+	--loading-bar-gradient: linear-gradient(90deg, #bc9bff 0%, #c9afff 100%);
+	--color-gradient-button-bg: linear-gradient(180deg, #1e1d2a 0%, #1e1d2a 100%);
+	--brand-gradient-bg: linear-gradient(0deg, rgba(13, 13, 20, 0.98), rgba(30, 29, 42, 0.9));
+	--brand-gradient-strong-bg: linear-gradient(270deg, #0d0d14 10%, #1e1d2a 100%);
+	--brand-gradient-button: rgba(188, 155, 255, 0.12);
+	--brand-gradient-border: #32313f;
+	--brand-gradient-fade-out-color: linear-gradient(to bottom, rgba(13, 13, 20, 0), #0d0d14 80%);
 }

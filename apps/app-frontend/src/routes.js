@@ -27,6 +27,16 @@ export default new createRouter({
 			component: Pages.Skins,
 		},
 		{
+			path: '/friends',
+			name: 'Friends',
+			component: Pages.Friends,
+		},
+		{
+			path: '/downloads',
+			name: 'Downloads',
+			component: Pages.Downloads,
+		},
+		{
 			path: '/user/:user/:projectType?',
 			name: 'User',
 			component: Pages.User,
