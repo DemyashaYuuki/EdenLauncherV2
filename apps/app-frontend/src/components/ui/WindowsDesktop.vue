@@ -1,16 +1,9 @@
 <script setup lang="ts">
-import {
-	CompassIcon,
-	LibraryIcon,
-	MinecraftServerIcon,
-	PlusIcon,
-	SettingsIcon,
-	ShirtIcon,
-} from '@modrinth/assets'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import edenLogo from '@/assets/edenworld-logo.jpg'
+import EdenIcon from '@/components/ui/eden/EdenIcon.vue'
+import EdenMark from '@/components/ui/eden/EdenMark.vue'
 import type { GameInstance } from '@/helpers/types'
 import { useTheming } from '@/store/state'
 
@@ -67,7 +60,6 @@ const shortcuts = computed<DesktopShortcut[]>(() => [
 		title: 'EdenWorld',
 		kind: 'home',
 		path: '/',
-		iconPath: edenLogo,
 		details: 'Главный экран EdenLauncher',
 	},
 	{
@@ -108,7 +100,7 @@ const shortcuts = computed<DesktopShortcut[]>(() => [
 		title: instance.name,
 		kind: 'instance' as const,
 		path: `/instance/${encodeURIComponent(instance.id)}`,
-		iconPath: instance.icon_path ? instanceIcon(instance.icon_path) : MinecraftServerIcon,
+		iconPath: instance.icon_path ? instanceIcon(instance.icon_path) : undefined,
 		details: `Игровая сборка · ${instance.game_version ?? 'Minecraft'}`,
 	})),
 ])
@@ -245,6 +237,9 @@ function routeTitle(path: string) {
 	if (path.startsWith('/browse')) return 'Каталог Modrinth'
 	if (path.startsWith('/library')) return 'Библиотека'
 	if (path.startsWith('/skins')) return 'Скины'
+	if (path.startsWith('/friends')) return 'Друзья'
+	if (path.startsWith('/downloads')) return 'Загрузки'
+	if (path.startsWith('/user/')) return 'Профиль Modrinth'
 	if (path.startsWith('/project')) return 'Страница проекта'
 	if (path.startsWith('/instance/')) {
 		const id = decodeURIComponent(path.split('/')[2] ?? '')
@@ -257,9 +252,9 @@ function routeIcon(path: string) {
 	if (path.startsWith('/instance/')) {
 		const id = decodeURIComponent(path.split('/')[2] ?? '')
 		const instance = props.instances.find((item) => item.id === id)
-		return instance?.icon_path ? instanceIcon(instance.icon_path) : MinecraftServerIcon
+		return instance?.icon_path ? instanceIcon(instance.icon_path) : undefined
 	}
-	return edenLogo
+	return undefined
 }
 
 function openShortcut(shortcut: DesktopShortcut) {
@@ -405,13 +400,20 @@ onBeforeUnmount(() => {
 				@pointerdown.stop="beginShortcutDrag($event, shortcut, index)"
 				@contextmenu.stop="showContextMenu($event, shortcut)"
 			>
-				<img v-if="shortcut.iconPath" :src="shortcut.iconPath" alt="" />
-				<CompassIcon v-else-if="shortcut.kind === 'catalog'" />
-				<LibraryIcon v-else-if="shortcut.kind === 'library' || shortcut.kind === 'instance'" />
-				<ShirtIcon v-else-if="shortcut.kind === 'skins'" />
-				<PlusIcon v-else-if="shortcut.kind === 'create'" />
-				<SettingsIcon v-else />
-				<span>{{ shortcut.title }}</span>
+				<span class="desktop-shortcut__tile">
+					<img v-if="shortcut.iconPath" :src="shortcut.iconPath" alt="" />
+					<EdenIcon v-else-if="shortcut.kind === 'home'" name="home" :size="24" />
+					<EdenIcon v-else-if="shortcut.kind === 'catalog'" name="compass" :size="24" />
+					<EdenIcon
+						v-else-if="shortcut.kind === 'library' || shortcut.kind === 'instance'"
+						name="library"
+						:size="24"
+					/>
+					<EdenIcon v-else-if="shortcut.kind === 'skins'" name="shirt" :size="24" />
+					<EdenIcon v-else-if="shortcut.kind === 'create'" name="plus" :size="24" />
+					<EdenIcon v-else name="settings" :size="24" />
+				</span>
+				<span class="desktop-shortcut__label">{{ shortcut.title }}</span>
 			</button>
 		</div>
 
@@ -434,14 +436,19 @@ onBeforeUnmount(() => {
 				@pointerdown.stop="beginWindowDrag($event, appWindow)"
 				@dblclick="toggleMaximize(appWindow)"
 			>
-				<img :src="edenLogo" alt="" />
+				<img v-if="appWindow.iconPath" :src="appWindow.iconPath" alt="" />
+				<EdenMark v-else :size="18" />
 				<strong>{{ appWindow.title }}</strong>
 				<div class="windows-app-window__controls">
 					<button aria-label="Свернуть" @pointerdown.stop @click.stop="minimizeWindow(appWindow)">
-						—
+						<EdenIcon name="minimize" :size="16" />
 					</button>
-					<button aria-label="Развернуть" @pointerdown.stop @click.stop="toggleMaximize(appWindow)">
-						{{ appWindow.maximized ? '❐' : '□' }}
+					<button
+						:aria-label="appWindow.maximized ? 'Восстановить размер' : 'Развернуть'"
+						@pointerdown.stop
+						@click.stop="toggleMaximize(appWindow)"
+					>
+						<EdenIcon name="maximize" :size="14" />
 					</button>
 					<button
 						class="close"
@@ -449,14 +456,14 @@ onBeforeUnmount(() => {
 						@pointerdown.stop
 						@click.stop="closeWindow(appWindow)"
 					>
-						×
+						<EdenIcon name="close" :size="16" />
 					</button>
 				</div>
 			</header>
 			<div class="windows-app-window__body">
 				<slot v-if="activeWindowId === appWindow.id" />
 				<div v-else class="windows-app-window__inactive" @dblclick="focusWindow(appWindow)">
-					<img :src="edenLogo" alt="" />
+					<EdenMark :size="56" />
 					<strong>{{ appWindow.title }}</strong>
 					<span>Окно открыто в фоне. Дважды нажмите, чтобы продолжить.</span>
 				</div>
@@ -472,7 +479,9 @@ onBeforeUnmount(() => {
 					:class="{ active: activeWindowId === appWindow.id && !appWindow.minimized }"
 					@click="toggleTaskbarWindow(appWindow)"
 				>
-					<img :src="appWindow.iconPath || edenLogo" alt="" /><span>{{ appWindow.title }}</span>
+					<img v-if="appWindow.iconPath" :src="appWindow.iconPath" alt="" />
+					<EdenMark v-else :size="20" />
+					<span>{{ appWindow.title }}</span>
 				</button>
 			</div>
 		</Teleport>
@@ -494,7 +503,7 @@ onBeforeUnmount(() => {
 			</header>
 			<div>
 				<img v-if="propertiesShortcut.iconPath" :src="propertiesShortcut.iconPath" alt="" />
-				<LibraryIcon v-else />
+				<EdenMark v-else :size="56" />
 				<dl>
 					<dt>Тип</dt>
 					<dd>
@@ -508,10 +517,6 @@ onBeforeUnmount(() => {
 			</div>
 			<footer><button @click="propertiesShortcut = null">OK</button></footer>
 		</section>
-
-		<div class="desktop-watermark">
-			<strong>EdenLauncher</strong><span>Windows 10 Edition</span>
-		</div>
 	</div>
 </template>
 
@@ -520,48 +525,61 @@ onBeforeUnmount(() => {
 	position: absolute;
 	inset: 0;
 	overflow: hidden;
-	color: #fff;
-	font-family: 'Segoe UI', sans-serif;
-	text-shadow: 0 1px 3px #000;
+	color: #f5f3fa;
+	font-family: var(--font-standard);
 	user-select: none;
 }
 
-.desktop-shortcuts button {
+.desktop-shortcuts > button {
 	position: absolute;
 	display: flex;
 	width: 5.8rem;
-	height: 5.8rem;
+	height: 6rem;
 	flex-direction: column;
 	align-items: center;
-	gap: 0.25rem;
+	gap: 0.4rem;
 	padding: 0.35rem;
 	border: 1px solid transparent;
-	border-radius: 0;
-	color: #fff;
+	border-radius: 6px;
+	color: #f5f3fa;
 	background: transparent;
-	font:
-		12px 'Segoe UI',
-		sans-serif;
-	text-shadow: 0 1px 3px #000;
+	font: 12px var(--font-standard);
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
 	cursor: default;
 	touch-action: none;
 }
 
-.desktop-shortcuts button:hover {
-	border-color: rgba(255, 255, 255, 0.5);
-	background: rgba(0, 120, 215, 0.28);
+.desktop-shortcuts > button:hover {
+	border-color: rgba(188, 155, 255, 0.35);
+	background: rgba(188, 155, 255, 0.14);
 }
 
-.desktop-shortcuts img,
-.desktop-shortcuts svg {
-	width: 2.8rem;
-	height: 2.8rem;
-	border-radius: 0;
-	object-fit: cover;
-	filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45));
+.desktop-shortcuts > button:focus-visible {
+	outline: 2px solid var(--eden-focus);
+	outline-offset: 2px;
 }
 
-.desktop-shortcuts span {
+.desktop-shortcut__tile {
+	display: grid;
+	width: 48px;
+	height: 48px;
+	flex: 0 0 auto;
+	overflow: hidden;
+	place-items: center;
+	border: 1px solid rgba(245, 243, 250, 0.16);
+	border-radius: 10px;
+	color: #f5f3fa;
+	background: rgba(17, 17, 25, 0.82);
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+
+	img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+}
+
+.desktop-shortcut__label {
 	display: -webkit-box;
 	overflow: hidden;
 	text-align: center;
@@ -574,25 +592,26 @@ onBeforeUnmount(() => {
 	display: grid;
 	min-width: 34rem;
 	min-height: 22rem;
-	grid-template-rows: 2rem 1fr;
+	grid-template-rows: 38px 1fr;
 	overflow: hidden;
 	resize: both;
-	border: 1px solid #555;
-	border-radius: 0;
-	color: #f5f5f5;
-	background: #202020;
-	box-shadow: 0 14px 38px rgba(0, 0, 0, 0.55);
+	border: 1px solid #32313f;
+	border-radius: 4px;
+	color: #f5f3fa;
+	background: #0d0d14;
+	box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
 	text-shadow: none;
 }
 
 .windows-app-window.active {
-	border-color: #0078d7;
+	border-color: rgba(188, 155, 255, 0.6);
 }
 
 .windows-app-window.maximized {
 	inset: 0 !important;
 	width: 100% !important;
 	height: 100% !important;
+	border-radius: 0;
 	resize: none;
 }
 
@@ -600,32 +619,41 @@ onBeforeUnmount(() => {
 .shortcut-properties > header {
 	display: flex;
 	align-items: center;
-	height: 2rem;
-	padding-left: 0.45rem;
-	background: #171717;
+	height: 38px;
+	padding-left: 12px;
+	background: #111119;
 	cursor: default;
 	touch-action: none;
 }
 
 .windows-app-window.active > header {
-	background: #0b3f6f;
+	background: #171720;
+	box-shadow: inset 0 -1px 0 #32313f;
 }
 
 .windows-app-window > header > img {
-	width: 1rem;
-	height: 1rem;
-	margin-right: 0.4rem;
+	width: 18px;
+	height: 18px;
+	border-radius: 4px;
 	object-fit: cover;
+}
+
+.windows-app-window > header > :is(img, svg) {
+	margin-right: 10px;
 }
 
 .windows-app-window > header > strong {
 	min-width: 0;
 	flex: 1;
 	overflow: hidden;
-	font-size: 0.78rem;
+	font-size: 13px;
 	font-weight: 500;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.windows-app-window:not(.active) > header > strong {
+	color: #aaa8bc;
 }
 
 .windows-app-window__controls {
@@ -635,32 +663,37 @@ onBeforeUnmount(() => {
 
 .windows-app-window__controls button,
 .shortcut-properties header button {
-	width: 2.8rem;
+	display: grid;
+	width: 46px;
+	place-items: center;
 	padding: 0;
 	border: 0;
 	border-radius: 0;
-	color: #fff;
+	color: #f5f3fa;
 	background: transparent;
-	font:
-		1rem 'Segoe UI',
-		sans-serif;
 	cursor: default;
 }
 
 .windows-app-window__controls button:hover {
-	background: rgba(255, 255, 255, 0.14);
+	background: rgba(255, 255, 255, 0.1);
 }
 
 .windows-app-window__controls .close:hover,
 .shortcut-properties header button:hover {
-	background: #e81123;
+	background: #c42b1c;
+}
+
+.windows-app-window__controls button:focus-visible,
+.shortcut-properties button:focus-visible {
+	outline: 2px solid var(--eden-focus);
+	outline-offset: -2px;
 }
 
 .windows-app-window__body {
 	position: relative;
 	min-height: 0;
 	overflow: auto;
-	background: #181818;
+	background: var(--eden-canvas);
 }
 
 .windows-app-window__body :deep(.eden-home),
@@ -673,18 +706,12 @@ onBeforeUnmount(() => {
 	height: 100%;
 	place-content: center;
 	justify-items: center;
-	color: #ddd;
-}
-
-.windows-app-window__inactive img {
-	width: 4rem;
-	height: 4rem;
-	margin-bottom: 0.7rem;
+	gap: 6px;
+	color: #d8d6e3;
 }
 
 .windows-app-window__inactive span {
-	margin-top: 0.35rem;
-	color: #aaa;
+	color: #aaa8bc;
 	font-size: 0.78rem;
 }
 
@@ -693,8 +720,8 @@ onBeforeUnmount(() => {
 	min-width: 0;
 	height: 100%;
 	flex: 1 1 auto;
-	gap: 1px;
-	order: -5;
+	gap: 2px;
+	order: 2;
 	overflow-x: auto;
 	overflow-y: hidden;
 	text-shadow: none;
@@ -711,30 +738,34 @@ onBeforeUnmount(() => {
 	max-width: 12rem;
 	height: 100%;
 	align-items: center;
-	gap: 0.45rem;
-	padding: 0 0.8rem;
+	gap: 0.55rem;
+	padding: 0 0.9rem;
 	border: 0;
 	border-bottom: 2px solid transparent;
 	border-radius: 0;
-	color: #fff;
-	background: rgba(255, 255, 255, 0.07);
-	font:
-		0.76rem 'Segoe UI',
-		sans-serif;
+	color: #f5f3fa;
+	background: transparent;
+	font: 0.78rem var(--font-standard);
 }
 
 .windows-open-apps button:hover {
-	background: rgba(255, 255, 255, 0.13);
+	background: rgba(255, 255, 255, 0.08);
 }
 
 .windows-open-apps button.active {
-	border-bottom-color: #39a9ff;
-	background: rgba(255, 255, 255, 0.16);
+	border-bottom-color: var(--eden-accent);
+	background: rgba(188, 155, 255, 0.14);
+}
+
+.windows-open-apps button:focus-visible {
+	outline: 2px solid var(--eden-focus);
+	outline-offset: -2px;
 }
 
 .windows-open-apps img {
-	width: 1.2rem;
-	height: 1.2rem;
+	width: 1.25rem;
+	height: 1.25rem;
+	border-radius: 4px;
 }
 
 .windows-open-apps span {
@@ -749,28 +780,28 @@ onBeforeUnmount(() => {
 	display: flex;
 	width: 13rem;
 	flex-direction: column;
-	padding: 0.25rem 0;
-	border: 1px solid #555;
-	border-radius: 0;
-	background: #202020;
-	box-shadow: 4px 8px 22px rgba(0, 0, 0, 0.55);
+	padding: 6px;
+	border: 1px solid #32313f;
+	border-radius: 6px;
+	background: #171720;
+	box-shadow: 4px 10px 26px rgba(0, 0, 0, 0.55);
 	text-shadow: none;
 }
 
 .desktop-context-menu button {
-	padding: 0.5rem 1.4rem;
+	padding: 0.55rem 1rem;
 	border: 0;
-	border-radius: 0;
-	color: #fff;
+	border-radius: 4px;
+	color: #f5f3fa;
 	background: transparent;
-	font:
-		0.82rem 'Segoe UI',
-		sans-serif;
+	font: 0.82rem var(--font-standard);
 	text-align: left;
 }
 
-.desktop-context-menu button:hover {
-	background: #094771;
+.desktop-context-menu button:hover,
+.desktop-context-menu button:focus-visible {
+	outline: none;
+	background: rgba(188, 155, 255, 0.16);
 }
 
 .shortcut-properties {
@@ -779,18 +810,20 @@ onBeforeUnmount(() => {
 	left: 50%;
 	z-index: 600;
 	width: 28rem;
+	overflow: hidden;
 	transform: translate(-50%, -50%);
-	border: 1px solid #666;
-	border-radius: 0;
-	color: #f5f5f5;
-	background: #202020;
-	box-shadow: 0 16px 42px rgba(0, 0, 0, 0.65);
+	border: 1px solid #32313f;
+	border-radius: 6px;
+	color: #f5f3fa;
+	background: #111119;
+	box-shadow: 0 18px 46px rgba(0, 0, 0, 0.65);
 	text-shadow: none;
 }
 
 .shortcut-properties > header strong {
 	flex: 1;
-	font-size: 0.8rem;
+	font-size: 0.82rem;
+	font-weight: 500;
 }
 
 .shortcut-properties > div {
@@ -800,10 +833,10 @@ onBeforeUnmount(() => {
 	padding: 1.2rem;
 }
 
-.shortcut-properties > div > img,
-.shortcut-properties > div > svg {
+.shortcut-properties > div > img {
 	width: 4rem;
 	height: 4rem;
+	border-radius: 10px;
 	object-fit: cover;
 }
 
@@ -816,7 +849,7 @@ onBeforeUnmount(() => {
 }
 
 .shortcut-properties dt {
-	color: #aaa;
+	color: #aaa8bc;
 }
 
 .shortcut-properties dd {
@@ -829,33 +862,17 @@ onBeforeUnmount(() => {
 	display: flex;
 	justify-content: flex-end;
 	padding: 0.8rem;
-	border-top: 1px solid #444;
+	border-top: 1px solid #32313f;
 }
 
 .shortcut-properties footer button {
 	min-width: 6rem;
-	padding: 0.35rem 1rem;
-	border: 1px solid #777;
-	border-radius: 0;
-	color: white;
-	background: #333;
-}
-
-.desktop-watermark {
-	position: fixed;
-	right: 1.5rem;
-	bottom: 4.2rem;
-	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
-	opacity: 0.45;
-}
-
-.desktop-watermark strong {
-	font-size: 1.35rem;
-}
-
-.desktop-watermark span {
-	font-size: 0.78rem;
+	padding: 0.45rem 1rem;
+	border: 0;
+	border-radius: 6px;
+	color: var(--eden-on-accent);
+	background: var(--eden-accent);
+	font: inherit;
+	font-weight: 600;
 }
 </style>

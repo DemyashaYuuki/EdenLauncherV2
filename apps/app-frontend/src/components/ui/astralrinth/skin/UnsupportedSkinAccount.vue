@@ -1,55 +1,92 @@
 <script setup lang="ts">
-import { ExternalIcon } from '@modrinth/assets'
-import { ButtonStyled, defineMessages, useVIntl } from '@modrinth/ui'
+import { defineMessages, useVIntl } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { computed } from 'vue'
+import { computed, inject, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import EdenIcon from '@/components/ui/eden/EdenIcon.vue'
 import { getExternalAuthProvider } from '@/models/astralrinth/authentication'
 
 const props = defineProps<{
 	accountType?: string
+	accountName?: string
 }>()
 
 const messages = defineMessages({
 	title: {
 		id: 'edenlauncher.app.skins.unsupported-account.title',
-		defaultMessage: 'Microsoft account required',
+		defaultMessage: 'Нужен аккаунт Microsoft',
 	},
 	description: {
 		id: 'edenlauncher.app.skins.unsupported-account.description',
 		defaultMessage:
-			'Skins can only be managed with a Microsoft account. Return home and select or add a Microsoft account to continue.',
+			'Скины можно менять только с аккаунтом Microsoft. Выберите или добавьте аккаунт Microsoft, чтобы продолжить.',
 	},
 	returnHome: {
 		id: 'edenlauncher.app.skins.unsupported-account.return-home',
-		defaultMessage: 'Return home',
+		defaultMessage: 'На главную',
 	},
 	externalTitle: {
 		id: 'edenlauncher.app.skins.unsupported-account.external.title',
-		defaultMessage: 'Manage your {providerName} skin',
+		defaultMessage: 'Скин {providerName}',
 	},
 	externalDescription: {
 		id: 'edenlauncher.app.skins.unsupported-account.external.description',
 		defaultMessage:
-			"You're signed in with a {providerName} account. You can upload, select, and manage your skin directly on the provider's website.",
+			'Вы вошли через {providerName}. Загрузить и выбрать скин можно на сайте этого сервиса.',
 	},
 	externalAction: {
 		id: 'edenlauncher.app.skins.unsupported-account.external.action',
-		defaultMessage: 'Manage skin on {providerName}',
+		defaultMessage: 'Открыть {providerName}',
 	},
 })
 
+type AccountsHandle = {
+	accountName?: string | null
+	accountAvatar?: string | null
+	showAccountLoginModal?: () => void
+}
+
 const router = useRouter()
 const { formatMessage } = useVIntl()
-const externalAuthProvider = computed(() => getExternalAuthProvider(props.accountType))
+const accountsCard = inject<Ref<AccountsHandle | null> | null>('accountsCard', null)
 
-/** Returns from the unavailable skin flow to account selection. */
+const externalAuthProvider = computed(() => getExternalAuthProvider(props.accountType))
+const accountName = computed(() => props.accountName ?? accountsCard?.value?.accountName ?? null)
+const accountAvatar = computed(() => accountsCard?.value?.accountAvatar ?? null)
+const canAddAccount = computed(
+	() => typeof accountsCard?.value?.showAccountLoginModal === 'function',
+)
+const accountKind = computed(() => {
+	if (externalAuthProvider.value) return `Аккаунт ${externalAuthProvider.value.name}`
+	if (props.accountType === 'offline') return 'Офлайн-аккаунт'
+	return 'Игровой аккаунт'
+})
+const restrictionTitle = computed(() =>
+	externalAuthProvider.value
+		? formatMessage(messages.externalTitle, { providerName: externalAuthProvider.value.name })
+		: formatMessage(messages.title),
+)
+const restrictionText = computed(() => {
+	if (externalAuthProvider.value) {
+		return formatMessage(messages.externalDescription, {
+			providerName: externalAuthProvider.value.name,
+		})
+	}
+	if (props.accountType === 'offline') {
+		return 'У офлайн-аккаунта нет профиля Minecraft, поэтому лаунчер не может загрузить для него скин. Добавьте аккаунт Microsoft, чтобы менять скин и модель.'
+	}
+	return formatMessage(messages.description)
+})
+
 function returnHome() {
 	void router.push({ path: '/' })
 }
 
-/** Opens the selected provider's own skin-management page. */
+function addAccount() {
+	accountsCard?.value?.showAccountLoginModal?.()
+}
+
 function openExternalProviderSkins() {
 	if (externalAuthProvider.value) {
 		void openUrl(externalAuthProvider.value.skinManagementUrl)
@@ -58,59 +95,158 @@ function openExternalProviderSkins() {
 </script>
 
 <template>
-	<div
-		class="box-border flex min-h-full cursor-pointer items-center justify-center p-4 sm:p-8"
-		role="alert"
-		@click="returnHome"
-	>
-		<div
-			class="grid w-full max-w-3xl overflow-hidden rounded-2xl border border-solid border-surface-5 bg-bg-raised shadow-xl"
-			:class="{ 'md:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.5fr)]': externalAuthProvider }"
-		>
-			<div
-				v-if="externalAuthProvider"
-				class="relative flex min-h-48 items-center justify-center overflow-hidden bg-surface-2 p-8 md:min-h-full"
-			>
-				<div class="absolute inset-0 bg-gradient-to-br from-bg-blue via-surface-2 to-bg-raised" />
-				<div
-					class="relative flex size-28 items-center justify-center rounded-3xl border border-solid border-surface-5 bg-bg-raised shadow-lg"
-				>
-					<component :is="externalAuthProvider.icon" class="size-20" aria-hidden="true" />
-				</div>
+	<div class="eden-page eden-skins-unsupported">
+		<header class="eden-page-header">
+			<div>
+				<h1>Скины и аккаунт</h1>
+				<p>Твой образ в EdenWorld</p>
 			</div>
+		</header>
 
-			<div class="flex min-w-0 flex-col gap-5 p-7 sm:p-9">
-				<h1 class="m-0 text-3xl font-extrabold leading-tight">
-					{{
-						formatMessage(externalAuthProvider ? messages.externalTitle : messages.title, {
-							providerName: externalAuthProvider?.name,
-						})
-					}}
-				</h1>
-				<p class="m-0 text-lg leading-relaxed text-secondary">
-					{{
-						formatMessage(
-							externalAuthProvider ? messages.externalDescription : messages.description,
-							{ providerName: externalAuthProvider?.name },
-						)
-					}}
-				</p>
-				<div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-					<ButtonStyled v-if="externalAuthProvider" color="brand">
-						<button @click.stop="openExternalProviderSkins" @keydown.stop>
-							{{
-								formatMessage(messages.externalAction, { providerName: externalAuthProvider.name })
-							}}
-							<ExternalIcon aria-hidden="true" />
-						</button>
-					</ButtonStyled>
-					<ButtonStyled :type="externalAuthProvider ? 'outlined' : 'standard'" color="brand">
-						<button @click.stop="returnHome">
-							{{ formatMessage(messages.returnHome) }}
-						</button>
-					</ButtonStyled>
+		<div class="eden-skins-unsupported__grid">
+			<section class="eden-card eden-skins-unsupported__account" aria-label="Активный аккаунт">
+				<div class="eden-skins-unsupported__identity">
+					<span class="eden-skins-unsupported__avatar">
+						<img v-if="accountAvatar && accountName" :src="accountAvatar" alt="" />
+						<EdenIcon v-else name="user" :size="24" />
+					</span>
+					<div>
+						<strong>{{ accountName ?? 'Аккаунт не выбран' }}</strong>
+						<span>{{ accountKind }}</span>
+					</div>
 				</div>
-			</div>
+				<div class="eden-skins-unsupported__actions">
+					<button
+						type="button"
+						class="eden-btn eden-btn--secondary"
+						:disabled="!canAddAccount"
+						@click="addAccount"
+					>
+						<EdenIcon name="plus" :size="18" /> Добавить аккаунт
+					</button>
+					<button type="button" class="eden-btn eden-btn--ghost" @click="returnHome">
+						{{ formatMessage(messages.returnHome) }}
+					</button>
+				</div>
+			</section>
+
+			<section class="eden-card eden-skins-unsupported__notice" role="status">
+				<h2>
+					<EdenIcon name="info" :size="20" />
+					{{ restrictionTitle }}
+				</h2>
+				<p>{{ restrictionText }}</p>
+				<button
+					v-if="externalAuthProvider"
+					type="button"
+					class="eden-btn eden-btn--primary"
+					@click="openExternalProviderSkins"
+				>
+					{{ formatMessage(messages.externalAction, { providerName: externalAuthProvider.name }) }}
+					<EdenIcon name="external" :size="18" />
+				</button>
+			</section>
 		</div>
 	</div>
 </template>
+
+<style scoped lang="scss">
+.eden-skins-unsupported__grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 24px;
+	align-items: start;
+}
+
+.eden-skins-unsupported__account,
+.eden-skins-unsupported__notice {
+	display: flex;
+	flex-direction: column;
+	gap: 22px;
+	padding: 26px;
+}
+
+.eden-skins-unsupported__identity {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+
+	div {
+		display: flex;
+		min-width: 0;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	strong {
+		overflow: hidden;
+		color: var(--eden-text);
+		font-size: 23px;
+		font-weight: 650;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	span {
+		color: var(--eden-text-secondary);
+		font-size: 13px;
+	}
+}
+
+.eden-skins-unsupported__avatar {
+	display: grid;
+	width: 56px;
+	height: 56px;
+	flex: 0 0 auto;
+	overflow: hidden;
+	place-items: center;
+	border-radius: 10px;
+	color: var(--eden-accent-text);
+	background: var(--eden-surface-raised);
+
+	img {
+		width: 100%;
+		height: 100%;
+		image-rendering: pixelated;
+	}
+}
+
+.eden-skins-unsupported__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.eden-skins-unsupported__notice {
+	h2 {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin: 0;
+		color: var(--eden-text);
+		font-size: 17px;
+		font-weight: 650;
+
+		:deep(.eden-icon) {
+			color: var(--eden-accent-text);
+		}
+	}
+
+	p {
+		margin: 0;
+		color: var(--eden-text-secondary);
+		font-size: 13px;
+		line-height: 1.7;
+	}
+
+	.eden-btn {
+		align-self: flex-start;
+	}
+}
+
+@media (max-width: 1099px) {
+	.eden-skins-unsupported__grid {
+		grid-template-columns: 1fr;
+	}
+}
+</style>

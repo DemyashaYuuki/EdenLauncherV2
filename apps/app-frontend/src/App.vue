@@ -14,8 +14,6 @@ import {
 import {
 	Admonition,
 	Avatar,
-	ButtonStyled,
-	commonMessages,
 	ContentInstallModal,
 	ContentUpdaterModal,
 	CreationFlowModal,
@@ -38,6 +36,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { type } from '@tauri-apps/plugin-os'
+import { useMediaQuery } from '@vueuse/core'
 import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
@@ -45,6 +44,11 @@ import pilotVideo from '@/assets/pilot.mp4'
 import AccountSwitcherButton from '@/components/ui/AccountSwitcherButton.vue'
 import AppActionBar from '@/components/ui/AppActionBar.vue'
 import Breadcrumbs from '@/components/ui/Breadcrumbs.vue'
+import EdenIcon from '@/components/ui/eden/EdenIcon.vue'
+import EdenMark from '@/components/ui/eden/EdenMark.vue'
+import EdenPlayersModal from '@/components/ui/eden/EdenPlayersModal.vue'
+import EdenSidebar from '@/components/ui/eden/EdenSidebar.vue'
+import WindowsTaskbarSearch from '@/components/ui/eden/WindowsTaskbarSearch.vue'
 import ErrorModal from '@/components/ui/ErrorModal.vue'
 import FirstRunSetup from '@/components/ui/FirstRunSetup.vue'
 import AddServerToInstanceModal from '@/components/ui/install_flow/AddServerToInstanceModal.vue'
@@ -57,12 +61,12 @@ import ModpackAlreadyInstalledModal from '@/components/ui/modal/ModpackAlreadyIn
 import ModrinthAccountRequiredModal from '@/components/ui/modal/ModrinthAccountRequiredModal.vue'
 import UpdateToPlayModal from '@/components/ui/modal/UpdateToPlayModal.vue'
 import ModrinthCommunityModal from '@/components/ui/ModrinthCommunityModal.vue'
-import NavButton from '@/components/ui/NavButton.vue'
-import QuickInstanceSwitcher from '@/components/ui/QuickInstanceSwitcher.vue'
 import SplashScreen from '@/components/ui/SplashScreen.vue'
 import WindowControls from '@/components/ui/WindowControls.vue'
 import WindowsDesktop from '@/components/ui/WindowsDesktop.vue'
 import WindowsLogoIcon from '@/components/ui/WindowsLogoIcon.vue'
+import { useEdenDownloads } from '@/composables/eden/downloads'
+import { useEdenWorldInstall } from '@/composables/eden/edenworld-install'
 import { useCheckDisableMouseover } from '@/composables/macCssFix.js'
 import { config } from '@/config'
 import { trackEvent } from '@/helpers/analytics'
@@ -75,7 +79,6 @@ import {
 } from '@/helpers/astralrinth/update'
 import { check_reachable } from '@/helpers/auth.js'
 import { get_user, get_version } from '@/helpers/cache.js'
-import { downloadAndInstallEdenWorld } from '@/helpers/edenworld'
 import { command_listener, info_listener, warning_listener } from '@/helpers/events.js'
 import { install_create_modpack_instance, install_get_modpack_preview } from '@/helpers/install'
 import { get as getInstance, list as listInstances, run } from '@/helpers/instance'
@@ -99,7 +102,6 @@ import { setupAuthProvider } from '@/providers/setup/auth'
 import { setupLoadingStateProvider } from '@/providers/setup/loading-state'
 import { useError } from '@/store/error.js'
 import { useTheming } from '@/store/state'
-import { appMessages } from '@/utils/app-messages'
 
 import { generateSkinPreviews } from './helpers/rendering/batch-skin-renderer'
 import { get_available_capes, get_available_skins } from './helpers/skins'
@@ -123,7 +125,26 @@ function updateHistoryNavigationState() {
 
 updateHistoryNavigationState()
 
-const APP_LEFT_NAV_WIDTH = '4rem'
+const compactNavigation = useMediaQuery('(max-width: 1279px)')
+const downloads = useEdenDownloads()
+const edenWorldInstall = useEdenWorldInstall()
+const playersModal = ref()
+const clockNow = ref(new Date())
+let clockTimer = null
+const clockTime = computed(() =>
+	clockNow.value.toLocaleTimeString(i18n.global.locale.value || 'ru-RU', {
+		hour: '2-digit',
+		minute: '2-digit',
+	}),
+)
+const clockDate = computed(() =>
+	clockNow.value.toLocaleDateString(i18n.global.locale.value || 'ru-RU', {
+		day: '2-digit',
+		month: '2-digit',
+		year: 'numeric',
+	}),
+)
+const clockIso = computed(() => clockNow.value.toISOString())
 const credentials = ref()
 const modrinthLoginModal = ref()
 const modrinthCommunityModal = ref()
@@ -137,6 +158,18 @@ let previousPilotTheme = null
 
 const isWindowsTheme = computed(() => themeStore.visualTheme === 'windows10')
 const showWindowsDesktop = computed(() => isWindowsTheme.value)
+
+watch(
+	isWindowsTheme,
+	(enabled) => {
+		if (clockTimer !== null) window.clearInterval(clockTimer)
+		clockTimer = null
+		if (!enabled) return
+		clockNow.value = new Date()
+		clockTimer = window.setInterval(() => (clockNow.value = new Date()), 15_000)
+	},
+	{ immediate: true },
+)
 
 const notificationManager = new AppNotificationManager()
 provideNotificationManager(notificationManager)
@@ -157,7 +190,7 @@ provideModrinthClient(tauriApiClient)
 providePageContext({
 	hierarchicalSidebarAvailable: ref(false),
 	floatingActionBarOffsets: {
-		left: ref(APP_LEFT_NAV_WIDTH),
+		left: ref('var(--left-bar-width, 0px)'),
 		right: ref('0px'),
 	},
 	featureFlags: {
@@ -279,20 +312,6 @@ function navigateFromWindowsDesktop(path) {
 	void router.push(path)
 }
 
-function openHome() {
-	if (isWindowsTheme.value) {
-		startMenuOpen.value = false
-		windowsDesktop.value?.openPath('/')
-	} else {
-		void router.push('/')
-	}
-}
-
-function openCreateMenu() {
-	if (isWindowsTheme.value) startMenuOpen.value = !startMenuOpen.value
-	else createGameInstance()
-}
-
 function createGameInstance() {
 	startMenuOpen.value = false
 	installationModal.value?.show()
@@ -316,6 +335,7 @@ onUnmounted(async () => {
 	document.querySelector('body').removeEventListener('auxclick', handleAuxClick)
 	window.removeEventListener('keydown', handlePilotKey)
 	if (updateCheckTimer !== null) window.clearInterval(updateCheckTimer)
+	if (clockTimer !== null) window.clearInterval(clockTimer)
 })
 
 const { formatMessage } = useVIntl()
@@ -394,7 +414,7 @@ async function installOnboardingPack() {
 	})
 
 	try {
-		const job = await downloadAndInstallEdenWorld(() => undefined)
+		const job = await edenWorldInstall.install()
 		const instanceId = job.instance_id ?? job.target?.instance_id
 		addNotification({
 			title: 'Сборка EdenWorld установлена',
@@ -739,6 +759,13 @@ onMounted(() => {
 
 const accounts = ref(null)
 provide('accountsCard', accounts)
+provide('showEdenPlayers', () => playersModal.value?.show())
+provide('modrinthCredentials', credentials)
+provide('requestModrinthSignIn', () => requestModrinthSignIn())
+provide('showImportModal', async () => {
+	await installationModal.value?.show()
+	installationModal.value?.ctx?.setImportMode()
+})
 
 command_listener(handleCommand)
 
@@ -893,9 +920,10 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			@browse-modpacks="handleBrowseModpacks"
 		/>
 		<UnknownPackWarningModal ref="unknownPackWarningModal" />
+		<EdenPlayersModal ref="playersModal" />
 		<div v-if="isWindowsTheme && startMenuOpen" class="windows-start-menu">
 			<header>
-				<WindowsLogoIcon />
+				<EdenMark :size="36" />
 				<div>
 					<strong>EdenLauncher</strong
 					><span>{{ credentials?.user?.username ?? 'Локальный пользователь' }}</span>
@@ -904,112 +932,113 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			<button @click="openWindowsRoute('/')"><HomeIcon /> EdenWorld</button>
 			<button @click="openWindowsRoute('/library')"><LibraryIcon /> Библиотека</button>
 			<button @click="openWindowsRoute('/browse/modpack')"><CompassIcon /> Каталог Modrinth</button>
+			<button @click="openWindowsRoute('/skins')"><ShirtIcon /> Скины</button>
+			<button @click="openWindowsRoute('/friends')"><EdenIcon name="users" /> Друзья</button>
+			<button @click="openWindowsRoute('/downloads')"><EdenIcon name="download" /> Загрузки</button>
 			<button @click="createGameInstance"><PlusIcon /> Создать игровую сборку</button>
 			<footer>
 				<button @click="openWindowsSettings"><SettingsIcon /> Параметры</button>
 			</footer>
 		</div>
-		<div
-			class="app-grid-navbar bg-bg-raised flex flex-col p-[0.5rem] pt-0 gap-[0.25rem] w-[--left-bar-width]"
+		<EdenSidebar
+			v-if="!isWindowsTheme"
+			class="app-grid-navbar"
+			:compact="compactNavigation"
+			:offline="offline"
+			@settings="appSettingsModal?.show()"
+			@create="createGameInstance"
+			@players="playersModal?.show()"
 		>
-			<NavButton v-tooltip.right="formatMessage(messages.home)" :to="openHome">
-				<HomeIcon />
-			</NavButton>
-			<NavButton
-				v-tooltip.right="formatMessage(commonMessages.discoverContentLabel)"
-				to="/browse/modpack"
-				:is-primary="() => route.path.startsWith('/browse') && !route.query.i"
-				:is-subpage="(route) => route.path.startsWith('/project') && !route.query.i"
+			<template #account>
+				<Suspense>
+					<AccountSwitcherButton ref="accounts" variant="sidebar" :compact="compactNavigation" />
+				</Suspense>
+			</template>
+		</EdenSidebar>
+		<div v-else class="app-grid-navbar windows-taskbar" role="toolbar" aria-label="Панель задач">
+			<button
+				type="button"
+				class="windows-taskbar__start"
+				:class="{ active: startMenuOpen }"
+				:aria-expanded="startMenuOpen"
+				aria-label="Меню «Пуск»"
+				@click="startMenuOpen = !startMenuOpen"
 			>
-				<CompassIcon />
-			</NavButton>
-			<NavButton v-tooltip.right="formatMessage(appMessages.skinSelectorLabel)" to="/skins">
-				<ShirtIcon />
-			</NavButton>
-			<NavButton
-				v-tooltip.right="formatMessage(messages.library)"
-				to="/library"
-				:is-primary="(r) => r.path === '/library' || r.path === '/library'"
-				:is-subpage="
-					() =>
-						route.path.startsWith('/instance') ||
-						((route.path.startsWith('/browse') || route.path.startsWith('/project')) &&
-							route.query.i)
-				"
-			>
-				<LibraryIcon />
-			</NavButton>
-			<suspense v-if="!isWindowsTheme">
-				<QuickInstanceSwitcher />
-			</suspense>
-			<NavButton
-				v-tooltip.right="formatMessage(messages.createNewInstance)"
-				:to="openCreateMenu"
-				:disabled="offline"
-				class="windows-start-button"
-			>
-				<WindowsLogoIcon v-if="isWindowsTheme" />
-				<PlusIcon v-else />
-			</NavButton>
-			<div class="flex flex-grow"></div>
-			<NavButton
-				v-tooltip.right="formatMessage(commonMessages.settingsLabel)"
-				:to="() => appSettingsModal?.show()"
-			>
-				<SettingsIcon />
-			</NavButton>
-		</div>
-		<div data-tauri-drag-region class="app-grid-statusbar bg-bg-raised h-[--top-bar-height] flex">
-			<div data-tauri-drag-region class="flex min-w-0 flex-1 items-center overflow-hidden p-2">
-				<div data-tauri-drag-region class="ml-2 flex shrink-0 items-center gap-2">
-					<ButtonStyled type="outlined" circular>
-						<button
-							class="!h-7 !min-w-7 !w-7 !border !border-surface-4 !p-0 !opacity-100"
-							:disabled="!canNavigateBack"
-							aria-label="Назад"
-							@click="router.back()"
-						>
-							<ChevronLeftIcon
-								class="!size-4 !text-primary"
-								:class="{ 'opacity-20': !canNavigateBack }"
-							/>
-						</button>
-					</ButtonStyled>
-					<ButtonStyled type="outlined" circular>
-						<button
-							class="!h-7 !min-w-7 !w-7 !border !border-surface-4 !p-0 !opacity-100"
-							:disabled="!canNavigateForward"
-							aria-label="Вперёд"
-							@click="router.forward()"
-						>
-							<ChevronRightIcon
-								class="!size-4 !text-primary"
-								:class="{ 'opacity-20': !canNavigateForward }"
-							/>
-						</button>
-					</ButtonStyled>
-				</div>
-				<Breadcrumbs />
+				<WindowsLogoIcon />
+			</button>
+			<WindowsTaskbarSearch :instances="desktopInstances" @open="openWindowsRoute" />
+			<div class="windows-taskbar__tray">
+				<RouterLink
+					to="/downloads"
+					class="windows-taskbar__tray-button"
+					:aria-label="`Загрузки${downloads.activeCount.value ? `, активных: ${downloads.activeCount.value}` : ''}`"
+					@click.prevent="openWindowsRoute('/downloads')"
+				>
+					<EdenIcon name="download" :size="18" />
+					<span v-if="downloads.activeCount.value" class="windows-taskbar__badge">{{
+						downloads.activeCount.value
+					}}</span>
+				</RouterLink>
+				<Suspense>
+					<AccountSwitcherButton ref="accounts" />
+				</Suspense>
+				<time class="windows-taskbar__clock" :datetime="clockIso">
+					<span>{{ clockTime }}</span>
+					<span>{{ clockDate }}</span>
+				</time>
 			</div>
-			<section data-tauri-drag-region class="flex shrink-0 ml-auto items-center">
+		</div>
+		<div data-tauri-drag-region class="app-grid-statusbar eden-titlebar">
+			<div data-tauri-drag-region class="eden-titlebar__start">
+				<span data-tauri-drag-region class="eden-titlebar__brand">
+					<EdenMark :size="20" />
+					<span data-tauri-drag-region>EdenLauncher</span>
+				</span>
+				<div class="eden-titlebar__history">
+					<button
+						type="button"
+						class="eden-titlebar__icon-button"
+						:disabled="!canNavigateBack"
+						aria-label="Назад"
+						data-tauri-drag-region-exclude
+						@click="router.back()"
+					>
+						<ChevronLeftIcon />
+					</button>
+					<button
+						type="button"
+						class="eden-titlebar__icon-button"
+						:disabled="!canNavigateForward"
+						aria-label="Вперёд"
+						data-tauri-drag-region-exclude
+						@click="router.forward()"
+					>
+						<ChevronRightIcon />
+					</button>
+				</div>
+				<div data-tauri-drag-region class="eden-titlebar__breadcrumbs">
+					<Breadcrumbs />
+				</div>
+			</div>
+			<section data-tauri-drag-region class="eden-titlebar__end">
+				<Suspense>
+					<AppActionBar />
+				</Suspense>
 				<button
-					class="modrinth-account-button"
+					type="button"
+					class="eden-titlebar__modrinth"
 					:title="credentials?.user ? `Modrinth: ${credentials.user.username}` : 'Войти в Modrinth'"
+					:aria-label="
+						credentials?.user
+							? `Аккаунт Modrinth: ${credentials.user.username}`
+							: 'Войти в Modrinth'
+					"
+					data-tauri-drag-region-exclude
 					@click="credentials?.user ? modrinthCommunityModal?.show() : requestModrinthSignIn()"
 				>
-					<Avatar v-if="credentials?.user" :src="credentials.user.avatar_url" size="28px" circle />
+					<Avatar v-if="credentials?.user" :src="credentials.user.avatar_url" size="24px" circle />
 					<LogInIcon v-else />
 				</button>
-				<div class="mr-2">
-					<Suspense>
-						<AccountSwitcherButton ref="accounts" />
-					</Suspense>
-				</div>
-				<div class="flex mr-3">
-					<Suspense>
-						<AppActionBar />
-					</Suspense>
-				</div>
 				<WindowControls />
 			</section>
 		</div>
@@ -1142,33 +1171,33 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 @import '../../../packages/assets/styles/astralrinth/neon-text.scss';
 .app-grid-layout,
 .app-contents {
-	--top-bar-height: 3rem;
-	--left-bar-width: 4rem;
+	--top-bar-height: var(--eden-titlebar-height);
+	--left-bar-width: var(--eden-sidebar-width);
 	--right-bar-width: 0px;
 }
 
 .app-grid-layout {
 	display: grid;
 	grid-template: 'status status' 'nav dummy';
-	grid-template-columns: auto 1fr;
-	grid-template-rows: auto 1fr;
+	grid-template-columns: var(--left-bar-width) 1fr;
+	grid-template-rows: var(--top-bar-height) 1fr;
 	position: relative;
-	//z-index: 0;
-	background-color: var(--color-raised-bg);
 	height: 100vh;
+	background-color: var(--eden-canvas);
 }
 
 .app-grid-navbar {
 	grid-area: nav;
 	position: relative;
 	z-index: 2;
+	min-height: 0;
 }
 
 .app-grid-statusbar {
 	grid-area: status;
-	padding-right: var(--window-controls-width, 0px);
 	position: relative;
-	z-index: 2;
+	z-index: 3;
+	padding-right: var(--window-controls-width, 0px);
 }
 
 [data-tauri-drag-region-exclude] {
@@ -1183,22 +1212,15 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	right: 0;
 	bottom: 0;
 	height: calc(100vh - var(--top-bar-height));
-	background-color: var(--color-bg);
-	border-top-left-radius: var(--radius-xl);
-
+	background-color: var(--eden-canvas);
 	display: block;
 }
 
 .loading-indicator-container {
-	border-top-left-radius: var(--radius-xl);
 	overflow: hidden;
 }
 
 .disable-advanced-rendering {
-	&.app-contents::before {
-		box-shadow: none;
-	}
-
 	*,
 	:deep(*) {
 		box-shadow: none !important;
@@ -1214,20 +1236,219 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	scrollbar-gutter: stable;
 }
 
-.app-contents::before {
-	z-index: 30;
-	content: '';
+// ---------- Title bar ----------
+
+.eden-titlebar {
+	display: flex;
+	height: var(--eden-titlebar-height);
+	box-sizing: border-box;
+	align-items: center;
+	gap: 12px;
+	border-bottom: 1px solid var(--eden-border);
+	color: var(--eden-text);
+	background: var(--eden-canvas);
+}
+
+.eden-titlebar__start {
+	display: flex;
+	min-width: 0;
+	height: 100%;
+	flex: 1;
+	align-items: center;
+	gap: 14px;
+	padding-left: 18px;
+}
+
+.eden-titlebar__brand {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 10px;
+	font-size: 13px;
+	font-weight: 650;
+	white-space: nowrap;
+}
+
+.eden-titlebar__history {
+	display: flex;
+	flex: 0 0 auto;
+	gap: 2px;
+	margin-left: 18px;
+}
+
+.eden-titlebar__icon-button,
+.eden-titlebar__modrinth {
+	display: grid;
+	width: 28px;
+	height: 28px;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: 7px;
+	color: var(--eden-text-secondary);
+	background: transparent;
+	cursor: pointer;
+	transition:
+		color var(--eden-motion-hover) ease,
+		background-color var(--eden-motion-hover) ease;
+
+	svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	&:hover:not(:disabled) {
+		color: var(--eden-text);
+		background: var(--eden-surface-raised);
+	}
+
+	&:disabled {
+		cursor: default;
+		opacity: 0.35;
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--eden-focus);
+		outline-offset: 2px;
+	}
+}
+
+.eden-titlebar__modrinth {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+}
+
+.eden-titlebar__breadcrumbs {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	align-items: center;
+	overflow: hidden;
+	color: var(--eden-text-secondary);
+	font-size: 12px;
+}
+
+.eden-titlebar__end {
+	display: flex;
+	height: 100%;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+
+	:deep(.app-action-bar),
+	:deep(> .flex) {
+		font-size: 12px;
+	}
+}
+
+// ---------- Windows 10 taskbar ----------
+
+.windows-taskbar {
 	position: fixed;
-	left: var(--left-bar-width);
-	top: var(--top-bar-height);
-	right: calc(-1 * var(--left-bar-width));
-	bottom: calc(-1 * var(--left-bar-width));
-	border-radius: var(--radius-xl);
-	box-shadow: 1px 1px 15px rgba(0, 0, 0, 0.1) inset;
-	border-color: var(--surface-5);
-	border-width: 1px;
-	border-style: solid;
-	pointer-events: none;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 100;
+	display: flex;
+	height: 48px;
+	box-sizing: border-box;
+	align-items: stretch;
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+	color: #f5f3fa;
+	background: rgba(13, 13, 20, 0.94);
+	backdrop-filter: blur(20px);
+	font-family: var(--font-standard);
+
+	> * {
+		flex: 0 0 auto;
+	}
+
+	:deep(.windows-open-apps) {
+		order: 2;
+	}
+}
+
+.windows-taskbar__start {
+	display: grid;
+	width: 56px;
+	order: 0;
+	place-items: center;
+	border: 0;
+	color: #f5f3fa;
+	background: transparent;
+	cursor: pointer;
+
+	svg {
+		width: 22px;
+		height: 22px;
+	}
+
+	&:hover,
+	&.active {
+		background: rgba(255, 255, 255, 0.1);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--eden-focus);
+		outline-offset: -2px;
+	}
+}
+
+.windows-taskbar__tray {
+	display: flex;
+	order: 10;
+	align-items: center;
+	gap: 6px;
+	margin-left: auto;
+	padding: 0 14px 0 8px;
+}
+
+.windows-taskbar__tray-button {
+	position: relative;
+	display: grid;
+	width: 40px;
+	height: 40px;
+	place-items: center;
+	border-radius: 4px;
+	color: #f5f3fa;
+
+	&:hover {
+		background: rgba(255, 255, 255, 0.1);
+	}
+}
+
+.windows-taskbar__badge {
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	display: grid;
+	min-width: 16px;
+	height: 16px;
+	place-items: center;
+	border-radius: 8px;
+	color: var(--eden-on-accent);
+	background: var(--eden-accent);
+	font-size: 10px;
+	font-weight: 700;
+}
+
+.windows-taskbar__clock {
+	display: flex;
+	min-width: 76px;
+	flex-direction: column;
+	align-items: flex-end;
+	justify-content: center;
+	gap: 2px;
+	padding-left: 8px;
+	font-size: 12px;
+	line-height: 1.15;
+
+	span:last-child {
+		color: #c9c7d6;
+		font-size: 11px;
+	}
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -1285,46 +1506,24 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	}
 }
 
-.modrinth-account-button {
-	display: grid;
-	width: 2.25rem;
-	height: 2.25rem;
-	margin-right: 0.45rem;
-	padding: 0;
-	place-items: center;
-	border: 1px solid var(--color-button-border);
-	border-radius: 50%;
-	color: var(--color-brand);
-	background: var(--color-button-bg);
-	cursor: pointer;
-}
-
-.modrinth-account-button:hover {
-	border-color: var(--color-brand);
-}
-
-.modrinth-account-button svg {
-	width: 1rem;
-	height: 1rem;
-}
-
 .windows-start-menu {
 	position: fixed;
-	bottom: 3rem;
+	bottom: 48px;
 	left: 0;
 	z-index: 120;
 	display: flex;
 	width: 23rem;
-	max-height: min(37rem, calc(100vh - 5rem));
+	max-height: min(37rem, calc(100vh - 6rem));
 	box-sizing: border-box;
 	flex-direction: column;
+	overflow-y: auto;
 	padding: 0.55rem;
-	border: 1px solid rgba(255, 255, 255, 0.18);
+	border: 1px solid #32313f;
 	border-radius: 0;
-	color: white;
-	background: rgba(20, 31, 45, 0.98);
+	color: #f5f3fa;
+	background: rgba(17, 17, 25, 0.98);
 	box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.42);
-	font-family: 'Segoe UI', sans-serif;
+	font-family: var(--font-standard);
 }
 
 .windows-start-menu header {
@@ -1336,9 +1535,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 }
 
 .windows-start-menu header > svg {
-	width: 2.2rem;
-	height: 2.2rem;
-	color: #39a9ff;
+	color: var(--eden-accent);
 }
 
 .windows-start-menu header > div {
@@ -1347,7 +1544,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 }
 
 .windows-start-menu header span {
-	color: #b8c2ce;
+	color: #aaa8bc;
 	font-size: 0.75rem;
 }
 
@@ -1360,7 +1557,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	padding: 0.55rem 0.7rem;
 	border: 0;
 	border-radius: 0;
-	color: white;
+	color: #f5f3fa;
 	background: transparent;
 	font: inherit;
 	text-align: left;
@@ -1368,7 +1565,12 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 }
 
 .windows-start-menu button:hover {
-	background: rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.08);
+}
+
+.windows-start-menu button:focus-visible {
+	outline: 2px solid var(--eden-focus);
+	outline-offset: -2px;
 }
 
 .windows-start-menu button svg {

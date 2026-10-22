@@ -1,107 +1,125 @@
 <template>
-	<PageHeader :title="instance.name">
-		<template #leading>
-			<Avatar :src="iconSrc" :alt="instance.name" size="64px" :tint-by="instance.id" />
-		</template>
-
-		<template v-if="instance.quarantined" #badges>
-			<PageHeaderBadgeItem
-				:icon="LockIcon"
-				aria-label="Locked instance information"
-				class="!border-orange !bg-highlight-orange !text-orange"
-			>
-				Locked
-			</PageHeaderBadgeItem>
-		</template>
-
-		<template #metadata>
-			<div v-if="isServerInstance" class="flex flex-wrap items-center gap-2">
-				<InstanceHeaderServerMetadata
-					:loading-server-ping="loadingServerPing"
-					:players-online="playersOnline"
-					:status-online="statusOnline"
-					:recent-plays="recentPlays"
-					:ping="ping"
-					:minecraft-server="minecraftServer"
-					:linked-project-v3="linkedProjectV3"
-					:instance-id="instance.id"
+	<section
+		class="eden-hero eden-instance-hero"
+		:class="{ 'eden-instance-hero--official': isOfficial }"
+		aria-labelledby="eden-instance-title"
+	>
+		<div class="eden-hero__art" :style="artStyle" aria-hidden="true"></div>
+		<div class="eden-hero__scrim" aria-hidden="true"></div>
+		<div class="eden-hero__content eden-instance-hero__content">
+			<div class="eden-instance-hero__identity">
+				<Avatar
+					v-if="!isOfficial"
+					:src="iconSrc"
+					:alt="instance.name"
+					size="56px"
+					:tint-by="instance.id"
+					class="eden-instance-hero__avatar"
 				/>
+				<div class="min-w-0">
+					<p class="eden-eyebrow eden-hero__eyebrow">
+						{{ isOfficial ? 'Официальная сборка' : 'Игровая сборка' }}
+					</p>
+					<h1 id="eden-instance-title" class="eden-instance-hero__title">{{ instance.name }}</h1>
+				</div>
 			</div>
-			<PageHeaderMetadata v-else>
-				<PageHeaderMetadataItem :icon="Gamepad2Icon" tooltip="Minecraft version">
-					Minecraft {{ instance.game_version }}
-				</PageHeaderMetadataItem>
-				<PageHeaderMetadataItem
-					:icon="ServerLoaderIcon"
-					:icon-props="{ loader: loaderDisplayName }"
-					tooltip="Mod loader"
-				>
-					{{ loaderLabel }}
-				</PageHeaderMetadataItem>
-				<PageHeaderMetadataItem
-					v-if="showInstancePlayTime"
-					:icon="TimerIcon"
-					tooltip="Total playtime"
-				>
-					{{ playtimeLabel }}
-				</PageHeaderMetadataItem>
-			</PageHeaderMetadata>
-		</template>
 
-		<template #actions>
-			<PageHeaderActions>
-				<ButtonStyled v-if="isInstalling" color="brand" size="large">
-					<button type="button" disabled>
-						{{ formatMessage(commonMessages.installingLabel) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-else-if="playing" color="red" size="large">
-					<button type="button" :disabled="stopping" @click="emit('stop')">
-						<StopCircleIcon />
-						{{
-							stopping ? formatMessage(messages.stopping) : formatMessage(commonMessages.stopButton)
-						}}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-else-if="instance.quarantined" color="brand" size="large">
-					<button v-tooltip="formatMessage(messages.lockedPlayTooltip)" type="button" disabled>
-						<PlayIcon />
-						{{ formatMessage(commonMessages.playButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-else-if="instance.install_stage !== 'installed'" color="brand" size="large">
-					<button type="button" @click="emit('repair')">
-						<DownloadIcon />
-						{{ formatMessage(messages.repair) }}
-					</button>
-				</ButtonStyled>
+			<div class="eden-hero__chips eden-instance-hero__meta">
+				<span v-if="instance.quarantined" class="eden-hero__chip eden-instance-hero__locked">
+					<LockIcon aria-hidden="true" /> Сборка заблокирована
+				</span>
+				<template v-if="isServerInstance">
+					<InstanceHeaderServerMetadata
+						:loading-server-ping="loadingServerPing"
+						:players-online="playersOnline"
+						:status-online="statusOnline"
+						:recent-plays="recentPlays"
+						:ping="ping"
+						:minecraft-server="minecraftServer"
+						:linked-project-v3="linkedProjectV3"
+						:instance-id="instance.id"
+					/>
+				</template>
+				<template v-else>
+					<span class="eden-hero__chip">Minecraft {{ instance.game_version }}</span>
+					<span class="eden-hero__chip">{{ loaderLabel }}</span>
+					<span v-if="showInstancePlayTime" class="eden-hero__chip">
+						<TimerIcon aria-hidden="true" /> {{ playtimeLabel }}
+					</span>
+				</template>
+			</div>
+
+			<div class="eden-hero__actions">
+				<button v-if="isInstalling" type="button" class="eden-btn eden-btn--primary" disabled>
+					<SpinnerIcon class="animate-spin" />
+					{{ formatMessage(commonMessages.installingLabel) }}
+				</button>
+				<button
+					v-else-if="playing"
+					type="button"
+					class="eden-btn eden-btn--secondary eden-instance-hero__stop"
+					:disabled="stopping"
+					@click="emit('stop')"
+				>
+					<StopCircleIcon />
+					{{
+						stopping ? formatMessage(messages.stopping) : formatMessage(commonMessages.stopButton)
+					}}
+				</button>
+				<button
+					v-else-if="instance.quarantined"
+					v-tooltip="formatMessage(messages.lockedPlayTooltip)"
+					type="button"
+					class="eden-btn eden-btn--primary"
+					disabled
+				>
+					<PlayIcon />
+					{{ formatMessage(commonMessages.playButton) }}
+				</button>
+				<button
+					v-else-if="instance.install_stage !== 'installed'"
+					type="button"
+					class="eden-btn eden-btn--primary"
+					@click="emit('repair')"
+				>
+					<DownloadIcon />
+					{{ formatMessage(messages.repair) }}
+				</button>
 				<JoinedButtons
 					v-else-if="!loading && isServerInstance"
 					:actions="serverPlayActions"
 					color="brand"
 					size="large"
 				/>
-				<ButtonStyled v-else-if="!loading" color="brand" size="large">
-					<button type="button" @click="emit('play')">
-						<PlayIcon />
-						{{ formatMessage(commonMessages.playButton) }}
-					</button>
-				</ButtonStyled>
-				<ButtonStyled v-else color="brand" size="large">
-					<button type="button" disabled>{{ formatMessage(messages.starting) }}</button>
-				</ButtonStyled>
+				<button
+					v-else-if="!loading"
+					type="button"
+					class="eden-btn eden-btn--primary eden-instance-hero__play"
+					@click="emit('play')"
+				>
+					<PlayIcon />
+					{{ formatMessage(commonMessages.playButton) }}
+				</button>
+				<button
+					v-else
+					type="button"
+					class="eden-btn eden-btn--primary eden-instance-hero__play"
+					disabled
+				>
+					<SpinnerIcon class="animate-spin" />
+					{{ formatMessage(messages.starting) }}
+				</button>
 
+				<button
+					type="button"
+					class="eden-btn eden-btn--secondary"
+					:aria-label="formatMessage(messages.instanceSettings)"
+					@click="emit('settings')"
+				>
+					<SettingsIcon />
+					Настройки
+				</button>
 				<ButtonStyled circular size="large">
-					<button
-						v-tooltip="formatMessage(messages.instanceSettings)"
-						type="button"
-						:aria-label="formatMessage(messages.instanceSettings)"
-						@click="emit('settings')"
-					>
-						<SettingsIcon />
-					</button>
-				</ButtonStyled>
-				<ButtonStyled circular size="large" type="transparent">
 					<TeleportOverflowMenu
 						:options="moreActions"
 						:tooltip="formatMessage(messages.moreActions)"
@@ -110,9 +128,9 @@
 						<MoreVerticalIcon />
 					</TeleportOverflowMenu>
 				</ButtonStyled>
-			</PageHeaderActions>
-		</template>
-	</PageHeader>
+			</div>
+		</div>
+	</section>
 </template>
 
 <script setup lang="ts">
@@ -126,8 +144,8 @@ import {
 	PackageIcon,
 	PlayIcon,
 	SettingsIcon,
+	SpinnerIcon,
 	StopCircleIcon,
-	TagCategoryGamepad2Icon as Gamepad2Icon,
 	TimerIcon,
 } from '@modrinth/assets'
 import {
@@ -138,12 +156,6 @@ import {
 	formatLoaderLabel,
 	type JoinedButtonAction,
 	JoinedButtons,
-	LoaderIcon as ServerLoaderIcon,
-	PageHeader,
-	PageHeaderActions,
-	PageHeaderBadgeItem,
-	PageHeaderMetadata,
-	PageHeaderMetadataItem,
 	type ServerLoader,
 	TeleportOverflowMenu,
 	type TeleportOverflowMenuItem,
@@ -268,17 +280,24 @@ const playtimeLabel = computed(() => {
 	if (props.timePlayed <= 0) return formatMessage(messages.neverPlayed)
 
 	const hours = Math.floor(props.timePlayed / 3600)
-	if (hours >= 1) {
-		return `${hours} hour${hours > 1 ? 's' : ''}`
+	const minutes = Math.floor((props.timePlayed % 3600) / 60)
+	if (hours >= 1) return `${hours} ч ${String(minutes).padStart(2, '0')} мин в игре`
+	if (minutes >= 1) return `${minutes} мин в игре`
+	return 'Меньше минуты в игре'
+})
+const isOfficial = computed(() => props.instance.name.toLocaleLowerCase().includes('edenworld'))
+const artStyle = computed(() => {
+	if (isOfficial.value) return undefined
+	if (props.iconSrc) {
+		return {
+			backgroundImage: `url(${JSON.stringify(props.iconSrc)})`,
+			backgroundPosition: 'center',
+			filter: 'blur(36px) saturate(1.15)',
+			transform: 'scale(1.3)',
+			opacity: '0.6',
+		}
 	}
-
-	const minutes = Math.floor(props.timePlayed / 60)
-	if (minutes >= 1) {
-		return `${minutes} minute${minutes > 1 ? 's' : ''}`
-	}
-
-	const seconds = Math.floor(props.timePlayed)
-	return `${seconds} second${seconds > 1 ? 's' : ''}`
+	return { background: 'linear-gradient(120deg, var(--eden-surface-raised), var(--eden-canvas))' }
 })
 const serverPlayActions = computed<JoinedButtonAction[]>(() => [
 	{
@@ -324,3 +343,83 @@ const moreActions = computed<TeleportOverflowMenuItem[]>(() => {
 	return actions
 })
 </script>
+
+<style scoped lang="scss">
+.eden-instance-hero,
+.eden-instance-hero .eden-hero__content {
+	min-height: 236px;
+}
+
+.eden-instance-hero:not(.eden-instance-hero--official) {
+	--hero-text: var(--eden-text);
+	--hero-text-secondary: var(--eden-text-secondary);
+	--hero-chip-bg: var(--eden-surface-raised);
+	--hero-scrim: linear-gradient(
+		90deg,
+		color-mix(in srgb, var(--eden-canvas) 92%, transparent) 0%,
+		color-mix(in srgb, var(--eden-canvas) 60%, transparent) 60%,
+		color-mix(in srgb, var(--eden-canvas) 30%, transparent) 100%
+	);
+	background: var(--eden-canvas);
+}
+
+.eden-instance-hero__content {
+	max-width: 760px;
+	padding: 28px 30px;
+}
+
+.eden-instance-hero__identity {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+}
+
+.eden-instance-hero__avatar {
+	flex: 0 0 auto;
+	border-radius: 12px;
+}
+
+.eden-instance-hero__title {
+	margin: 10px 0 0;
+	overflow: hidden;
+	color: var(--hero-text);
+	font-size: clamp(32px, 3.4vw, 44px);
+	font-weight: 700;
+	line-height: 1.1;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.eden-instance-hero__meta {
+	align-items: center;
+	margin-top: 16px;
+
+	.eden-hero__chip {
+		gap: 6px;
+	}
+
+	:deep(svg) {
+		width: 14px;
+		height: 14px;
+	}
+}
+
+.eden-instance-hero__locked {
+	color: var(--eden-error);
+}
+
+.eden-instance-hero__play {
+	min-width: 184px;
+	justify-content: flex-start;
+}
+
+.eden-instance-hero__stop {
+	color: var(--eden-error);
+}
+
+@media (max-width: 1099px) {
+	.eden-instance-hero__content {
+		padding: 22px;
+	}
+}
+</style>

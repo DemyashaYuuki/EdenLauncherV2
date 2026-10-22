@@ -110,7 +110,7 @@ jobs:
       - name: Generate EdenWorld application icons
         shell: pwsh
         working-directory: source/apps/app
-        run: pnpm exec tauri icon ../app-frontend/src/assets/edenworld-logo.jpg -o icons
+        run: pnpm exec tauri icon ../app-frontend/src/assets/eden/brand/eden-app-icon-512.png -o icons
 
       - name: Build EdenLauncher for Windows
         shell: pwsh
@@ -205,7 +205,7 @@ jobs:
 
       - name: Generate EdenWorld application icons
         working-directory: source/apps/app
-        run: pnpm exec tauri icon ../app-frontend/src/assets/edenworld-logo.jpg -o icons
+        run: pnpm exec tauri icon ../app-frontend/src/assets/eden/brand/eden-app-icon-512.png -o icons
 
       - name: Build EdenLauncher for Linux
         working-directory: source

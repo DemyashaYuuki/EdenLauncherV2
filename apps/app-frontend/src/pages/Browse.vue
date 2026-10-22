@@ -660,16 +660,16 @@ const selectableProjectTypes = computed(() => {
 	}
 
 	if (isFromWorlds.value) {
-		return [{ label: 'Servers', href: `/browse/server${suffix}` }]
+		return [{ label: 'Серверы', href: `/browse/server${suffix}` }]
 	}
 
 	return [
-		{ label: 'Modpacks', href: `/browse/modpack${suffix}`, shown: modpacks },
-		{ label: 'Mods', href: `/browse/mod${suffix}`, shown: mods },
-		{ label: 'Resource Packs', href: `/browse/resourcepack${suffix}` },
-		{ label: 'Data Packs', href: `/browse/datapack${suffix}`, shown: dataPacks },
-		{ label: 'Shaders', href: `/browse/shader${suffix}` },
-		{ label: 'Servers', href: `/browse/server${suffix}`, shown: !instance.value },
+		{ label: 'Сборки', href: `/browse/modpack${suffix}`, shown: modpacks },
+		{ label: 'Моды', href: `/browse/mod${suffix}`, shown: mods },
+		{ label: 'Ресурспаки', href: `/browse/resourcepack${suffix}` },
+		{ label: 'Датапаки', href: `/browse/datapack${suffix}`, shown: dataPacks },
+		{ label: 'Шейдеры', href: `/browse/shader${suffix}` },
+		{ label: 'Серверы', href: `/browse/server${suffix}`, shown: !instance.value },
 	]
 })
 
@@ -1282,7 +1282,13 @@ provideBrowseManager({
 </script>
 
 <template>
-	<div class="flex flex-col gap-3 p-6">
+	<div class="eden-page eden-catalog">
+		<header v-if="!route.query.i && !isServerContext" class="eden-page-header">
+			<div>
+				<h1>Каталог</h1>
+				<p>Находи моды, сборки и новые способы играть</p>
+			</div>
+		</header>
 		<details v-if="browseRouteActive" class="browse-inline-filters">
 			<summary>Фильтры поиска</summary>
 			<div class="browse-inline-filters__content">
@@ -1319,10 +1325,14 @@ provideBrowseManager({
 </template>
 
 <style scoped lang="scss">
+.eden-catalog {
+	gap: 20px;
+}
+
 .browse-inline-filters {
-	border: 1px solid var(--color-divider);
-	border-radius: var(--radius-lg);
-	background: var(--surface-2);
+	border: 1px solid var(--eden-border);
+	border-radius: var(--eden-radius-card);
+	background: var(--eden-surface);
 
 	> summary {
 		padding: 1rem 1.2rem;

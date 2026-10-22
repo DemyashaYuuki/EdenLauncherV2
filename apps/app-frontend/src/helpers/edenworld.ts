@@ -18,6 +18,11 @@ const EDENWORLD_RF_DOWNLOAD_URL = `https://drive.usercontent.google.com/download
 export const EDENWORLD_PROJECT_URL = 'https://edenworld.fun/'
 export const EDENWORLD_TELEGRAM_URL = 'https://t.me/EdenWorldMC'
 export const EDENWORLD_DISCORD_URL = 'https://discord.gg/WBTUMKuBTa'
+export const EDENWORLD_VOTE_URL = 'https://top-minecrafter.com/server/edenworld/'
+export const EDENWORLD_SERVER_ADDRESS = 'EdenWorld.gomc.fun'
+/** Name of the profile that downloadAndInstallEdenWorld creates. */
+export const EDENWORLD_INSTANCE_NAME = 'EdenWorld 1.21.11'
+export const EDENWORLD_GAME_VERSION = '1.21.11'
 
 export type EdenWorldInstallProgress = {
 	downloaded: number
@@ -86,7 +91,7 @@ export async function downloadAndInstallEdenWorld(
 		}
 
 		const job = await install_create_modpack_instance(location, {
-			name: 'EdenWorld 1.21.11',
+			name: EDENWORLD_INSTANCE_NAME,
 		})
 		return await wait_for_install_job(job.job_id)
 	} finally {

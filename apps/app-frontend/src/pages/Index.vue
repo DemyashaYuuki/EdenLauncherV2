@@ -1,55 +1,49 @@
 <script setup lang="ts">
-import {
-	DiscordIcon,
-	DownloadIcon,
-	GlobeIcon,
-	HomeIcon,
-	MessageIcon,
-	PlayIcon,
-	RefreshCwIcon,
-	ServerIcon,
-} from '@modrinth/assets'
-import { injectNotificationManager, NewModal } from '@modrinth/ui'
+import { HomeIcon } from '@modrinth/assets'
+import { injectNotificationManager } from '@modrinth/ui'
 import type { SearchResult } from '@modrinth/utils'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import dayjs from 'dayjs'
-import { computed, onUnmounted, ref } from 'vue'
+import { Dropdown } from 'floating-vue'
+import { computed, inject, onUnmounted, type Ref, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import edenBackground from '@/assets/edenworld-background.png'
-import edenLogo from '@/assets/edenworld-logo.jpg'
-import asunaBackground from '@/assets/theme-asuna.png'
-import errorBackground from '@/assets/theme-error.png'
 import RowDisplay from '@/components/RowDisplay.vue'
-import PlayerHead from '@/components/ui/PlayerHead.vue'
-import TelegramIcon from '@/components/ui/TelegramIcon.vue'
+import EdenIcon from '@/components/ui/eden/EdenIcon.vue'
 import RecentWorldsList from '@/components/ui/world/RecentWorldsList.vue'
+import { formatBytes, useEdenWorldInstall } from '@/composables/eden/edenworld-install'
+import { useEdenServerStatus } from '@/composables/eden/server-status'
 import { get_search_results } from '@/helpers/cache.js'
 import {
-	downloadAndInstallEdenWorld,
 	EDENWORLD_DISCORD_URL,
+	EDENWORLD_GAME_VERSION,
 	EDENWORLD_PROJECT_URL,
 	EDENWORLD_TELEGRAM_URL,
-	type EdenWorldInstallProgress,
+	EDENWORLD_VOTE_URL,
 } from '@/helpers/edenworld'
-import { instance_listener } from '@/helpers/events'
-import { list } from '@/helpers/instance'
+import { instance_listener, process_listener } from '@/helpers/events'
+import { install_existing_instance } from '@/helpers/install'
+import { kill, list, run } from '@/helpers/instance'
+import { get_by_instance_id } from '@/helpers/process'
 import type { GameInstance } from '@/helpers/types'
-import { get_server_status, type ServerStatus } from '@/helpers/worlds'
+import { showInstanceInFolder } from '@/helpers/utils.js'
 import { useRootBreadcrumb } from '@/providers/breadcrumbs'
-import { useTheming } from '@/store/state'
+import { handleSevereError } from '@/store/error.js'
 
 const { handleError } = injectNotificationManager()
 const router = useRouter()
-const themeStore = useTheming()
-
-const EDENWORLD_SERVER_ADDRESS = 'EdenWorld.gomc.fun'
-const EDENWORLD_VOTE_URL = 'https://top-minecrafter.com/server/edenworld/'
+const server = useEdenServerStatus()
+const edenInstall = useEdenWorldInstall()
+const showPlayers = inject<() => void>('showEdenPlayers', () => undefined)
+const accountsCard = inject<Ref<{ accountName?: string | null } | null> | null>(
+	'accountsCard',
+	null,
+)
 
 useRootBreadcrumb({
 	slot: 'root',
 	id: 'home',
-	label: 'EdenWorld',
+	label: 'Главная',
 	to: '/',
 	visual: { type: 'icon', component: HomeIcon },
 })
@@ -58,14 +52,12 @@ const instances = ref<GameInstance[]>([])
 const featuredModpacks = ref<SearchResult[]>([])
 const featuredMods = ref<SearchResult[]>([])
 const installedModpacksFilter = ref('')
-const installing = ref(false)
-const installStage = ref<'idle' | 'downloading' | 'installing' | 'ready'>('idle')
-const installProgress = ref<EdenWorldInstallProgress>({ downloaded: 0, total: null })
-const serverStatus = ref<ServerStatus | null>(null)
-const serverStatusLoading = ref(true)
-const serverStatusFailed = ref(false)
-const playersModal = ref<InstanceType<typeof NewModal> | null>(null)
+const playing = ref(false)
+const launching = ref(false)
+const repairing = ref(false)
+const offline = ref<boolean>(!navigator.onLine)
 
+const accountName = computed(() => accountsCard?.value?.accountName ?? null)
 const recentInstances = computed(() =>
 	instances.value
 		.filter((instance) => instance.last_played)
@@ -75,77 +67,116 @@ const recentInstances = computed(() =>
 const edenWorldInstance = computed(() =>
 	instances.value.find((instance) => instance.name.toLocaleLowerCase().includes('edenworld')),
 )
+const instanceReady = computed(() => edenWorldInstance.value?.install_stage === 'installed')
+const instanceInstalling = computed(
+	() => edenWorldInstance.value?.install_stage.includes('installing') ?? false,
+)
 const hasFeaturedProjects = computed(
 	() => (featuredModpacks.value?.length ?? 0) + (featuredMods.value?.length ?? 0) > 0,
 )
-const progressPercent = computed(() => {
-	if (installStage.value === 'installing') return 100
-	if (!installProgress.value.total) return 0
-	return Math.min(
-		100,
-		Math.round((installProgress.value.downloaded / installProgress.value.total) * 100),
-	)
+const gameVersion = computed(() => edenWorldInstance.value?.game_version ?? EDENWORLD_GAME_VERSION)
+const loaderLabel = computed(() => {
+	const loader = edenWorldInstance.value?.loader
+	if (!loader) return null
+	return loader.charAt(0).toUpperCase() + loader.slice(1)
 })
-const installButtonLabel = computed(() => {
-	if (edenWorldInstance.value) return 'Открыть сборку'
-	if (installStage.value === 'downloading') return `Загрузка · ${progressPercent.value}%`
-	if (installStage.value === 'installing') return 'Установка…'
-	if (installStage.value === 'ready') return 'Готово'
-	return 'Установить EdenWorld'
+
+type PrimaryState =
+	| 'install'
+	| 'downloading'
+	| 'installing'
+	| 'repair'
+	| 'play'
+	| 'launching'
+	| 'running'
+const primaryState = computed<PrimaryState>(() => {
+	if (playing.value) return 'running'
+	if (launching.value) return 'launching'
+	if (edenInstall.stage.value === 'downloading') return 'downloading'
+	if (edenInstall.stage.value === 'installing' || instanceInstalling.value || repairing.value)
+		return 'installing'
+	if (!edenWorldInstance.value) return 'install'
+	if (!instanceReady.value) return 'repair'
+	return 'play'
 })
-const heroBackground = computed(() => {
-	if (themeStore.visualTheme === 'asuna') return asunaBackground
-	if (themeStore.visualTheme === 'error') return errorBackground
-	if (themeStore.visualTheme === 'custom' && themeStore.customTheme.backgroundDataUrl) {
-		return themeStore.customTheme.backgroundDataUrl
+const primaryLabel = computed(() => {
+	switch (primaryState.value) {
+		case 'install':
+			return 'Установить EdenWorld'
+		case 'downloading':
+			return edenInstall.percent.value === null
+				? 'Загрузка…'
+				: `Загрузка · ${edenInstall.percent.value}%`
+		case 'installing':
+			return 'Установка…'
+		case 'repair':
+			return 'Завершить установку'
+		case 'launching':
+			return 'Запуск…'
+		case 'running':
+			return 'Игра запущена'
+		default:
+			return 'Играть в EdenWorld'
 	}
-	return edenBackground
 })
-const serverStatusLabel = computed(() => {
-	if (serverStatusLoading.value) return 'Проверяем…'
-	if (serverStatusFailed.value || !serverStatus.value) return 'Недоступен'
-	return `${serverStatus.value.players?.online ?? 0} / ${serverStatus.value.players?.max ?? '—'}`
+const primaryIcon = computed(() => {
+	if (primaryState.value === 'install' || primaryState.value === 'repair') return 'download'
+	if (primaryState.value === 'running') return 'check'
+	if (primaryState.value === 'downloading' || primaryState.value === 'installing') return 'refresh'
+	return 'play'
 })
-const onlinePlayers = computed(() => serverStatus.value?.players?.sample ?? [])
-const hiddenOnlinePlayers = computed(() =>
-	Math.max(0, (serverStatus.value?.players?.online ?? 0) - onlinePlayers.value.length),
+const primaryDisabled = computed(() => {
+	if (['downloading', 'installing', 'launching', 'running'].includes(primaryState.value))
+		return true
+	// Installing needs the network; launching an installed profile does not.
+	return (primaryState.value === 'install' || primaryState.value === 'repair') && offline.value
+})
+const statusLine = computed<{ text: string; tone: 'success' | 'error' | 'pending' | 'muted' }>(
+	() => {
+		if (edenInstall.stage.value === 'error')
+			return {
+				text: edenInstall.errorMessage.value ?? 'Не удалось установить сборку',
+				tone: 'error',
+			}
+		if (primaryState.value === 'running') return { text: 'Minecraft открыт', tone: 'success' }
+		if (primaryState.value === 'launching') return { text: 'Готовим запуск', tone: 'pending' }
+		if (primaryState.value === 'downloading') {
+			const { downloaded, total } = edenInstall.progress.value
+			return {
+				text: total
+					? `${formatBytes(downloaded)} из ${formatBytes(total)}`
+					: `Загружено ${formatBytes(downloaded)}`,
+				tone: 'pending',
+			}
+		}
+		if (primaryState.value === 'installing') return { text: 'Устанавливаем файлы', tone: 'pending' }
+		if (primaryState.value === 'install') {
+			return offline.value
+				? { text: 'Нет подключения к сети', tone: 'error' }
+				: { text: 'Сборка ещё не установлена', tone: 'muted' }
+		}
+		if (primaryState.value === 'repair') return { text: 'Установка не завершена', tone: 'error' }
+		return { text: 'Готова к запуску', tone: 'success' }
+	},
+)
+const showProgress = computed(
+	() => primaryState.value === 'downloading' || primaryState.value === 'installing',
+)
+const greeting = computed(() =>
+	accountName.value ? `Рады видеть тебя, ${accountName.value}` : 'Рады видеть тебя в EdenWorld',
 )
 
-const offline = ref<boolean>(!navigator.onLine)
-const handleOffline = () => {
-	offline.value = true
-}
-const handleOnline = () => {
-	offline.value = false
-}
+const handleOffline = () => (offline.value = true)
+const handleOnline = () => (offline.value = false)
 window.addEventListener('offline', handleOffline)
 window.addEventListener('online', handleOnline)
-
-async function fetchServerStatus() {
-	serverStatusLoading.value = true
-	try {
-		serverStatus.value = await get_server_status(EDENWORLD_SERVER_ADDRESS)
-		serverStatusFailed.value = false
-	} catch (error) {
-		console.warn('Не удалось получить статус EdenWorld.', error)
-		serverStatus.value = null
-		serverStatusFailed.value = true
-	} finally {
-		serverStatusLoading.value = false
-	}
-}
-
-async function showOnlinePlayers() {
-	playersModal.value?.show()
-	await fetchServerStatus()
-}
 
 async function openProjectLink(url: string) {
 	await openUrl(url).catch(handleError)
 }
 
 async function fetchInstances() {
-	instances.value = await list().catch(handleError)
+	instances.value = (await list().catch(handleError)) ?? []
 
 	const filters = []
 	for (const instance of instances.value) {
@@ -154,6 +185,15 @@ async function fetchInstances() {
 		}
 	}
 	installedModpacksFilter.value = filters.join(' AND ')
+}
+
+async function refreshPlaying() {
+	if (!edenWorldInstance.value) {
+		playing.value = false
+		return
+	}
+	const processes = await get_by_instance_id(edenWorldInstance.value.id).catch(() => [])
+	playing.value = Array.isArray(processes) && processes.length > 0
 }
 
 async function fetchFeaturedModpacks() {
@@ -169,217 +209,370 @@ async function fetchFeaturedMods() {
 }
 
 async function refreshFeaturedProjects() {
-	await Promise.all([fetchFeaturedModpacks(), fetchFeaturedMods()])
+	await Promise.all([fetchFeaturedModpacks(), fetchFeaturedMods()]).catch((error) =>
+		console.warn('Не удалось загрузить рекомендации каталога.', error),
+	)
+}
+
+async function openInstance() {
+	if (!edenWorldInstance.value) return
+	await router.push(`/instance/${encodeURIComponent(edenWorldInstance.value.id)}/`)
+}
+
+async function primaryAction() {
+	if (primaryDisabled.value) return
+	if (primaryState.value === 'install') return installEdenWorld()
+	if (primaryState.value === 'repair') return repairEdenWorld()
+	if (primaryState.value === 'play') return playEdenWorld()
 }
 
 async function installEdenWorld() {
-	if (edenWorldInstance.value) {
-		await router.push(`/instance/${encodeURIComponent(edenWorldInstance.value.id)}/`)
-		return
-	}
-
-	installing.value = true
-	installStage.value = 'downloading'
-	installProgress.value = { downloaded: 0, total: null }
-
 	try {
-		const job = await downloadAndInstallEdenWorld((progress) => {
-			installProgress.value = progress
-			if (progress.total && progress.downloaded >= progress.total) {
-				installStage.value = 'installing'
-			}
-		})
-		installStage.value = 'ready'
+		const job = await edenInstall.install()
 		await fetchInstances()
 		const instanceId = job.instance_id ?? job.target.instance_id
-		if (instanceId) {
-			await router.push(`/instance/${encodeURIComponent(instanceId)}/`)
-		}
+		if (instanceId) await router.push(`/instance/${encodeURIComponent(instanceId)}/`)
 	} catch (error) {
-		installStage.value = 'idle'
 		handleError(error as Error)
-	} finally {
-		installing.value = false
 	}
 }
-await fetchInstances()
-await refreshFeaturedProjects()
-void fetchServerStatus()
 
-const serverStatusTimer = window.setInterval(() => void fetchServerStatus(), 60_000)
+async function repairEdenWorld() {
+	if (!edenWorldInstance.value) return
+	repairing.value = true
+	try {
+		await install_existing_instance(edenWorldInstance.value.id, false)
+		await fetchInstances()
+	} catch (error) {
+		handleError(error as Error)
+	} finally {
+		repairing.value = false
+	}
+}
+
+async function playEdenWorld() {
+	const instance = edenWorldInstance.value
+	if (!instance) return
+	launching.value = true
+	try {
+		await run(instance.id)
+		await refreshPlaying()
+	} catch (error) {
+		handleSevereError(error, { instanceId: instance.id })
+	} finally {
+		launching.value = false
+	}
+}
+
+async function stopEdenWorld() {
+	if (!edenWorldInstance.value) return
+	await kill(edenWorldInstance.value.id).catch(handleError)
+	playing.value = false
+}
+
+async function openFolder() {
+	if (!edenWorldInstance.value) return
+	await showInstanceInFolder(edenWorldInstance.value.id).catch(handleError)
+}
+
+await fetchInstances()
+await refreshPlaying()
+void refreshFeaturedProjects()
 
 const unlistenInstance = await instance_listener(async (event: { event: string }) => {
 	await fetchInstances()
-
 	if (event.event === 'added' || event.event === 'created' || event.event === 'removed') {
 		await refreshFeaturedProjects()
 	}
 })
+const unlistenProcess = await process_listener((event: { instance_id: string; event: string }) => {
+	if (event.instance_id !== edenWorldInstance.value?.id) return
+	if (event.event === 'launched') playing.value = true
+	if (event.event === 'finished') playing.value = false
+})
 
 onUnmounted(() => {
 	unlistenInstance()
-	window.clearInterval(serverStatusTimer)
+	unlistenProcess()
 	window.removeEventListener('offline', handleOffline)
 	window.removeEventListener('online', handleOnline)
 })
 </script>
 
 <template>
-	<div
-		class="eden-home"
-		:class="[
-			`eden-home--${themeStore.visualTheme}`,
-			{
-				'eden-home--custom-light':
-					themeStore.visualTheme === 'custom' && themeStore.customTheme.baseTheme === 'light',
-			},
-		]"
-	>
-		<section class="eden-hero" :style="{ backgroundImage: `url(${heroBackground})` }">
-			<div class="eden-hero__veil"></div>
+	<div class="eden-page eden-home">
+		<header class="eden-page-header">
+			<div>
+				<h1>Главная</h1>
+				<p>{{ greeting }}</p>
+			</div>
+		</header>
+
+		<section class="eden-hero" aria-labelledby="eden-hero-title">
+			<div class="eden-hero__art" aria-hidden="true"></div>
+			<div class="eden-hero__scrim" aria-hidden="true"></div>
 			<div class="eden-hero__content">
-				<div class="eden-kicker">
-					<span class="eden-kicker__dot"></span>
-					EDENLAUNCHER 2.6 · MINECRAFT 1.21.11
-				</div>
-				<div class="eden-title-row">
-					<img :src="edenLogo" alt="EdenWorld" class="eden-logo" />
-					<div>
-						<h1>EdenWorld</h1>
-						<p>Мы за настоящую ванилу!</p>
-					</div>
-				</div>
-				<p class="eden-lead">
-					Один лаунчер для входа в мир EdenWorld: официальная сборка, быстрые ссылки и автоматически
-					подготовленное подключение для игроков из России.
+				<p class="eden-eyebrow eden-hero__eyebrow">Твой мир начинается здесь</p>
+				<h2 id="eden-hero-title" class="eden-hero__title">EdenWorld</h2>
+				<p class="eden-hero__lead">
+					Настоящая ваниль. Свои люди.<br />
+					Всё готово для нового приключения.
 				</p>
+				<div class="eden-hero__chips">
+					<span class="eden-hero__chip">{{ gameVersion }}</span>
+					<span class="eden-hero__chip">Официальная сборка</span>
+				</div>
 				<div class="eden-hero__actions">
 					<button
-						class="eden-button eden-button--primary"
-						:disabled="installing || offline"
-						@click="installEdenWorld"
+						type="button"
+						class="eden-btn eden-btn--primary eden-hero__play"
+						:class="{ 'eden-hero__play--running': primaryState === 'running' }"
+						:disabled="primaryDisabled"
+						:aria-busy="showProgress || primaryState === 'launching'"
+						@click="primaryAction"
 					>
-						<PlayIcon v-if="edenWorldInstance" />
-						<DownloadIcon v-else />
-						{{ installButtonLabel }}
+						<EdenIcon
+							:name="primaryIcon"
+							:size="18"
+							:class="{
+								'eden-spin': primaryState === 'installing' || primaryState === 'downloading',
+							}"
+						/>
+						{{ primaryLabel }}
 					</button>
-					<button
-						class="eden-button eden-button--glass"
-						@click="openProjectLink(EDENWORLD_PROJECT_URL)"
+					<Dropdown placement="bottom-start" :triggers="['click']" :hide-triggers="['click']">
+						<button
+							type="button"
+							class="eden-btn eden-btn--icon eden-hero__more"
+							aria-label="Другие действия со сборкой EdenWorld"
+						>
+							<EdenIcon name="more" />
+						</button>
+						<template #popper="{ hide }">
+							<div class="eden-menu" role="menu">
+								<button
+									v-if="edenWorldInstance"
+									type="button"
+									role="menuitem"
+									@click="(hide(), openInstance())"
+								>
+									<EdenIcon name="library" :size="18" /> Открыть сборку
+								</button>
+								<button
+									v-if="edenWorldInstance"
+									type="button"
+									role="menuitem"
+									@click="(hide(), openFolder())"
+								>
+									<EdenIcon name="folder" :size="18" /> Папка сборки
+								</button>
+								<button
+									v-if="playing"
+									type="button"
+									role="menuitem"
+									class="eden-menu__danger"
+									@click="(hide(), stopEdenWorld())"
+								>
+									<EdenIcon name="close" :size="18" /> Остановить игру
+								</button>
+								<button
+									type="button"
+									role="menuitem"
+									@click="(hide(), openProjectLink(EDENWORLD_PROJECT_URL))"
+								>
+									<EdenIcon name="globe" :size="18" /> Сайт проекта
+								</button>
+								<button
+									type="button"
+									role="menuitem"
+									@click="(hide(), openProjectLink(EDENWORLD_VOTE_URL))"
+								>
+									<EdenIcon name="heart" :size="18" /> Проголосовать за сервер
+								</button>
+							</div>
+						</template>
+					</Dropdown>
+					<span
+						class="eden-status eden-hero__status"
+						:class="{
+							'eden-status--success': statusLine.tone === 'success',
+							'eden-status--error': statusLine.tone === 'error',
+							'eden-status--pending': statusLine.tone === 'pending',
+						}"
+						role="status"
 					>
-						<GlobeIcon />
-						Сайт проекта
-					</button>
-					<button
-						class="eden-button eden-button--glass"
-						@click="openProjectLink(EDENWORLD_VOTE_URL)"
+						<EdenIcon v-if="statusLine.tone === 'error'" name="warning" :size="16" />
+						<span v-else class="eden-status-dot"></span>
+						{{ statusLine.text }}
+					</span>
+				</div>
+				<div v-if="showProgress" class="eden-hero__progress">
+					<div
+						class="eden-progress"
+						:class="{
+							'eden-progress--indeterminate':
+								edenInstall.percent.value === null || primaryState === 'installing',
+						}"
+						role="progressbar"
+						:aria-valuenow="
+							primaryState === 'downloading' ? (edenInstall.percent.value ?? undefined) : undefined
+						"
+						aria-valuemin="0"
+						aria-valuemax="100"
+						aria-label="Установка EdenWorld"
 					>
-						<HomeIcon />
-						Проголосовать
-					</button>
+						<div
+							class="eden-progress__bar"
+							:style="
+								primaryState === 'downloading' && edenInstall.percent.value !== null
+									? { width: `${edenInstall.percent.value}%` }
+									: undefined
+							"
+						></div>
+					</div>
+					<RouterLink to="/downloads" class="eden-btn eden-btn--link">Подробнее</RouterLink>
 				</div>
 			</div>
 		</section>
 
-		<section class="eden-dashboard">
-			<article class="eden-panel eden-install-panel">
-				<div class="eden-panel__icon"><DownloadIcon /></div>
-				<div class="eden-panel__body">
-					<div class="eden-panel__eyebrow">БЫСТРЫЙ СТАРТ</div>
-					<h2>Сборка проекта</h2>
-					<p>Официальный .mrpack · 52,8 МБ · автоматическое создание профиля</p>
-					<div
-						v-if="installing || installStage === 'ready'"
-						class="eden-progress"
-						aria-live="polite"
+		<section class="eden-home__cards" aria-label="Сводка EdenWorld">
+			<button
+				type="button"
+				class="eden-card eden-card--interactive eden-info-card"
+				@click="showPlayers"
+			>
+				<span class="eden-info-card__head">
+					<span class="eden-icon-tile"><EdenIcon name="server" /></span>
+					<span class="eden-info-card__copy">
+						<small>Сервер EdenWorld</small>
+						<strong>{{ server.playersLabel.value ?? server.stateLabel.value }}</strong>
+					</span>
+					<span
+						class="eden-status"
+						:class="{
+							'eden-status--success': server.online.value,
+							'eden-status--error': server.failed.value,
+							'eden-status--pending': !server.online.value && !server.failed.value,
+						}"
+						:aria-label="server.stateLabel.value"
 					>
-						<div class="eden-progress__track">
-							<div class="eden-progress__bar" :style="{ width: `${progressPercent}%` }"></div>
-						</div>
-						<span>{{ installButtonLabel }}</span>
-					</div>
-				</div>
-				<button
-					class="eden-icon-button"
-					:disabled="installing || offline"
-					aria-label="Установить сборку EdenWorld"
-					@click="installEdenWorld"
-				>
-					<PlayIcon v-if="edenWorldInstance" />
-					<DownloadIcon v-else />
-				</button>
-			</article>
+						<span class="eden-status-dot"></span>
+					</span>
+				</span>
+				<span class="eden-info-card__meta">
+					<template v-if="server.online.value">
+						<template v-if="server.ping.value !== null">{{ server.ping.value }} мс · </template>
+						{{ server.address }}
+					</template>
+					<template v-else-if="server.failed.value">Нет ответа · {{ server.address }}</template>
+					<template v-else>Подключаемся к {{ server.address }}</template>
+				</span>
+			</button>
 
-			<article class="eden-panel eden-server-panel">
-				<div class="eden-panel__icon eden-panel__icon--server"><ServerIcon /></div>
-				<div class="eden-panel__body">
-					<div class="eden-panel__eyebrow">СЕРВЕР</div>
-					<h2>EdenWorld</h2>
-					<p>
-						{{ EDENWORLD_SERVER_ADDRESS }} ·
-						{{ serverStatus?.version?.name ?? 'Minecraft 1.21.11+' }}
-					</p>
-					<div
-						class="eden-server-status"
-						:class="{ 'eden-server-status--offline': serverStatusFailed }"
-					>
-						<span></span>
-						{{ serverStatusLabel }}
-						<template v-if="serverStatus?.ping"> · {{ serverStatus.ping }} мс</template>
-					</div>
-				</div>
-				<button
-					class="eden-panel-action"
-					:disabled="serverStatusLoading"
-					aria-label="Посмотреть игроков онлайн"
-					@click="showOnlinePlayers"
-				>
-					<RefreshCwIcon v-if="serverStatusLoading" class="animate-spin" />
-					<ServerIcon v-else />
-					Игроки
-				</button>
-			</article>
+			<component
+				:is="edenWorldInstance ? 'button' : 'article'"
+				:type="edenWorldInstance ? 'button' : undefined"
+				class="eden-card eden-info-card"
+				:class="{ 'eden-card--interactive': edenWorldInstance }"
+				@click="openInstance"
+			>
+				<span class="eden-info-card__head">
+					<span class="eden-icon-tile"><EdenIcon name="library" /></span>
+					<span class="eden-info-card__copy">
+						<small>Твоя сборка</small>
+						<strong>{{ edenWorldInstance?.name ?? 'Сборка не установлена' }}</strong>
+					</span>
+				</span>
+				<span class="eden-info-card__meta">
+					<template v-if="edenWorldInstance">
+						{{ edenWorldInstance.game_version
+						}}<template v-if="loaderLabel"> · {{ loaderLabel }}</template> ·
+						{{ instanceReady ? 'Готова к запуску' : 'Требует установки' }}
+					</template>
+					<template v-else>Официальный профиль появится после установки</template>
+				</span>
+			</component>
 
-			<article class="eden-panel eden-social-panel">
-				<div class="eden-panel__icon eden-panel__icon--social"><MessageIcon /></div>
-				<div class="eden-panel__body">
-					<div class="eden-panel__eyebrow">СООБЩЕСТВО</div>
-					<h2>Будь на связи</h2>
-					<p>Новости, помощь и общение с игроками проекта.</p>
-				</div>
-				<div class="eden-social-actions">
-					<button
-						aria-label="Открыть Telegram EdenWorld"
-						@click="openProjectLink(EDENWORLD_TELEGRAM_URL)"
-					>
-						<TelegramIcon /> TG
-					</button>
-					<button
-						aria-label="Открыть Discord EdenWorld"
-						@click="openProjectLink(EDENWORLD_DISCORD_URL)"
-					>
-						<DiscordIcon /> DS
-					</button>
-				</div>
+			<article class="eden-card eden-info-card">
+				<span class="eden-info-card__head">
+					<span class="eden-icon-tile"><EdenIcon name="users" /></span>
+					<span class="eden-info-card__copy">
+						<small>Сообщество</small>
+						<strong>Встретимся в игре</strong>
+					</span>
+				</span>
+				<span class="eden-info-card__links">
+					<button type="button" @click="openProjectLink(EDENWORLD_TELEGRAM_URL)">Telegram</button>
+					<span aria-hidden="true">·</span>
+					<button type="button" @click="openProjectLink(EDENWORLD_DISCORD_URL)">Discord</button>
+					<span aria-hidden="true">·</span>
+					<button type="button" @click="openProjectLink(EDENWORLD_VOTE_URL)">Голосовать</button>
+				</span>
 			</article>
 		</section>
 
-		<section v-if="recentInstances.length > 0" class="eden-content-section">
-			<div class="eden-section-heading">
-				<div>
-					<span>ПРОДОЛЖИТЬ</span>
-					<h2>Недавние миры</h2>
-				</div>
+		<section class="eden-home__section" aria-labelledby="eden-life-title">
+			<div class="eden-home__section-head">
+				<h2 id="eden-life-title" class="eden-section-title">Жизнь EdenWorld</h2>
+				<button
+					type="button"
+					class="eden-btn eden-btn--ghost"
+					@click="openProjectLink(EDENWORLD_PROJECT_URL)"
+				>
+					Сайт проекта <EdenIcon name="external" :size="16" />
+				</button>
+			</div>
+			<div class="eden-home__life">
+				<button
+					type="button"
+					class="eden-card eden-card--interactive eden-life-card eden-life-card--media"
+					@click="openProjectLink(EDENWORLD_PROJECT_URL)"
+				>
+					<span class="eden-life-card__media" aria-hidden="true"></span>
+					<span class="eden-life-card__body">
+						<span class="eden-eyebrow">Новости проекта</span>
+						<strong>Новый день. Новые истории.</strong>
+						<span>Новости, правила и события сервера публикуются на сайте EdenWorld.</span>
+						<span class="eden-life-card__cta"
+							>Открыть сайт <EdenIcon name="arrow" :size="18"
+						/></span>
+					</span>
+				</button>
+				<button
+					type="button"
+					class="eden-card eden-card--interactive eden-life-card"
+					@click="openProjectLink(EDENWORLD_VOTE_URL)"
+				>
+					<span class="eden-life-card__body">
+						<span class="eden-life-card__title-row">
+							<span class="eden-icon-tile"><EdenIcon name="heart" /></span>
+							<span>
+								<span class="eden-eyebrow">Поддержать проект</span>
+								<strong>Твой голос — часть мира</strong>
+							</span>
+						</span>
+						<span>Помоги новым игрокам найти EdenWorld. Голосование займёт всего минуту.</span>
+						<span class="eden-life-card__cta eden-life-card__cta--end">
+							<EdenIcon name="arrow" :size="18" />
+						</span>
+					</span>
+				</button>
+			</div>
+		</section>
+
+		<section v-if="recentInstances.length > 0" class="eden-home__section">
+			<div class="eden-home__section-head">
+				<h2 class="eden-section-title">Продолжить</h2>
 			</div>
 			<RecentWorldsList :recent-instances="recentInstances" />
 		</section>
 
-		<section v-if="hasFeaturedProjects" class="eden-content-section">
-			<div class="eden-section-heading">
-				<div>
-					<span>КАТАЛОГ</span>
-					<h2>Больше контента</h2>
-				</div>
+		<section v-if="hasFeaturedProjects" class="eden-home__section">
+			<div class="eden-home__section-head">
+				<h2 class="eden-section-title">Больше контента</h2>
+				<RouterLink to="/browse/modpack" class="eden-btn eden-btn--ghost">
+					Каталог <EdenIcon name="chevron" :size="16" />
+				</RouterLink>
 			</div>
 			<RowDisplay
 				:instances="[
@@ -399,545 +592,305 @@ onUnmounted(() => {
 				:can-paginate="true"
 			/>
 		</section>
-
-		<NewModal ref="playersModal" header="Игроки EdenWorld" max-width="560px">
-			<div class="eden-players-modal">
-				<div v-if="serverStatusLoading" class="eden-players-state">
-					<RefreshCwIcon class="animate-spin" />
-					<span>Обновляем список игроков…</span>
-				</div>
-				<div v-else-if="serverStatusFailed || !serverStatus" class="eden-players-state">
-					<ServerIcon />
-					<span>Сервер сейчас не отвечает.</span>
-				</div>
-				<div v-else-if="(serverStatus.players?.online ?? 0) === 0" class="eden-players-state">
-					<ServerIcon />
-					<span>Сейчас на сервере никого нет.</span>
-				</div>
-				<template v-else>
-					<div class="eden-players-summary">
-						<strong>Онлайн {{ serverStatus.players?.online ?? 0 }} игроков</strong>
-						<span>Максимум: {{ serverStatus.players?.max ?? '—' }}</span>
-					</div>
-					<div v-if="onlinePlayers.length" class="eden-players-list">
-						<div v-for="player in onlinePlayers" :key="player.id || player.name">
-							<PlayerHead :name="player.name" :uuid="player.id" />
-							<strong>{{ player.name }}</strong>
-						</div>
-					</div>
-					<p v-else class="eden-players-hidden">
-						Сервер передал количество игроков, но скрыл их ники.
-					</p>
-					<p v-if="hiddenOnlinePlayers > 0 && onlinePlayers.length" class="eden-players-hidden">
-						Ещё {{ hiddenOnlinePlayers }} игроков не отображаются в публичном ответе сервера.
-					</p>
-				</template>
-				<button
-					class="eden-panel-action ml-auto"
-					:disabled="serverStatusLoading"
-					@click="fetchServerStatus"
-				>
-					<RefreshCwIcon :class="{ 'animate-spin': serverStatusLoading }" />
-					Обновить
-				</button>
-			</div>
-		</NewModal>
 	</div>
 </template>
 
 <style scoped lang="scss">
 .eden-home {
-	min-height: 100%;
-	padding: 1.35rem;
-	color: var(--color-text-primary);
-	background:
-		radial-gradient(circle at 18% 0%, var(--color-brand-highlight), transparent 28rem),
-		var(--color-bg);
+	gap: 24px;
 }
 
-.eden-home--asuna,
-.eden-home--error,
-.eden-home--custom {
-	background: transparent;
+.eden-hero__play {
+	min-width: 196px;
 }
 
-.eden-hero {
-	position: relative;
-	min-height: 25rem;
-	overflow: hidden;
-	border: 1px solid var(--brand-gradient-border);
-	border-radius: 1.75rem;
-	background-position: center 42%;
-	background-size: cover;
-	box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.35);
+.eden-hero__play--running:disabled {
+	color: var(--eden-success);
+	background: var(--eden-surface-raised);
+	border-color: var(--eden-border);
 }
 
-.eden-hero__veil {
-	position: absolute;
-	inset: 0;
-	background:
-		linear-gradient(
-			90deg,
-			rgba(8, 7, 12, 0.98) 0%,
-			rgba(8, 7, 12, 0.78) 42%,
-			rgba(8, 7, 12, 0.12) 78%
-		),
-		linear-gradient(0deg, rgba(8, 7, 12, 0.62), transparent 55%);
+.eden-hero__more {
+	border-color: var(--eden-border);
+	color: var(--eden-text);
+	background: var(--eden-surface-raised);
+
+	&:hover {
+		border-color: var(--eden-border-strong);
+	}
 }
 
-.eden-home--asuna .eden-hero__veil {
-	background:
-		linear-gradient(
-			90deg,
-			rgba(255, 252, 254, 0.97) 0%,
-			rgba(255, 246, 251, 0.82) 43%,
-			rgba(255, 246, 251, 0.08) 79%
-		),
-		linear-gradient(0deg, rgba(255, 244, 250, 0.5), transparent 58%);
+.eden-hero__status {
+	margin-left: 6px;
+	color: var(--hero-text);
+
+	&.eden-status--error {
+		color: var(--hero-text);
+
+		:deep(.eden-icon) {
+			color: var(--eden-error);
+		}
+	}
 }
 
-.eden-home--custom-light .eden-hero__veil {
-	background:
-		linear-gradient(
-			90deg,
-			rgba(250, 248, 252, 0.96) 0%,
-			rgba(250, 248, 252, 0.78) 44%,
-			rgba(250, 248, 252, 0.08) 80%
-		),
-		linear-gradient(0deg, rgba(250, 248, 252, 0.48), transparent 58%);
-}
-
-.eden-home--custom-light :is(.eden-title-row p, .eden-lead) {
-	color: rgba(30, 24, 34, 0.76);
-}
-
-.eden-home--asuna .eden-title-row h1 {
-	background: linear-gradient(110deg, #4c2537 8%, #c14f84 58%, #e994b9 100%);
-	-webkit-background-clip: text;
-	background-clip: text;
-}
-
-.eden-home--asuna :is(.eden-title-row p, .eden-lead) {
-	color: rgba(60, 31, 45, 0.76);
-}
-
-.eden-home--error .eden-hero {
-	box-shadow:
-		0 2rem 5rem rgba(0, 0, 0, 0.58),
-		0 0 2.5rem rgba(225, 29, 72, 0.16);
-}
-
-.eden-home--error .eden-title-row h1 {
-	text-shadow:
-		3px 0 rgba(255, 0, 55, 0.28),
-		-3px 0 rgba(129, 60, 255, 0.2);
-}
-
-.eden-hero__content {
-	position: relative;
-	z-index: 1;
+.eden-hero__progress {
 	display: flex;
-	max-width: 44rem;
-	min-height: 25rem;
-	box-sizing: border-box;
+	max-width: 420px;
+	align-items: center;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.eden-spin {
+	animation: eden-spin 1.2s linear infinite;
+}
+
+@keyframes eden-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+// ---------- Menu ----------
+
+.eden-menu {
+	display: flex;
+	min-width: 220px;
 	flex-direction: column;
-	justify-content: center;
-	padding: 3rem;
+	padding: 6px;
+
+	button {
+		display: flex;
+		min-height: 38px;
+		align-items: center;
+		gap: 10px;
+		padding: 0 12px;
+		border: 0;
+		border-radius: 8px;
+		color: var(--eden-text);
+		background: transparent;
+		font: inherit;
+		font-size: 13px;
+		text-align: left;
+		cursor: pointer;
+
+		&:hover,
+		&:focus-visible {
+			outline: none;
+			background: var(--eden-surface-raised);
+		}
+	}
 }
 
-.eden-kicker,
-.eden-panel__eyebrow,
-.eden-section-heading span {
-	display: flex;
-	align-items: center;
-	gap: 0.55rem;
-	color: var(--color-link);
-	font-size: 0.7rem;
-	font-weight: 800;
-	letter-spacing: 0.16em;
+.eden-menu__danger {
+	color: var(--eden-error) !important;
 }
 
-.eden-kicker__dot {
-	width: 0.45rem;
-	height: 0.45rem;
-	border-radius: 50%;
-	background: var(--color-brand);
-	box-shadow: 0 0 1rem var(--color-brand-shadow);
-}
+// ---------- Info cards ----------
 
-.eden-title-row {
-	display: flex;
-	align-items: center;
-	gap: 1.2rem;
-	margin-top: 1.35rem;
-}
-
-.eden-logo {
-	width: 5.25rem;
-	height: 5.25rem;
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	border-radius: 1.4rem;
-	box-shadow: 0 0 2.5rem var(--color-brand-shadow);
-	object-fit: cover;
-}
-
-.eden-title-row h1 {
-	margin: 0;
-	font-size: clamp(3rem, 5vw, 4.9rem);
-	font-weight: 900;
-	letter-spacing: -0.055em;
-	line-height: 0.95;
-	background: linear-gradient(110deg, #fff 12%, var(--color-purple-200) 72%, var(--color-brand));
-	-webkit-background-clip: text;
-	background-clip: text;
-	color: transparent;
-}
-
-.eden-title-row p {
-	margin: 0.55rem 0 0;
-	color: rgba(255, 255, 255, 0.82);
-	font-size: 1.08rem;
-}
-
-.eden-lead {
-	max-width: 38rem;
-	margin: 1.5rem 0 0;
-	color: rgba(255, 255, 255, 0.68);
-	font-size: 0.98rem;
-	line-height: 1.65;
-}
-
-.eden-hero__actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.8rem;
-	margin-top: 1.7rem;
-}
-
-.eden-button {
-	display: inline-flex;
-	height: 3rem;
-	align-items: center;
-	justify-content: center;
-	gap: 0.6rem;
-	padding: 0 1.15rem;
-	border: 1px solid transparent;
-	border-radius: 0.9rem;
-	color: #fff;
-	font: inherit;
-	font-weight: 750;
-	cursor: pointer;
-	transition: 160ms ease;
-}
-
-.eden-button svg,
-.eden-icon-button svg,
-.eden-panel-action svg,
-.eden-social-actions svg,
-.eden-panel__icon svg {
-	width: 1.15rem;
-	height: 1.15rem;
-}
-
-.eden-icon-button--secondary {
-	color: var(--color-link);
-	background: var(--color-brand-highlight);
-}
-
-.eden-button--primary {
-	color: var(--color-accent-contrast);
-	background: linear-gradient(135deg, var(--color-brand), var(--color-purple-700));
-	box-shadow: 0 0.75rem 2rem var(--color-brand-highlight);
-}
-
-.eden-button--primary:hover:not(:disabled) {
-	transform: translateY(-2px);
-	box-shadow: 0 1rem 2.5rem var(--color-brand-shadow);
-}
-
-.eden-button--glass {
-	border-color: rgba(255, 255, 255, 0.16);
-	background: rgba(255, 255, 255, 0.07);
-	backdrop-filter: blur(12px);
-}
-
-.eden-button--glass:hover {
-	background: rgba(255, 255, 255, 0.13);
-}
-
-.eden-button:disabled,
-.eden-icon-button:disabled {
-	opacity: 0.55;
-	cursor: not-allowed;
-}
-
-.eden-dashboard {
+.eden-home__cards {
 	display: grid;
-	grid-template-columns: 1.25fr 1fr 1fr;
-	gap: 0.9rem;
-	margin-top: 0.9rem;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 22px;
 }
 
-.eden-panel {
+.eden-info-card {
+	display: flex;
+	min-height: 116px;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 18px;
+	padding: 18px 18px 20px;
+	font: inherit;
+	text-align: left;
+}
+
+button.eden-info-card {
+	cursor: pointer;
+}
+
+.eden-info-card__head {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+
+	.eden-status {
+		margin: 8px 4px 0 auto;
+	}
+}
+
+.eden-info-card__copy {
 	display: flex;
 	min-width: 0;
-	align-items: center;
-	gap: 0.9rem;
-	padding: 1.15rem;
-	border: 1px solid var(--color-button-border);
-	border-radius: 1.25rem;
-	background: linear-gradient(145deg, var(--surface-3), var(--surface-2));
-	box-shadow: 0 0.8rem 2.5rem rgba(0, 0, 0, 0.17);
-}
-
-.eden-panel__icon {
-	display: grid;
-	width: 2.8rem;
-	height: 2.8rem;
-	flex: 0 0 2.8rem;
-	place-items: center;
-	border-radius: 0.85rem;
-	color: var(--color-link);
-	background: var(--color-brand-highlight);
-}
-
-.eden-panel__icon--social {
-	color: var(--color-link);
-	background: var(--color-brand-highlight);
-}
-
-.eden-panel__body {
-	min-width: 0;
-	flex: 1;
-}
-
-.eden-panel h2 {
-	margin: 0.25rem 0 0;
-	font-size: 1.05rem;
-	font-weight: 800;
-}
-
-.eden-panel p {
-	margin: 0.28rem 0 0;
-	color: var(--color-text-tertiary);
-	font-size: 0.76rem;
-	line-height: 1.4;
-}
-
-.eden-icon-button {
-	display: grid;
-	width: 2.65rem;
-	height: 2.65rem;
-	flex: 0 0 2.65rem;
-	place-items: center;
-	border: 0;
-	border-radius: 0.85rem;
-	color: var(--color-accent-contrast);
-	background: var(--color-brand);
-	cursor: pointer;
-}
-
-.eden-progress {
-	display: flex;
-	align-items: center;
-	gap: 0.55rem;
-	margin-top: 0.55rem;
-	color: var(--color-text-tertiary);
-	font-size: 0.7rem;
-}
-
-.eden-progress__track {
-	width: 5.5rem;
-	height: 0.28rem;
-	overflow: hidden;
-	border-radius: 1rem;
-	background: var(--color-divider);
-}
-
-.eden-progress__bar {
-	height: 100%;
-	border-radius: inherit;
-	background: linear-gradient(90deg, var(--color-brand), var(--color-purple-300));
-	transition: width 180ms ease;
-}
-
-.eden-server-status {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35rem;
-	margin-top: 0.45rem;
-	color: var(--color-link);
-	font-size: 0.72rem;
-	font-weight: 750;
-}
-
-.eden-server-status > span {
-	width: 0.48rem;
-	height: 0.48rem;
-	border-radius: 50%;
-	background: #38d996;
-	box-shadow: 0 0 0.65rem rgba(56, 217, 150, 0.72);
-}
-
-.eden-server-status--offline {
-	color: var(--color-red);
-}
-
-.eden-server-status--offline > span {
-	background: var(--color-red);
-	box-shadow: 0 0 0.65rem var(--color-red-highlight);
-}
-
-.eden-panel-action {
-	display: inline-flex;
-	min-height: 2.45rem;
-	flex: 0 0 auto;
-	align-items: center;
-	justify-content: center;
-	gap: 0.4rem;
-	padding: 0 0.75rem;
-	border: 1px solid var(--color-button-border);
-	border-radius: 0.78rem;
-	color: var(--color-text-primary);
-	background: var(--color-button-bg);
-	font: inherit;
-	font-size: 0.72rem;
-	font-weight: 800;
-	cursor: pointer;
-	transition: 150ms ease;
-}
-
-.eden-panel-action:hover:not(:disabled) {
-	border-color: var(--color-brand);
-	background: var(--color-brand-highlight);
-	transform: translateY(-1px);
-}
-
-.eden-panel-action:disabled {
-	opacity: 0.55;
-	cursor: not-allowed;
-}
-
-.eden-social-actions {
-	display: flex;
-	gap: 0.45rem;
-}
-
-.eden-social-actions button {
-	display: inline-flex;
-	height: 2.35rem;
-	align-items: center;
-	gap: 0.35rem;
-	padding: 0 0.65rem;
-	border: 1px solid var(--color-button-border);
-	border-radius: 0.7rem;
-	color: var(--color-text-default);
-	background: var(--color-button-bg);
-	font: inherit;
-	font-size: 0.72rem;
-	font-weight: 800;
-	cursor: pointer;
-}
-
-.eden-social-actions button:hover {
-	border-color: var(--color-brand);
-	background: var(--color-brand-highlight);
-}
-
-.eden-content-section {
-	margin-top: 2rem;
-}
-
-.eden-section-heading {
-	display: flex;
-	align-items: flex-end;
-	justify-content: space-between;
-	margin: 0 0 0.9rem;
-}
-
-.eden-section-heading h2 {
-	margin: 0.25rem 0 0;
-	font-size: 1.45rem;
-}
-
-.eden-players-modal {
-	display: flex;
-	min-height: 12rem;
 	flex-direction: column;
-	gap: 1rem;
-	padding: 1.25rem;
-}
+	gap: 6px;
 
-.eden-players-state,
-.eden-players-summary {
-	display: flex;
-	align-items: center;
-	gap: 0.8rem;
-}
-
-.eden-players-state {
-	min-height: 8rem;
-	justify-content: center;
-	color: var(--color-text-tertiary);
-}
-
-.eden-players-state > svg {
-	width: 1.35rem;
-	height: 1.35rem;
-	flex: 0 0 1.35rem;
-}
-
-.eden-players-summary {
-	justify-content: space-between;
-	padding: 0.9rem 1rem;
-	border: 1px solid var(--color-button-border);
-	border-radius: 0.9rem;
-	background: var(--color-brand-highlight);
-}
-
-.eden-players-summary span,
-.eden-players-hidden {
-	color: var(--color-text-tertiary);
-	font-size: 0.76rem;
-	line-height: 1.4;
-}
-
-.eden-players-list {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 0.55rem;
-}
-
-.eden-players-list > div {
-	display: flex;
-	align-items: center;
-	gap: 0.65rem;
-	padding: 0.65rem;
-	border: 1px solid var(--color-divider);
-	border-radius: 0.8rem;
-	background: var(--surface-2);
-}
-
-.eden-players-list > div > :deep(.player-head) {
-	width: 2rem;
-	height: 2rem;
-	border-radius: 0.6rem;
-}
-
-.eden-players-hidden {
-	margin: 0;
-	padding: 0.75rem;
-	border-radius: 0.8rem;
-	background: var(--surface-2);
-}
-
-@media (max-width: 1240px) {
-	.eden-dashboard {
-		grid-template-columns: 1fr 1fr;
+	small {
+		color: var(--eden-text-secondary);
+		font-size: 12px;
 	}
 
-	.eden-install-panel {
-		grid-column: 1 / -1;
+	strong {
+		overflow: hidden;
+		color: var(--eden-text);
+		font-size: 17px;
+		font-weight: 650;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}
+
+.eden-info-card__meta,
+.eden-info-card__links {
+	color: var(--eden-text-secondary);
+	font-size: 12px;
+}
+
+.eden-info-card__links {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+
+	button {
+		padding: 2px 0;
+		border: 0;
+		color: var(--eden-text-secondary);
+		background: transparent;
+		font: inherit;
+		cursor: pointer;
+
+		&:hover {
+			color: var(--eden-accent-text);
+			text-decoration: underline;
+			text-underline-offset: 3px;
+		}
+
+		&:focus-visible {
+			border-radius: 4px;
+			outline: 2px solid var(--eden-focus);
+			outline-offset: 2px;
+		}
+	}
+}
+
+// ---------- Sections ----------
+
+.eden-home__section {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	margin-top: 6px;
+}
+
+.eden-home__section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.eden-home__life {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+}
+
+.eden-life-card {
+	display: flex;
+	min-height: 162px;
+	overflow: hidden;
+	padding: 0;
+	font: inherit;
+	text-align: left;
+}
+
+.eden-life-card__media {
+	width: 176px;
+	flex: 0 0 auto;
+	background: var(--eden-hero-image) 60% 50% / cover no-repeat;
+}
+
+.eden-life-card__body {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	flex-direction: column;
+	gap: 10px;
+	padding: 22px 22px 20px;
+	color: var(--eden-text-secondary);
+	font-size: 13px;
+	line-height: 1.6;
+
+	strong {
+		color: var(--eden-text);
+		font-size: 20px;
+		font-weight: 650;
+		line-height: 1.3;
+	}
+}
+
+.eden-life-card__title-row {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+
+	> span:last-child {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+}
+
+.eden-life-card__cta {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: auto;
+	color: var(--eden-accent-text);
+	font-size: 12px;
+	font-weight: 650;
+}
+
+.eden-life-card__cta--end {
+	justify-content: flex-end;
+}
+
+// ---------- Responsive ----------
+
+@media (max-width: 1279px) {
+	.eden-home__cards {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 16px;
+	}
+
+	.eden-home__life {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 1099px) {
+	.eden-hero,
+	.eden-hero__content {
+		min-height: 290px;
+	}
+
+	.eden-hero__content {
+		padding: 26px 24px;
+	}
+
+	.eden-hero__lead {
+		font-size: 14px;
+	}
+
+	.eden-life-card__media {
+		width: 132px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.eden-spin {
+		animation: none;
 	}
 }
 </style>

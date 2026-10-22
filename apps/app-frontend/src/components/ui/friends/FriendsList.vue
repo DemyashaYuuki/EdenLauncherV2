@@ -11,7 +11,9 @@ import {
 	useVIntl,
 } from '@modrinth/ui'
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+import EdenIcon from '@/components/ui/eden/EdenIcon.vue'
 import FriendsSection from '@/components/ui/friends/FriendsSection.vue'
 import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
 import { useFriends } from '@/composables/use-friends'
@@ -23,10 +25,17 @@ const { formatMessage } = useVIntl()
 const { handleError } = injectNotificationManager()
 const formatRelativeTime = useRelativeTime()
 
-const props = defineProps<{
-	credentials: ModrinthCredentials | null
-	signIn: () => void
-}>()
+const props = withDefaults(
+	defineProps<{
+		credentials: ModrinthCredentials | null
+		signIn: () => void
+		/** `compact` is the original list for dialogs, `page` is the full Friends screen. */
+		variant?: 'compact' | 'page'
+	}>(),
+	{ variant: 'compact' },
+)
+const pageTab = ref<'online' | 'all'>('online')
+const router = useRouter()
 
 const userCredentials = computed(() => props.credentials)
 const {
@@ -89,6 +98,23 @@ const incomingRequests = computed(() =>
 		.sort((a, b) => b.created.diff(a.created)),
 )
 
+const visibleOnlineFriends = computed(() => [...activeFriends.value, ...onlineFriends.value])
+const pageFriends = computed(() =>
+	pageTab.value === 'online'
+		? visibleOnlineFriends.value
+		: [...activeFriends.value, ...onlineFriends.value, ...offlineFriends.value],
+)
+
+function friendStatusText(friend: FriendWithUserData) {
+	if (friend.online && friend.status) return friend.status
+	if (friend.online) return 'В сети'
+	return 'Не в сети'
+}
+
+function openProfile(friend: FriendWithUserData) {
+	void router.push(`/user/${encodeURIComponent(friend.username)}`)
+}
+
 function addFriendFromModal() {
 	const target = username.value.trim()
 	if (!target) return
@@ -107,6 +133,10 @@ function removeFriend(friend: FriendWithUserData) {
 }
 
 const messages = defineMessages({
+	removeFriend: {
+		id: 'friends.friend.remove-friend',
+		defaultMessage: 'Удалить из друзей',
+	},
 	addFriend: {
 		id: 'friends.action.add-friend',
 		defaultMessage: 'Добавить друга',
@@ -250,119 +280,363 @@ const messages = defineMessages({
 			</div>
 		</div>
 	</ModalWrapper>
-	<div v-if="userCredentials && !loading" class="flex gap-1 items-center mb-3 -ml-1">
-		<template v-if="sortedFriends.length > 0">
-			<ButtonStyled circular type="transparent">
+	<div v-if="variant === 'page'" class="eden-friends">
+		<div v-if="!userCredentials" class="eden-state">
+			<span class="eden-state__icon"><EdenIcon name="users" /></span>
+			<h3>Друзья работают через аккаунт Modrinth</h3>
+			<p>
+				Войдите в Modrinth, чтобы добавлять друзей и видеть, кто сейчас в игре. Игровой аккаунт
+				Minecraft при этом не меняется.
+			</p>
+			<button type="button" class="eden-btn eden-btn--primary" @click="signIn">
+				<EdenIcon name="user" :size="18" /> Войти в Modrinth
+			</button>
+		</div>
+		<template v-else>
+			<div class="eden-friends__toolbar">
+				<label class="eden-input eden-friends__search">
+					<EdenIcon name="search" :size="18" />
+					<input
+						v-model="search"
+						type="search"
+						:placeholder="formatMessage(messages.searchFriends)"
+						aria-label="Найти друга"
+						@keyup.esc="search = ''"
+					/>
+				</label>
+				<button type="button" class="eden-btn eden-btn--primary" @click="addFriendModal.show()">
+					<EdenIcon name="plus" :size="18" /> {{ formatMessage(messages.addFriend) }}
+				</button>
+			</div>
+			<div class="eden-friends__tabs">
+				<div class="eden-tabs" role="tablist" aria-label="Список друзей">
+					<button
+						type="button"
+						role="tab"
+						class="eden-tab"
+						:aria-selected="pageTab === 'online'"
+						@click="pageTab = 'online'"
+					>
+						Онлайн {{ visibleOnlineFriends.length }}
+					</button>
+					<button
+						type="button"
+						role="tab"
+						class="eden-tab"
+						:aria-selected="pageTab === 'all'"
+						@click="pageTab = 'all'"
+					>
+						Все друзья {{ activeFriends.length + onlineFriends.length + offlineFriends.length }}
+					</button>
+				</div>
 				<button
-					v-tooltip="formatMessage(messages.addFriend)"
-					:aria-label="formatMessage(messages.addFriend)"
-					@click="addFriendModal.show"
+					v-if="incomingRequests.length > 0"
+					type="button"
+					class="eden-btn eden-btn--ghost"
+					@click="friendInvitesModal.show()"
 				>
-					<UserPlusIcon />
+					<EdenIcon name="user" :size="16" />
+					Запросы в друзья
+					<span class="eden-chip eden-chip--accent">{{ incomingRequests.length }}</span>
+				</button>
+			</div>
+
+			<div v-if="loading" class="eden-friends__list" aria-busy="true">
+				<div v-for="n in 3" :key="n" class="eden-card eden-friend eden-friend--skeleton"></div>
+			</div>
+			<div v-else-if="sortedFriends.length === 0" class="eden-state">
+				<span class="eden-state__icon"><EdenIcon name="users" /></span>
+				<h3>Здесь появятся твои друзья</h3>
+				<p>Добавь друга по нику Modrinth — после подтверждения ты увидишь его статус.</p>
+			</div>
+			<template v-else>
+				<p v-if="pageFriends.length === 0" class="eden-friends__empty">
+					{{
+						search
+							? formatMessage(messages.noFriendsMatch, { query: search })
+							: 'Сейчас никого из друзей нет в сети.'
+					}}
+				</p>
+				<template v-else>
+					<p class="eden-eyebrow">{{ pageTab === 'online' ? 'Сейчас в сети' : 'Все друзья' }}</p>
+					<ul class="eden-friends__list">
+						<li v-for="friend in pageFriends" :key="friend.username" class="eden-card eden-friend">
+							<span class="eden-friend__avatar">
+								<Avatar :src="friend.avatar" size="44px" :class="{ grayscale: !friend.online }" />
+								<span
+									class="eden-friend__presence"
+									:class="{ 'eden-friend__presence--online': friend.online }"
+									aria-hidden="true"
+								></span>
+							</span>
+							<span class="eden-friend__copy">
+								<strong>{{ friend.username }}</strong>
+								<span>{{ friendStatusText(friend) }}</span>
+							</span>
+							<button
+								type="button"
+								class="eden-btn eden-btn--secondary eden-btn--compact"
+								@click="openProfile(friend)"
+							>
+								<EdenIcon name="user" :size="16" /> Профиль
+							</button>
+							<button
+								v-tooltip="formatMessage(messages.removeFriend)"
+								type="button"
+								class="eden-btn eden-btn--ghost eden-btn--icon eden-btn--compact"
+								:aria-label="`${formatMessage(messages.removeFriend)}: ${friend.username}`"
+								@click="removeFriend(friend)"
+							>
+								<EdenIcon name="close" :size="16" />
+							</button>
+						</li>
+					</ul>
+				</template>
+				<template v-if="pendingFriends.length > 0">
+					<p class="eden-eyebrow">Ожидают подтверждения</p>
+					<ul class="eden-friends__list">
+						<li
+							v-for="friend in pendingFriends"
+							:key="friend.username"
+							class="eden-card eden-friend"
+						>
+							<span class="eden-friend__avatar">
+								<Avatar :src="friend.avatar" size="44px" />
+							</span>
+							<span class="eden-friend__copy">
+								<strong>{{ friend.username }}</strong>
+								<span>{{ formatMessage(messages.friendRequestSent) }}</span>
+							</span>
+							<button
+								type="button"
+								class="eden-btn eden-btn--secondary eden-btn--compact"
+								@click="removeFriend(friend)"
+							>
+								<EdenIcon name="close" :size="16" /> Отменить запрос
+							</button>
+						</li>
+					</ul>
+				</template>
+			</template>
+		</template>
+	</div>
+	<template v-else>
+		<div v-if="userCredentials && !loading" class="flex gap-1 items-center mb-3 -ml-1">
+			<template v-if="sortedFriends.length > 0">
+				<ButtonStyled circular type="transparent">
+					<button
+						v-tooltip="formatMessage(messages.addFriend)"
+						:aria-label="formatMessage(messages.addFriend)"
+						@click="addFriendModal.show"
+					>
+						<UserPlusIcon />
+					</button>
+				</ButtonStyled>
+				<StyledInput
+					v-model="search"
+					:icon="SearchIcon"
+					type="text"
+					:placeholder="formatMessage(messages.searchFriends)"
+					clearable
+					input-class="!bg-transparent !border !border-solid !border-button-bg !text-primary !placeholder:text-primary"
+					wrapper-class="flex-1 [&>svg]:!text-primary [&>svg]:!opacity-100"
+					@keyup.esc="search = ''"
+				/>
+			</template>
+			<h3 v-else class="w-full text-base text-primary font-medium m-0">
+				{{ formatMessage(messages.friends) }}
+			</h3>
+			<ButtonStyled v-if="incomingRequests.length > 0" circular type="transparent">
+				<button
+					v-tooltip="formatMessage(messages.viewFriendRequests, { count: incomingRequests.length })"
+					class="relative"
+					:aria-label="
+						formatMessage(messages.viewFriendRequests, { count: incomingRequests.length })
+					"
+					@click="friendInvitesModal.show"
+				>
+					<MailIcon />
+					<span
+						v-if="incomingRequests.length > 0"
+						aria-hidden="true"
+						class="absolute bg-brand text-brand-inverted text-[8px] top-0.5 px-1 right-0.5 min-w-3 h-3 rounded-full flex items-center justify-center font-bold"
+					>
+						{{ incomingRequests.length }}
+					</span>
 				</button>
 			</ButtonStyled>
-			<StyledInput
-				v-model="search"
-				:icon="SearchIcon"
-				type="text"
-				:placeholder="formatMessage(messages.searchFriends)"
-				clearable
-				input-class="!bg-transparent !border !border-solid !border-button-bg !text-primary !placeholder:text-primary"
-				wrapper-class="flex-1 [&>svg]:!text-primary [&>svg]:!opacity-100"
-				@keyup.esc="search = ''"
-			/>
-		</template>
-		<h3 v-else class="w-full text-base text-primary font-medium m-0">
-			{{ formatMessage(messages.friends) }}
-		</h3>
-		<ButtonStyled v-if="incomingRequests.length > 0" circular type="transparent">
-			<button
-				v-tooltip="formatMessage(messages.viewFriendRequests, { count: incomingRequests.length })"
-				class="relative"
-				:aria-label="formatMessage(messages.viewFriendRequests, { count: incomingRequests.length })"
-				@click="friendInvitesModal.show"
-			>
-				<MailIcon />
-				<span
-					v-if="incomingRequests.length > 0"
-					aria-hidden="true"
-					class="absolute bg-brand text-brand-inverted text-[8px] top-0.5 px-1 right-0.5 min-w-3 h-3 rounded-full flex items-center justify-center font-bold"
-				>
-					{{ incomingRequests.length }}
-				</span>
-			</button>
-		</ButtonStyled>
-	</div>
-	<div class="flex flex-col gap-3">
-		<h3 v-if="loading" class="text-base text-primary font-medium m-0">
-			{{ formatMessage(messages.friends) }}
-		</h3>
-		<template v-if="loading">
-			<div v-for="n in 5" :key="n" class="flex gap-2 items-center animate-pulse">
-				<div class="min-w-9 min-h-9 bg-button-bg rounded-full"></div>
-				<div class="flex flex-col w-full">
-					<div class="h-3 bg-button-bg rounded-full w-1/2 mb-1"></div>
-					<div class="h-2.5 bg-button-bg rounded-full w-3/4"></div>
+		</div>
+		<div class="flex flex-col gap-3">
+			<h3 v-if="loading" class="text-base text-primary font-medium m-0">
+				{{ formatMessage(messages.friends) }}
+			</h3>
+			<template v-if="loading">
+				<div v-for="n in 5" :key="n" class="flex gap-2 items-center animate-pulse">
+					<div class="min-w-9 min-h-9 bg-button-bg rounded-full"></div>
+					<div class="flex flex-col w-full">
+						<div class="h-3 bg-button-bg rounded-full w-1/2 mb-1"></div>
+						<div class="h-2.5 bg-button-bg rounded-full w-3/4"></div>
+					</div>
 				</div>
-			</div>
-		</template>
-		<template v-else-if="sortedFriends.length === 0">
-			<div class="text-sm">
-				<div v-if="!userCredentials">
-					<IntlFormatted :message-id="messages.signInToAddFriends">
-						<template #link="{ children }">
-							<span class="font-semibold text-brand cursor-pointer" @click="signIn">
-								<component :is="() => children" />
-							</span>
-						</template>
-					</IntlFormatted>
+			</template>
+			<template v-else-if="sortedFriends.length === 0">
+				<div class="text-sm">
+					<div v-if="!userCredentials">
+						<IntlFormatted :message-id="messages.signInToAddFriends">
+							<template #link="{ children }">
+								<span class="font-semibold text-brand cursor-pointer" @click="signIn">
+									<component :is="() => children" />
+								</span>
+							</template>
+						</IntlFormatted>
+					</div>
+					<div v-else>
+						<IntlFormatted :message-id="messages.addFriendsToShare">
+							<template #link="{ children }">
+								<span class="font-semibold text-brand cursor-pointer" @click="addFriendModal.show">
+									<component :is="() => children" />
+								</span>
+							</template>
+						</IntlFormatted>
+					</div>
 				</div>
-				<div v-else>
-					<IntlFormatted :message-id="messages.addFriendsToShare">
-						<template #link="{ children }">
-							<span class="font-semibold text-brand cursor-pointer" @click="addFriendModal.show">
-								<component :is="() => children" />
-							</span>
-						</template>
-					</IntlFormatted>
-				</div>
-			</div>
-		</template>
-		<template v-else>
-			<FriendsSection
-				v-if="activeFriends.length > 0"
-				:is-searching="!!search"
-				open-by-default
-				:friends="activeFriends"
-				:heading="formatMessage(messages.active)"
-				:remove-friend="removeFriend"
-			/>
-			<FriendsSection
-				v-if="onlineFriends.length > 0"
-				:is-searching="!!search"
-				open-by-default
-				:friends="onlineFriends"
-				:heading="formatMessage(messages.online)"
-				:remove-friend="removeFriend"
-			/>
-			<FriendsSection
-				v-if="offlineFriends.length > 0"
-				:is-searching="!!search"
-				:open-by-default="activeFriends.length + onlineFriends.length < 3"
-				:friends="offlineFriends"
-				:heading="formatMessage(messages.offline)"
-				:remove-friend="removeFriend"
-			/>
-			<FriendsSection
-				v-if="pendingFriends.length > 0"
-				:is-searching="!!search"
-				:friends="pendingFriends"
-				:heading="formatMessage(messages.pending)"
-				:remove-friend="removeFriend"
-			/>
-			<p v-if="filteredFriends.length === 0 && search" class="text-sm text-secondary my-1 mx-4">
-				{{ formatMessage(messages.noFriendsMatch, { query: search }) }}
-			</p>
-		</template>
-	</div>
+			</template>
+			<template v-else>
+				<FriendsSection
+					v-if="activeFriends.length > 0"
+					:is-searching="!!search"
+					open-by-default
+					:friends="activeFriends"
+					:heading="formatMessage(messages.active)"
+					:remove-friend="removeFriend"
+				/>
+				<FriendsSection
+					v-if="onlineFriends.length > 0"
+					:is-searching="!!search"
+					open-by-default
+					:friends="onlineFriends"
+					:heading="formatMessage(messages.online)"
+					:remove-friend="removeFriend"
+				/>
+				<FriendsSection
+					v-if="offlineFriends.length > 0"
+					:is-searching="!!search"
+					:open-by-default="activeFriends.length + onlineFriends.length < 3"
+					:friends="offlineFriends"
+					:heading="formatMessage(messages.offline)"
+					:remove-friend="removeFriend"
+				/>
+				<FriendsSection
+					v-if="pendingFriends.length > 0"
+					:is-searching="!!search"
+					:friends="pendingFriends"
+					:heading="formatMessage(messages.pending)"
+					:remove-friend="removeFriend"
+				/>
+				<p v-if="filteredFriends.length === 0 && search" class="text-sm text-secondary my-1 mx-4">
+					{{ formatMessage(messages.noFriendsMatch, { query: search }) }}
+				</p>
+			</template>
+		</div>
+	</template>
 </template>
+
+<style scoped lang="scss">
+.eden-friends {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.eden-friends__toolbar {
+	display: flex;
+	gap: 16px;
+}
+
+.eden-friends__search {
+	flex: 1;
+}
+
+.eden-friends__tabs {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.eden-friends__list {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.eden-friends__empty {
+	margin: 0;
+	color: var(--eden-text-secondary);
+	font-size: 13px;
+}
+
+.eden-friend {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 18px 22px;
+}
+
+.eden-friend--skeleton {
+	height: 84px;
+	animation: eden-pulse 1.6s ease-in-out infinite;
+}
+
+.eden-friend__avatar {
+	position: relative;
+	flex: 0 0 auto;
+}
+
+.eden-friend__presence {
+	position: absolute;
+	right: -3px;
+	bottom: -3px;
+	width: 12px;
+	height: 12px;
+	box-sizing: border-box;
+	border: 2px solid var(--eden-surface);
+	border-radius: 50%;
+	background: var(--eden-text-secondary);
+}
+
+.eden-friend__presence--online {
+	background: var(--eden-success);
+}
+
+.eden-friend__copy {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	flex-direction: column;
+	gap: 6px;
+
+	strong {
+		overflow: hidden;
+		color: var(--eden-text);
+		font-size: 17px;
+		font-weight: 650;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	span {
+		color: var(--eden-text-secondary);
+		font-size: 12px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.eden-friend--skeleton {
+		animation: none;
+	}
+}
+</style>

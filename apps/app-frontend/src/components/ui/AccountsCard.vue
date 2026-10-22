@@ -128,29 +128,6 @@
 </template>
 
 <script setup lang="ts">
-import AccountsErrorModals from '@/components/ui/astralrinth/accounts/error/AccountsErrorModals.vue'
-import AccountsInputModals from '@/components/ui/astralrinth/accounts/input/AccountsInputModals.vue'
-import { trackEvent } from '@/helpers/analytics'
-import {
-	get_default_user,
-	login as login_flow,
-	offline_login,
-	remove_user,
-	set_default_user,
-	users,
-} from '@/helpers/auth'
-import {
-	externalAuthProviders,
-	getExternalAuthProvider,
-	loadExternalAuthProviders,
-	type MinecraftCredential,
-	useExternalAuthentication,
-} from '@/models/astralrinth/authentication'
-import { process_listener } from '@/helpers/events'
-import { getPlayerHeadUrl } from '@/helpers/rendering/batch-skin-renderer.ts'
-import type { Skin } from '@/helpers/skins'
-import { get_available_skins } from '@/helpers/skins'
-import { handleSevereError } from '@/store/error.js'
 import {
 	MicrosoftIcon,
 	OfflineIcon,
@@ -169,6 +146,30 @@ import {
 } from '@modrinth/ui'
 import type { Ref } from 'vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+
+import AccountsErrorModals from '@/components/ui/astralrinth/accounts/error/AccountsErrorModals.vue'
+import AccountsInputModals from '@/components/ui/astralrinth/accounts/input/AccountsInputModals.vue'
+import { trackEvent } from '@/helpers/analytics'
+import {
+	get_default_user,
+	login as login_flow,
+	offline_login,
+	remove_user,
+	set_default_user,
+	users,
+} from '@/helpers/auth'
+import { process_listener } from '@/helpers/events'
+import { getPlayerHeadUrl } from '@/helpers/rendering/batch-skin-renderer.ts'
+import type { Skin } from '@/helpers/skins'
+import { get_available_skins } from '@/helpers/skins'
+import {
+	externalAuthProviders,
+	getExternalAuthProvider,
+	loadExternalAuthProviders,
+	type MinecraftCredential,
+	useExternalAuthentication,
+} from '@/models/astralrinth/authentication'
+import { handleSevereError } from '@/store/error.js'
 
 const { formatMessage } = useVIntl()
 const { handleError } = injectNotificationManager()
@@ -332,16 +333,6 @@ function setLoginDisabled(value: boolean) {
 	loginDisabled.value = value
 }
 
-defineExpose({
-	refreshValues,
-	setEquippedSkin,
-	setLoginDisabled,
-	showAccountLoginModal,
-	loginDisabled,
-})
-
-await refreshValues()
-
 const selectedAccount = computed(() =>
 	accounts.value.find((account) => account.profile.id === defaultUser.value),
 )
@@ -362,6 +353,24 @@ const avatarUrl = computed(() => {
 
 	return 'https://launcher-files.modrinth.com/assets/steve_head.png'
 })
+
+const activeAccountName = computed(() => selectedAccount.value?.profile?.name ?? null)
+const activeAccountType = computed(() => selectedAccount.value?.account_type ?? null)
+const accountCount = computed(() => accounts.value.length)
+
+defineExpose({
+	refreshValues,
+	setEquippedSkin,
+	setLoginDisabled,
+	showAccountLoginModal,
+	loginDisabled,
+	activeAccountName,
+	activeAccountType,
+	accountCount,
+	avatarUrl,
+})
+
+await refreshValues()
 
 function getAccountAvatarUrl(account: MinecraftCredential) {
 	if (
