@@ -1,5 +1,7 @@
 # Windows installer provenance
 
+The installation checks also exposed stale executable version metadata: the Rust GUI package still used `1.0.0-local`, the placeholder normally replaced by the upstream release workflow. EdenLauncher's custom workflow had only updated the frontend/installer version. The GUI Cargo version is now 2.9.1, with an early CI check against the frontend package version and an upgrade check of the installed executable metadata.
+
 EdenLauncher 2.9.1 uses Tauri's `embedBootstrapper` mode. The normal installer supports a Windows machine without WebView2: it runs the embedded, unchanged Microsoft Evergreen bootstrapper when the Runtime is absent. An internet connection is required to obtain the Runtime. `skip` is not enabled. Evergreen remains maintained by Microsoft; no fixed Runtime is shipped.
 
 The build downloads the bootstrapper from Microsoft's [official link](https://go.microsoft.com/fwlink/p/?LinkId=2124703). `.github/scripts/prepare-webview2.ps1` checks HTTPS at every redirect, the Microsoft delivery host, Windows Authenticode status `Valid`, and the Microsoft Corporation signer. It replaces the Tauri cache only after successful verification. The original bytes, SHA-256, Subject, Issuer, timestamp signer, and verification time are retained as build evidence. `.github/scripts/test-windows-installer.ps1` extracts the resulting EXE and checks that its embedded bootstrapper has the same SHA-256 and a valid signature.

@@ -6,6 +6,8 @@ param(
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true') { throw 'Installation tests are restricted to disposable GitHub Actions runners' }
 $BundleDirectory = (Resolve-Path -LiteralPath $BundleDirectory).Path
+$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$targetVersion = (Get-Content -LiteralPath (Join-Path $projectRoot 'apps/app-frontend/package.json') -Raw | ConvertFrom-Json).version
 New-Item -ItemType Directory -Force -Path $EvidenceDirectory | Out-Null
 $fixtureRoot = Join-Path $env:RUNNER_TEMP ('eden-installer-test-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $fixtureRoot | Out-Null
@@ -89,8 +91,8 @@ if (!(Test-Path -LiteralPath $app)) { throw '2.9.0 baseline installation failed'
 $oldVersion = (Get-Item -LiteralPath $app).VersionInfo.FileVersion
 $exitCode = Invoke-Installer $exe[0].FullName '/S /NS'
 $newVersion = (Get-Item -LiteralPath $app).VersionInfo.FileVersion
-if ($newVersion -eq $oldVersion -or $newVersion -notlike '2.9.1*') { throw 'Application version did not upgrade to 2.9.1' }
-Add-Result 'Installer upgrade 2.9.0 to 2.9.1' @{ OldVersion = $oldVersion; NewVersion = $newVersion; ExitCode = $exitCode; InstallerFlags = '/S /NS'; InAppButtonTested = $false }
+if ($newVersion -eq $oldVersion -or $newVersion -notlike "$targetVersion*") { throw "Application version did not upgrade to $targetVersion (old=$oldVersion, new=$newVersion)" }
+Add-Result "Installer upgrade 2.9.0 to $targetVersion" @{ OldVersion = $oldVersion; NewVersion = $newVersion; ExitCode = $exitCode; InstallerFlags = '/S /NS'; InAppButtonTested = $false }
 Assert-DataPreserved 'Upgrade preserves user data'
 Test-Launch $app 'Application launch after upgrade'
 $exitCode = Invoke-Installer (Join-Path $installRoot 'uninstall.exe') '/S'
@@ -102,8 +104,12 @@ $msiRoot = Join-Path $fixtureRoot 'msi-app'
 $msiLog = Join-Path $EvidenceDirectory 'msi-install.log'
 $exitCode = Invoke-Installer 'msiexec.exe' "/i `"$($msi[0].FullName)`" /qn /norestart INSTALLDIR=`"$msiRoot`" /L*v `"$msiLog`""
 $msiApp = Join-Path $msiRoot 'EdenLauncher.exe'
-if (!(Test-Path -LiteralPath $msiApp)) { throw 'MSI installation did not produce the app at INSTALLDIR' }
-Add-Result 'MSI installation' @{ ExitCode = $exitCode; FileVersion = (Get-Item -LiteralPath $msiApp).VersionInfo.FileVersion }
+$msiCandidates = @(@($msiApp, $app) | Where-Object { Test-Path -LiteralPath $_ })
+if ($msiCandidates.Count -ne 1) { throw 'MSI installation did not produce a unique app in the requested or remembered fixture directory' }
+$msiApp = $msiCandidates[0]
+$expectedApp = Join-Path $extractRoot 'EdenLauncher.exe'
+if ((Get-FileHash -LiteralPath $msiApp -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $expectedApp -Algorithm SHA256).Hash) { throw 'MSI installed a different application binary' }
+Add-Result 'MSI installation' @{ ExitCode = $exitCode; FileVersion = (Get-Item -LiteralPath $msiApp).VersionInfo.FileVersion; Directory = (Split-Path $msiApp) }
 Test-Launch $msiApp 'MSI application launch'
 $exitCode = Invoke-Installer 'msiexec.exe' "/x `"$($msi[0].FullName)`" /qn /norestart"
 if (Test-Path -LiteralPath $msiApp) { throw 'MSI uninstallation did not remove the app' }

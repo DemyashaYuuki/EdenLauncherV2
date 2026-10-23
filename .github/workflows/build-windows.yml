@@ -25,6 +25,14 @@ jobs:
       - name: Check out EdenLauncher overlay
         uses: actions/checkout@v4
 
+      - name: Check release version metadata
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath 'apps/app-frontend/package.json' -Raw | ConvertFrom-Json).version
+          $manifest = Get-Content -LiteralPath 'apps/app/Cargo.toml' -Raw
+          $cargoVersion = [regex]::Match($manifest, '(?m)^version\s*=\s*"([^"]+)"').Groups[1].Value
+          if ($version -ne $cargoVersion) { throw "Release version mismatch: frontend=$version, Rust=$cargoVersion" }
+
       - name: Clone upstream launcher source
         shell: pwsh
         run: |
@@ -264,7 +272,7 @@ jobs:
         run: |
           VERSION="$(node -p "require('./apps/app-frontend/package.json').version")"
           TAG="v${VERSION}"
-          NOTES='EdenLauncher 2.9.1: обновлённые настройки и вход в аккаунты; сохраняемый переключатель помех и Glitch в Error / Signal. Windows: встроен официальный WebView2 bootstrapper с проверкой подписи Microsoft при сборке и проверкой байтов в установщике; убран ненужный ExecutionPolicy Bypass из помощника обновления. Установка WebView2 требует интернета, если Runtime ещё отсутствует. Сертификат для подписи самого лаунчера не покупался. Приложены протокол Windows-проверок и SHA256SUMS.txt. Обновление не гарантирует исчезновения всех предупреждений песочниц.'
+          NOTES='EdenLauncher 2.9.1: обновлённые настройки и вход в аккаунты; сохраняемый переключатель помех и Glitch в Error / Signal. Windows: встроен официальный WebView2 bootstrapper с проверкой подписи Microsoft при сборке и проверкой байтов в установщике; исправлены служебные метаданные версии приложения; убран ненужный ExecutionPolicy Bypass из помощника обновления. Установка WebView2 требует интернета, если Runtime ещё отсутствует. Сертификат для подписи самого лаунчера не покупался. Приложены протокол Windows-проверок и SHA256SUMS.txt. Обновление не гарантирует исчезновения всех предупреждений песочниц.'
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "EdenLauncher $TAG" --notes "$NOTES" --latest
