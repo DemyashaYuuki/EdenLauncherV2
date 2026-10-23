@@ -280,7 +280,7 @@ jobs:
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "EdenLauncher $TAG" --notes "$NOTES" --latest
           fi
 
-          mapfile -d '' assets < <(find release-assets -type f \( -name '*.exe' -o -name '*.msi' -o -name '*.AppImage' -o -name '*.deb' \) -print0)
+          mapfile -d '' assets < <(find release-assets/EdenLauncher-Windows-x64 release-assets/EdenLauncher-Linux-x64 -type f \( -name '*.exe' -o -name '*.msi' -o -name '*.AppImage' -o -name '*.deb' \) -print0)
           if [ "${#assets[@]}" -eq 0 ]; then
             echo 'Desktop packages were not found.' >&2
             exit 1
