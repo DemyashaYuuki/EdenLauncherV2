@@ -116,10 +116,26 @@ jobs:
         working-directory: source/apps/app
         run: pnpm exec tauri icon ../app-frontend/src/assets/eden/brand/eden-app-icon-512.png -o icons
 
+      - name: Download and verify the Microsoft WebView2 bootstrapper
+        shell: pwsh
+        run: ./.github/scripts/prepare-webview2.ps1
+
       - name: Build EdenLauncher for Windows
         shell: pwsh
         working-directory: source
         run: pnpm --filter @modrinth/app exec tauri build --target x86_64-pc-windows-msvc
+
+      - name: Verify Windows installers and data preservation
+        shell: pwsh
+        run: ./.github/scripts/test-windows-installer.ps1 -BundleDirectory '${{ github.workspace }}/source/target/x86_64-pc-windows-msvc/release/bundle'
+
+      - name: Upload Windows verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: EdenLauncher-Windows-Verification
+          path: windows-installer-evidence/**
+          if-no-files-found: warn
 
       - name: Upload Windows installers
         uses: actions/upload-artifact@v4
@@ -248,7 +264,7 @@ jobs:
         run: |
           VERSION="$(node -p "require('./apps/app-frontend/package.json').version")"
           TAG="v${VERSION}"
-          NOTES='EdenLauncher 2.9.0: новый интерфейс Eden Portal, светлая тема Асуна / Bloom, Error / Signal, обновлённые заставка и первый запуск, библиотека, загрузки, друзья и настройки оформления. Сохранён режим Windows 10, подключён новый знак EW и обновлена ссылка голосования: https://top-minecrafter.com/server/edenworld/. Установщики доступны для Windows x64 и Linux x64 (AppImage и DEB).'
+          NOTES='EdenLauncher 2.9.1: обновлённые настройки и вход в аккаунты; сохраняемый переключатель помех и Glitch в Error / Signal. Windows: встроен официальный WebView2 bootstrapper с проверкой подписи Microsoft при сборке и проверкой байтов в установщике; убран ненужный ExecutionPolicy Bypass из помощника обновления. Установка WebView2 требует интернета, если Runtime ещё отсутствует. Сертификат для подписи самого лаунчера не покупался. Приложены протокол Windows-проверок и SHA256SUMS.txt. Обновление не гарантирует исчезновения всех предупреждений песочниц.'
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "EdenLauncher $TAG" --notes "$NOTES" --latest
@@ -261,4 +277,10 @@ jobs:
             echo 'Desktop packages were not found.' >&2
             exit 1
           fi
+          (cd release-assets/EdenLauncher-Windows-Verification && zip -q -r ../../EdenLauncher_windows-verification.zip .)
+          assets+=(EdenLauncher_windows-verification.zip)
+          for asset in "${assets[@]}"; do
+            (cd "$(dirname "$asset")" && sha256sum "$(basename "$asset")")
+          done > SHA256SUMS.txt
+          assets+=(SHA256SUMS.txt)
           gh release upload "$TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber

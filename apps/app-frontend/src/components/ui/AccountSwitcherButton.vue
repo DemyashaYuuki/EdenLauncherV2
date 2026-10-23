@@ -99,7 +99,7 @@ defineExpose({
 			</button>
 		</ButtonStyled>
 
-		<template #popper>
+		<template #popper="{ hide }">
 			<section class="account-switcher-menu" aria-label="Выбор игрового аккаунта">
 				<div class="account-switcher-menu__heading">
 					<EdenIcon name="user" :size="20" />
@@ -109,7 +109,7 @@ defineExpose({
 					</div>
 				</div>
 				<Suspense>
-					<AccountsCard ref="accountsCard" />
+					<AccountsCard ref="accountsCard" :close-menu="hide" />
 				</Suspense>
 			</section>
 		</template>

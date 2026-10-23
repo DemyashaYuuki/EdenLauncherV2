@@ -109,6 +109,7 @@ const BASE_THEME_STORAGE_KEY = 'edenlauncher-base-theme'
 const VISUAL_THEME_STORAGE_KEY = 'edenlauncher-visual-theme'
 const CUSTOM_THEME_STORAGE_KEY = 'edenlauncher-custom-theme'
 const WINDOWS_SHORTCUT_GRID_STORAGE_KEY = 'edenlauncher-windows-shortcut-grid'
+const ERROR_FX_STORAGE_KEY = 'edenlauncher-error-fx'
 const LEGACY_THEME_OPTIONS = ['dark', 'light', 'oled', 'retro', 'system'] as const
 const VISUAL_THEME_OPTIONS = ['standard', 'windows10', 'asuna', 'error', 'custom'] as const
 const BUTTON_EFFECT_OPTIONS = ['none', 'pulse', 'wave', 'interference'] as const
@@ -191,6 +192,8 @@ export type ThemeStore = {
 	accentColor: string
 	customTheme: CustomLauncherTheme
 	windowsShortcutGrid: boolean
+	/** Screen interference and the ERROR wordmark of the Error / Signal mode. */
+	errorFxEnabled: boolean
 	advancedRendering: boolean
 	hideNametagSkinsPage: boolean
 	/** Mirrors the OS colour scheme so "system" mode stays reactive. */
@@ -206,6 +209,7 @@ export const DEFAULT_THEME_STORE: ThemeStore = {
 	accentColor: DEFAULT_ACCENT_COLOR,
 	customTheme: DEFAULT_CUSTOM_THEME,
 	windowsShortcutGrid: true,
+	errorFxEnabled: true,
 	advancedRendering: true,
 	hideNametagSkinsPage: false,
 	systemPrefersLight: false,
@@ -551,12 +555,21 @@ export const useTheming = defineStore('themeStore', {
 			if (state.selectedTheme === 'system') return state.systemPrefersLight ? 'light' : 'dark'
 			return state.selectedTheme === 'light' ? 'light' : 'dark'
 		},
+		/** Error effects are drawn only while the Error / Signal mode is selected. */
+		errorFxActive(state): boolean {
+			return state.visualTheme === 'error' && state.errorFxEnabled
+		},
 		paletteName(): EdenPaletteName {
 			return resolvePaletteName(this.visualTheme, this.resolvedTheme)
 		},
 	},
 	actions: {
 		initializeTheme() {
+			try {
+				this.errorFxEnabled = window.localStorage.getItem(ERROR_FX_STORAGE_KEY) !== 'false'
+			} catch (error) {
+				console.warn('Could not read the Error effects setting.', error)
+			}
 			try {
 				this.windowsShortcutGrid =
 					window.localStorage.getItem(WINDOWS_SHORTCUT_GRID_STORAGE_KEY) !== 'false'
@@ -689,6 +702,7 @@ export const useTheming = defineStore('themeStore', {
 				html.style.removeProperty('--custom-theme-background-image')
 			}
 			// Text on the hero stays light on dark artwork and dark on the light Bloom/custom art.
+			html.dataset.errorFx = this.visualTheme === 'error' && this.errorFxEnabled ? 'on' : 'off'
 			html.dataset.heroTone =
 				paletteName === 'bloom' ||
 				(this.visualTheme === 'custom' &&
@@ -764,6 +778,16 @@ export const useTheming = defineStore('themeStore', {
 
 			return true
 		},
+		setErrorFxEnabled(enabled: boolean) {
+			this.errorFxEnabled = enabled
+			document.documentElement.dataset.errorFx =
+				this.visualTheme === 'error' && enabled ? 'on' : 'off'
+			try {
+				window.localStorage.setItem(ERROR_FX_STORAGE_KEY, String(enabled))
+			} catch (error) {
+				console.warn('Could not save the Error effects setting.', error)
+			}
+		},
 		setWindowsShortcutGrid(enabled: boolean) {
 			this.windowsShortcutGrid = enabled
 			try {
@@ -781,6 +805,7 @@ export const useTheming = defineStore('themeStore', {
 			this.accentColor = DEFAULT_ACCENT_COLOR
 			this.customTheme = { ...DEFAULT_CUSTOM_THEME }
 			this.windowsShortcutGrid = true
+			this.errorFxEnabled = true
 			this.setThemeClass(true)
 
 			try {
@@ -789,6 +814,7 @@ export const useTheming = defineStore('themeStore', {
 				window.localStorage.setItem(ACCENT_COLOR_STORAGE_KEY, DEFAULT_ACCENT_COLOR)
 				window.localStorage.removeItem(CUSTOM_THEME_STORAGE_KEY)
 				window.localStorage.setItem(WINDOWS_SHORTCUT_GRID_STORAGE_KEY, 'true')
+				window.localStorage.removeItem(ERROR_FX_STORAGE_KEY)
 			} catch (error) {
 				console.warn('Could not reset the EdenLauncher theme.', error)
 			}

@@ -10,9 +10,9 @@ import {
 	getPreferredInstaller,
 	isUpdateAvailable,
 	isUpdateInstalling,
-	LAUNCHER_LATEST_RELEASE_API,
 	latestLauncherReleaseHttpStatus,
 	latestLauncherReleases,
+	LAUNCHER_LATEST_RELEASE_API,
 } from '@/helpers/astralrinth/update'
 import { get, set } from '@/helpers/settings'
 
@@ -124,157 +124,218 @@ onMounted(() => void checkNow())
 	</EdenLauncherSettingsPage>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .update-option,
 .update-card {
-	border: 1px solid rgba(190, 120, 255, 0.22);
-	border-radius: 18px;
-	background: rgba(139, 61, 238, 0.065);
+	border: 1px solid var(--eden-border);
+	border-radius: 14px;
+	background: var(--eden-surface);
 }
+
 .update-option {
+	position: relative;
 	display: flex;
 	align-items: flex-start;
 	gap: 1rem;
-	padding: 1.15rem;
+	padding: 18px 20px;
 	cursor: pointer;
+
+	&:focus-within {
+		outline: 2px solid var(--eden-focus);
+		outline-offset: 3px;
+	}
+
+	input {
+		position: absolute;
+		opacity: 0;
+	}
+
+	strong,
+	small {
+		display: block;
+	}
+
+	strong {
+		color: var(--eden-text);
+		font-size: 16px;
+		font-weight: 650;
+	}
+
+	small {
+		margin-top: 0.35rem;
+		color: var(--eden-text-secondary);
+		font-size: 13px;
+		line-height: 1.5;
+	}
 }
-.update-option input {
-	position: absolute;
-	opacity: 0;
-}
-.update-option strong,
-.update-option small {
-	display: block;
-}
-.update-option small {
-	margin-top: 0.35rem;
-	color: var(--color-secondary);
-	line-height: 1.5;
-}
+
 .update-switch {
-	width: 46px;
-	height: 26px;
+	width: 44px;
+	height: 24px;
 	flex: none;
+	order: 2;
+	margin-left: auto;
 	padding: 3px;
+	box-sizing: border-box;
 	border-radius: 999px;
-	background: var(--surface-5);
-	transition: 0.2s ease;
+	background: var(--eden-border);
+	transition: background-color var(--eden-motion-hover) ease;
+
+	span {
+		display: block;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: var(--eden-text-secondary);
+		transition: transform var(--eden-motion-hover) ease;
+	}
 }
-.update-switch span {
-	display: block;
-	width: 20px;
-	height: 20px;
-	border-radius: 50%;
-	background: white;
-	transition: 0.2s ease;
-}
+
 .update-option input:checked + .update-switch {
-	background: linear-gradient(135deg, #7d2be8, #b761ff);
+	background: var(--eden-accent);
+
+	span {
+		background: var(--eden-on-accent);
+		transform: translateX(20px);
+	}
 }
-.update-option input:checked + .update-switch span {
-	transform: translateX(20px);
-}
+
 .update-card {
-	padding: 1.2rem;
+	padding: 20px;
 }
+
 .update-card__header {
 	display: flex;
 	align-items: center;
 	gap: 0.9rem;
 }
+
 .update-card__icon {
 	display: grid;
-	place-items: center;
 	width: 42px;
 	height: 42px;
-	border-radius: 13px;
-	background: rgba(180, 93, 255, 0.15);
-	color: #c987ff;
+	place-items: center;
+	border-radius: 10px;
+	color: var(--eden-accent-text);
+	background: var(--eden-surface-raised);
+
+	:deep(svg) {
+		width: 21px;
+	}
 }
-.update-card__icon :deep(svg) {
-	width: 21px;
-}
+
 .update-card h2,
 .update-card p {
 	margin: 0;
 }
+
 .update-card h2 {
-	font-size: 1.05rem;
+	color: var(--eden-text);
+	font-size: 16px;
+	font-weight: 650;
 }
+
 .update-card p {
 	margin-top: 0.2rem;
-	color: var(--color-secondary);
-	font-size: 0.85rem;
+	color: var(--eden-text-secondary);
+	font-size: 13px;
 }
+
 .update-card dl {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
-	gap: 0.7rem;
-	margin: 1rem 0;
+	gap: 10px;
+	margin: 16px 0;
+
+	div {
+		min-width: 0;
+		padding: 12px;
+		border-radius: 10px;
+		background: var(--eden-surface-raised);
+	}
 }
-.update-card dl div {
-	min-width: 0;
-	padding: 0.8rem;
-	border-radius: 13px;
-	background: rgba(0, 0, 0, 0.15);
-}
+
 .update-card dt {
-	color: var(--color-secondary);
-	font-size: 0.72rem;
+	color: var(--eden-text-secondary);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.12em;
 	text-transform: uppercase;
 }
+
 .update-card dd {
 	margin: 0.35rem 0 0;
 	overflow: hidden;
-	color: #d7a8ff;
-	font-weight: 700;
+	color: var(--eden-text);
+	font-weight: 650;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+
 .update-actions {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.75rem;
-	flex-wrap: wrap;
+
+	button {
+		display: inline-flex;
+		min-height: 40px;
+		align-items: center;
+		gap: 0.45rem;
+		padding: 0 16px;
+		border: 1px solid var(--eden-border);
+		border-radius: var(--eden-radius-control);
+		color: var(--eden-text);
+		background: var(--eden-surface-raised);
+		font: inherit;
+		font-size: 13px;
+		font-weight: 650;
+		cursor: pointer;
+
+		&:hover:not(:disabled) {
+			border-color: var(--eden-border-strong);
+		}
+
+		&.primary {
+			border-color: transparent;
+			color: var(--eden-on-accent);
+			background: var(--eden-accent);
+		}
+
+		&:disabled {
+			cursor: wait;
+			opacity: 0.55;
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--eden-focus);
+			outline-offset: 3px;
+		}
+	}
+
+	:deep(svg) {
+		width: 18px;
+	}
 }
-.update-actions button {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.45rem;
-	padding: 0.65rem 0.9rem;
-	border: 1px solid rgba(190, 120, 255, 0.22);
-	border-radius: 12px;
-	background: rgba(255, 255, 255, 0.06);
-	color: var(--color-contrast);
-	font: inherit;
-	font-weight: 650;
-	cursor: pointer;
-}
-.update-actions button.primary {
-	border: 0;
-	background: linear-gradient(135deg, #7d2be8, #b761ff);
-	color: white;
-}
-.update-actions button:disabled {
-	opacity: 0.55;
-	cursor: wait;
-}
-.update-actions :deep(svg),
-.up-to-date :deep(svg) {
-	width: 18px;
-}
+
 .up-to-date {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.45rem;
-	color: #ca8dff;
+	color: var(--eden-success);
 	font-weight: 650;
+
+	:deep(svg) {
+		width: 18px;
+	}
 }
+
 .api-link {
 	display: block;
 	overflow: hidden;
-	color: #b871ff;
-	font-size: 0.78rem;
+	color: var(--eden-accent-text);
+	font-size: 12px;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }

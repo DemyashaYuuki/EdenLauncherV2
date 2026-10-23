@@ -1,0 +1,230 @@
+// Shared content styles of the sign-in dialogs that use EdenAuthShell.
+
+.eden-auth-view {
+	display: flex;
+	min-height: 0;
+	flex: 1;
+	flex-direction: column;
+
+	> h2 {
+		margin: 0;
+		color: var(--eden-text);
+		font-size: 30px;
+		font-weight: 650;
+		line-height: 1.2;
+	}
+
+	> .eden-auth-view__lead {
+		margin: 18px 0 0;
+		color: var(--eden-text-secondary);
+		font-size: 14px;
+		line-height: 1.7;
+	}
+}
+
+.eden-auth-methods {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	margin-top: 44px;
+}
+
+.eden-auth-method {
+	display: flex;
+	width: 100%;
+	min-height: 82px;
+	align-items: center;
+	gap: 18px;
+	padding: 14px 22px 14px 16px;
+	border: 1px solid var(--eden-border);
+	border-radius: 14px;
+	color: var(--eden-text);
+	background: var(--eden-surface);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition:
+		border-color var(--eden-motion-hover) ease,
+		background-color var(--eden-motion-hover) ease;
+
+	&:hover:not(:disabled) {
+		border-color: var(--eden-border-strong);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--eden-focus);
+		outline-offset: 3px;
+	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
+	}
+
+	&.is-active {
+		border-color: var(--eden-accent);
+		box-shadow: inset 0 0 0 1px var(--eden-accent);
+	}
+}
+
+.eden-auth-method__icon {
+	display: grid;
+	width: 46px;
+	height: 46px;
+	flex: 0 0 auto;
+	overflow: hidden;
+	place-items: center;
+	border-radius: 10px;
+	color: var(--eden-accent-text);
+	background: var(--eden-surface-raised);
+
+	svg {
+		width: 26px;
+		height: 26px;
+	}
+
+	img {
+		width: 100%;
+		height: 100%;
+		image-rendering: pixelated;
+		object-fit: cover;
+	}
+}
+
+.eden-auth-method__copy {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	flex-direction: column;
+	gap: 8px;
+
+	strong {
+		overflow: hidden;
+		font-size: 17px;
+		font-weight: 650;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	span {
+		color: var(--eden-text-secondary);
+		font-size: 12px;
+	}
+}
+
+.eden-auth-note {
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+	margin: 34px 0 0;
+	padding: 16px 18px;
+	border-radius: var(--eden-radius-control);
+	color: var(--eden-text-secondary);
+	background: var(--eden-surface);
+	font-size: 12px;
+	line-height: 1.7;
+
+	.eden-icon {
+		flex: 0 0 auto;
+		margin-top: 2px;
+		color: var(--eden-accent-text);
+	}
+}
+
+.eden-auth-waiting {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 14px;
+	margin-top: 38px;
+	padding: 30px 24px;
+	border: 1px solid var(--eden-border);
+	border-radius: var(--eden-radius-card);
+	background: var(--eden-surface);
+	text-align: center;
+
+	strong {
+		color: var(--eden-text);
+		font-size: 17px;
+		font-weight: 650;
+	}
+
+	p {
+		max-width: 26rem;
+		margin: 0;
+		color: var(--eden-text-secondary);
+		font-size: 13px;
+		line-height: 1.6;
+	}
+}
+
+.eden-auth-waiting__icon {
+	display: grid;
+	width: 64px;
+	height: 64px;
+	place-items: center;
+	border-radius: 14px;
+	color: var(--eden-accent-text);
+	background: var(--eden-surface-raised);
+
+	svg {
+		width: 28px;
+		height: 28px;
+	}
+}
+
+.eden-auth-waiting--error .eden-auth-waiting__icon {
+	color: var(--eden-error);
+	background: var(--eden-error-soft);
+}
+
+.eden-auth-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+	margin-top: auto;
+	padding-top: 28px;
+
+	.eden-btn--primary {
+		min-width: 190px;
+	}
+
+	.eden-auth-actions__end {
+		margin-left: auto;
+	}
+}
+
+.eden-btn--danger {
+	color: #1b0a10;
+	background: var(--eden-error);
+
+	&:hover:not(:disabled) {
+		background: color-mix(in srgb, var(--eden-error) 86%, white);
+	}
+}
+
+.eden-auth-field {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 36px;
+
+	label {
+		color: var(--eden-text-secondary);
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+	}
+
+	.eden-input {
+		min-height: 52px;
+		background: var(--eden-surface);
+	}
+
+	small {
+		color: var(--eden-text-secondary);
+		font-size: 12px;
+	}
+}

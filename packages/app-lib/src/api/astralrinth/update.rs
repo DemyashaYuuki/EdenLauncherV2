@@ -90,8 +90,6 @@ async fn run_windows_installer(
             "-NoLogo",
             "-NoProfile",
             "-NonInteractive",
-            "-ExecutionPolicy",
-            "Bypass",
             "-WindowStyle",
             "Hidden",
             "-Command",

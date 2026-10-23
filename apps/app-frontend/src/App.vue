@@ -44,6 +44,7 @@ import pilotVideo from '@/assets/pilot.mp4'
 import AccountSwitcherButton from '@/components/ui/AccountSwitcherButton.vue'
 import AppActionBar from '@/components/ui/AppActionBar.vue'
 import Breadcrumbs from '@/components/ui/Breadcrumbs.vue'
+import EdenErrorFx from '@/components/ui/eden/EdenErrorFx.vue'
 import EdenIcon from '@/components/ui/eden/EdenIcon.vue'
 import EdenMark from '@/components/ui/eden/EdenMark.vue'
 import EdenPlayersModal from '@/components/ui/eden/EdenPlayersModal.vue'
@@ -1105,6 +1106,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			</RouterView>
 		</div>
 	</div>
+	<EdenErrorFx />
 	<I18nDebugPanel />
 	<NotificationPanel :has-sidebar="false" />
 	<PopupNotificationPanel :has-sidebar="false" />

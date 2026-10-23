@@ -713,3 +713,121 @@ html.eden-reduced-effects {
 		}
 	}
 }
+
+// Settings content inside EdenTabbedModal: upstream tabs share these markup patterns,
+// so they get the Eden row cards without forking each component.
+.eden-settings-body {
+	color: var(--eden-text-secondary);
+	font-size: 13px;
+
+	> section + section,
+	> div > section + section {
+		margin-top: 28px;
+		padding-top: 0;
+		border-top: 0;
+	}
+
+	section > h2.text-xl,
+	section > h2:first-child {
+		margin-bottom: 12px !important;
+		color: var(--eden-text-secondary) !important;
+		font-size: 11px !important;
+		font-weight: 700 !important;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+	}
+
+	:is(h2, h3).text-lg {
+		color: var(--eden-text) !important;
+		font-size: 16px !important;
+		font-weight: 650 !important;
+		line-height: 1.35;
+	}
+
+	p.m-0,
+	p.leading-tight {
+		color: var(--eden-text-secondary);
+		font-size: 13px;
+		line-height: 1.55;
+	}
+
+	.flex.flex-col.gap-6 {
+		gap: 12px;
+	}
+
+	.flex.items-center.justify-between.gap-4,
+	.flex.flex-col.gap-6 > .flex.flex-col.gap-2\.5 {
+		padding: 18px 20px;
+		border: 1px solid var(--eden-border);
+		border-radius: 14px;
+		background: var(--eden-surface);
+	}
+
+	hr {
+		margin: 22px 0 !important;
+		background: transparent !important;
+	}
+}
+
+.eden-tabbed-modal {
+	overflow: hidden;
+	border-color: var(--eden-border) !important;
+	border-radius: var(--eden-radius-hero) !important;
+	background: var(--eden-sidebar) !important;
+}
+
+.modal-body.bg-bg-raised {
+	border-color: var(--eden-border);
+	background: var(--eden-surface);
+}
+
+.context-menu.context-menu {
+	min-width: 220px;
+	padding: 6px;
+	border-color: var(--eden-border);
+	border-radius: 12px;
+	background: var(--eden-surface);
+
+	.item {
+		min-height: 36px;
+		gap: 10px;
+		padding: 0 12px;
+		border-radius: 8px;
+		color: var(--eden-text);
+		font-size: 13px;
+
+		svg {
+			width: 16px;
+			height: 16px;
+			color: var(--eden-text-secondary);
+		}
+
+		&.danger,
+		&.danger svg {
+			color: var(--eden-error);
+		}
+
+		&:hover.base,
+		&:active.base {
+			background: var(--eden-surface-raised);
+		}
+
+		&:hover.danger,
+		&:active.danger {
+			color: var(--eden-error);
+			background: var(--eden-error-soft);
+			font-weight: 600;
+		}
+
+		&:hover.primary svg,
+		&:active.primary svg {
+			color: currentColor;
+		}
+	}
+
+	.divider {
+		margin: 4px 6px;
+		border-color: var(--eden-border);
+		border-width: 1px 0 0;
+	}
+}

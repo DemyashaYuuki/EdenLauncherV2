@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import { Button, defineMessages, useVIntl } from '@modrinth/ui'
+import { defineMessages, NewModal, useVIntl } from '@modrinth/ui'
 import { ref } from 'vue'
 
-import ModalWrapper from '@/components/ui/modal/ModalWrapper.vue'
-
-type ModalHandle = {
-	hide: () => void
-	show: () => void
-}
+import EdenAuthShell from '@/components/ui/eden/EdenAuthShell.vue'
+import EdenIcon from '@/components/ui/eden/EdenIcon.vue'
 
 const props = defineProps<{
 	maxOfflinePlayerNameLength: number
@@ -20,43 +16,37 @@ const emit = defineEmits<{
 }>()
 
 const { formatMessage } = useVIntl()
-const inputOfflineErrorModal = ref<ModalHandle | null>(null)
-const unexpectedErrorModal = ref<ModalHandle | null>(null)
+const inputOfflineErrorModal = ref<InstanceType<typeof NewModal> | null>(null)
+const unexpectedErrorModal = ref<InstanceType<typeof NewModal> | null>(null)
 
 const messages = defineMessages({
 	inputOfflineHeader: {
 		id: 'edenlauncher.app.minecraft-account.error.input-offline.header',
-		defaultMessage: 'Error while proceeding input event with offline account',
+		defaultMessage: 'Не удалось добавить профиль',
 	},
 	inputOfflineDescription: {
 		id: 'edenlauncher.app.minecraft-account.error.input-offline.description',
-		defaultMessage:
-			'An error occurred while adding the offline account. Please follow the instructions below.',
-	},
-	inputOfflineNameHint: {
-		id: 'edenlauncher.app.minecraft-account.error.input-offline.name-hint',
-		defaultMessage: 'Check that you have entered the correct player name.',
+		defaultMessage: 'Ник не подходит для локального профиля.',
 	},
 	inputOfflineLengthHint: {
 		id: 'edenlauncher.app.minecraft-account.error.input-offline.length-hint',
-		defaultMessage:
-			'Player name must be at least {min} characters long and no more than {max} characters.',
+		defaultMessage: 'Длина ника — от {min} до {max} символов.',
 	},
 	inputOfflineFormatHint: {
 		id: 'edenlauncher.app.minecraft-account.error.input-offline.format-hint',
-		defaultMessage: 'Make sure your name meets the format requirement `{nameExp}`',
+		defaultMessage: 'Разрешённые символы: {nameExp}',
 	},
 	unexpectedHeader: {
 		id: 'edenlauncher.app.minecraft-account.error.unexpected.header',
-		defaultMessage: 'Unexpected error occurred',
+		defaultMessage: 'Не удалось войти',
 	},
 	unexpectedDescription: {
 		id: 'edenlauncher.app.minecraft-account.error.unexpected.description',
-		defaultMessage: 'An unexpected error has occurred. Please try again later.',
+		defaultMessage: 'Авторизация не завершена. Попробуйте ещё раз позже.',
 	},
 	retryAction: {
 		id: 'edenlauncher.app.minecraft-account.error.retry-action',
-		defaultMessage: 'Try again',
+		defaultMessage: 'Попробовать снова',
 	},
 })
 
@@ -68,55 +58,66 @@ defineExpose({
 </script>
 
 <template>
-	<ModalWrapper
+	<NewModal
 		ref="inputOfflineErrorModal"
-		class="modal"
-		:header="formatMessage(messages.inputOfflineHeader)"
+		hide-header
+		no-padding
+		max-width="1052px"
+		:aria-label="formatMessage(messages.inputOfflineHeader)"
 	>
-		<div class="flex flex-col gap-4 px-6 py-5">
-			<label class="text-base font-medium text-red-700">
-				{{ formatMessage(messages.inputOfflineDescription) }}
-			</label>
-			<ul class="list-disc list-inside text-sm space-y-1">
-				<li>{{ formatMessage(messages.inputOfflineNameHint) }}</li>
-				<li>
-					{{
-						formatMessage(messages.inputOfflineLengthHint, {
-							min: props.minOfflinePlayerNameLength,
-							max: props.maxOfflinePlayerNameLength,
-						})
-					}}
-				</li>
-				<li>{{ formatMessage(messages.inputOfflineFormatHint, { nameExp: props.nameExp }) }}</li>
-			</ul>
-			<div class="mt-6 ml-auto">
-				<Button color="primary" @click="emit('retry-offline')">
-					{{ formatMessage(messages.retryAction) }}
-				</Button>
+		<EdenAuthShell @close="inputOfflineErrorModal?.hide()">
+			<div class="eden-auth-view">
+				<h2>{{ formatMessage(messages.inputOfflineHeader) }}</h2>
+				<p class="eden-auth-view__lead">{{ formatMessage(messages.inputOfflineDescription) }}</p>
+				<div class="eden-auth-waiting eden-auth-waiting--error" role="alert">
+					<span class="eden-auth-waiting__icon"><EdenIcon name="warning" /></span>
+					<strong>Проверьте ник</strong>
+					<p>
+						{{
+							formatMessage(messages.inputOfflineLengthHint, {
+								min: props.minOfflinePlayerNameLength,
+								max: props.maxOfflinePlayerNameLength,
+							})
+						}}
+						{{ formatMessage(messages.inputOfflineFormatHint, { nameExp: 'a–z, A–Z, 0–9, _' }) }}
+					</p>
+				</div>
+				<div class="eden-auth-actions">
+					<button type="button" class="eden-btn eden-btn--primary" @click="emit('retry-offline')">
+						<EdenIcon name="refresh" :size="18" /> {{ formatMessage(messages.retryAction) }}
+					</button>
+				</div>
 			</div>
-		</div>
-	</ModalWrapper>
-	<ModalWrapper
+		</EdenAuthShell>
+	</NewModal>
+	<NewModal
 		ref="unexpectedErrorModal"
-		class="modal"
-		:header="formatMessage(messages.unexpectedHeader)"
+		hide-header
+		no-padding
+		max-width="1052px"
+		:aria-label="formatMessage(messages.unexpectedHeader)"
 	>
-		<div class="modal-body">
-			<label class="label">{{ formatMessage(messages.unexpectedDescription) }}</label>
-		</div>
-	</ModalWrapper>
+		<EdenAuthShell @close="unexpectedErrorModal?.hide()">
+			<div class="eden-auth-view">
+				<h2>{{ formatMessage(messages.unexpectedHeader) }}</h2>
+				<p class="eden-auth-view__lead">
+					Подробности ошибки показаны в уведомлении. Существующие аккаунты не изменены.
+				</p>
+				<div class="eden-auth-waiting eden-auth-waiting--error" role="alert">
+					<span class="eden-auth-waiting__icon"><EdenIcon name="warning" /></span>
+					<strong>Авторизация не завершена</strong>
+					<p>{{ formatMessage(messages.unexpectedDescription) }}</p>
+				</div>
+				<div class="eden-auth-actions">
+					<button
+						type="button"
+						class="eden-btn eden-btn--secondary"
+						@click="unexpectedErrorModal?.hide()"
+					>
+						Закрыть
+					</button>
+				</div>
+			</div>
+		</EdenAuthShell>
+	</NewModal>
 </template>
-
-<style scoped lang="scss">
-.modal {
-	position: absolute;
-}
-
-.modal-body {
-	display: flex;
-	flex-direction: row;
-	gap: var(--gap-lg);
-	align-items: center;
-	padding: var(--gap-xl);
-}
-</style>

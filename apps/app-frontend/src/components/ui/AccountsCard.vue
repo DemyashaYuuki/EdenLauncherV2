@@ -1,111 +1,100 @@
 <template>
-	<div
-		v-if="accounts.length === 0"
-		class="flex flex-col gap-3 bg-button-bg border border-solid border-surface-5 rounded-xl p-3 mt-2"
-	>
-		<span>{{ formatMessage(messages.notSignedIn) }}</span>
-		<ButtonStyled class="w-full">
-			<button type="button" class="w-full justify-between text-left" @click="showAccountLoginModal">
-				<span class="inline-flex items-center gap-2">
-					<PlusIcon />
-					{{ formatMessage(messages.addAccount) }}
-				</span>
-			</button>
-		</ButtonStyled>
-	</div>
-	<Accordion
-		v-else
-		class="w-full mt-2 bg-button-bg border border-solid border-surface-5 rounded-xl overflow-clip"
-		button-class="button-base w-full bg-transparent px-3 py-2 border-0 cursor-pointer"
-		:open-by-default="false"
-	>
-		<template #title>
-			<div class="flex gap-2 w-full min-w-0">
-				<Avatar
-					size="36px"
-					:src="
-						selectedAccount
-							? avatarUrl
-							: 'https://launcher-files.modrinth.com/assets/steve_head.png'
-					"
-				/>
-				<div class="flex flex-col items-start w-full min-w-0">
-					<span class="truncate w-full text-left">
-						<span class="inline-flex items-center gap-1 min-w-0">
-							<component
-								:is="getAccountType(selectedAccount)"
-								v-if="selectedAccount && getAccountType(selectedAccount)"
-								class="vector-icon shrink-0"
-							/>
-							<span class="truncate">
-								{{
-									selectedAccount
-										? selectedAccount.profile.name
-										: formatMessage(messages.selectAccount)
-								}}
-							</span>
-						</span>
-					</span>
-					<span class="text-secondary text-xs">{{ formatMessage(messages.minecraftAccount) }}</span>
-				</div>
-			</div>
-		</template>
-		<div class="bg-button-bg pt-1 pb-2 border border-solid border-surface-5">
-			<template v-if="accounts.length > 0">
-				<div v-for="account in accounts" :key="account.profile.id" class="flex gap-1 items-center">
-					<button
-						class="flex items-center flex-shrink flex-grow overflow-clip gap-2 p-2 border-0 bg-transparent cursor-pointer button-base min-w-0"
-						@click="setAccount(account)"
-					>
-						<RadioButtonCheckedIcon
-							v-if="selectedAccount && selectedAccount.profile.id === account.profile.id"
-							class="w-5 h-5 text-brand shrink-0"
-						/>
-						<RadioButtonIcon v-else class="w-5 h-5 text-secondary shrink-0" />
-						<Avatar :src="getAccountAvatarUrl(account)" size="24px" />
-						<p
-							class="m-0 truncate min-w-0 inline-flex items-center gap-1"
-							:class="
-								selectedAccount && selectedAccount.profile.id === account.profile.id
-									? 'text-contrast font-semibold'
-									: 'text-primary'
-							"
-						>
+	<div class="eden-accounts">
+		<p v-if="accounts.length === 0" class="eden-accounts__empty">
+			{{ formatMessage(messages.notSignedIn) }}
+		</p>
+		<ul v-else class="eden-accounts__list" aria-label="Игровые аккаунты">
+			<li
+				v-for="account in accounts"
+				:key="account.profile.id"
+				class="eden-accounts__item"
+				:class="{ 'is-active': selectedAccount?.profile.id === account.profile.id }"
+			>
+				<button
+					type="button"
+					class="eden-accounts__select"
+					:aria-pressed="selectedAccount?.profile.id === account.profile.id"
+					@click="setAccount(account)"
+				>
+					<Avatar :src="getAccountAvatarUrl(account)" size="32px" />
+					<span class="eden-accounts__copy">
+						<strong>{{ account.profile.name }}</strong>
+						<span>
 							<component
 								:is="getAccountType(account)"
 								v-if="getAccountType(account)"
-								class="vector-icon shrink-0"
+								class="vector-icon"
 							/>
-							<span class="truncate">{{ account.profile.name }}</span>
-						</p>
-					</button>
-					<ButtonStyled circular color="red" color-fill="none" hover-color-fill="background">
-						<button
-							v-tooltip="formatMessage(messages.removeAccount)"
-							class="mr-2"
-							@click="logout(account.profile.id)"
-						>
-							<TrashIcon />
-						</button>
-					</ButtonStyled>
+							{{ accountTypeLabel(account) }}
+						</span>
+					</span>
+					<span
+						v-if="selectedAccount?.profile.id === account.profile.id"
+						class="eden-chip eden-chip--success"
+					>
+						Активен
+					</span>
+				</button>
+				<button
+					v-tooltip="formatMessage(messages.removeAccount)"
+					type="button"
+					class="eden-accounts__remove"
+					:aria-label="`${formatMessage(messages.removeAccount)}: ${account.profile.name}`"
+					@click="askRemove(account)"
+				>
+					<TrashIcon />
+				</button>
+			</li>
+		</ul>
+		<button
+			type="button"
+			class="eden-btn eden-btn--primary eden-btn--compact eden-btn--block"
+			@click="showAccountLoginModal"
+		>
+			<PlusIcon />
+			{{ formatMessage(messages.addAccount) }}
+		</button>
+	</div>
+	<NewModal
+		ref="removeModal"
+		hide-header
+		no-padding
+		max-width="1052px"
+		aria-label="Удалить аккаунт?"
+	>
+		<EdenAuthShell @close="removeModal?.hide()">
+			<div v-if="pendingRemove" class="eden-auth-view">
+				<h2>Удалить аккаунт?</h2>
+				<p class="eden-auth-view__lead">
+					Аккаунт будет удалён только из EdenLauncher.<br />
+					Сборки, миры и скины на сервисе останутся.
+				</p>
+				<div class="eden-auth-methods">
+					<div class="eden-auth-method" role="presentation">
+						<span class="eden-auth-method__icon">
+							<img :src="getAccountAvatarUrl(pendingRemove)" alt="" />
+						</span>
+						<span class="eden-auth-method__copy">
+							<strong>{{ pendingRemove.profile.name }}</strong>
+							<span>{{ accountTypeLabel(pendingRemove) }}</span>
+						</span>
+					</div>
 				</div>
-			</template>
-			<div class="flex flex-col gap-2 px-2 pt-2">
-				<ButtonStyled class="w-full">
+				<div class="eden-auth-actions">
+					<button type="button" class="eden-btn eden-btn--secondary" @click="removeModal?.hide()">
+						Отмена
+					</button>
 					<button
 						type="button"
-						class="w-full justify-between text-left"
-						@click="showAccountLoginModal"
+						class="eden-btn eden-btn--danger eden-auth-actions__end"
+						@click="confirmRemove"
 					>
-						<span class="inline-flex items-center gap-2">
-							<PlusIcon />
-							{{ formatMessage(messages.addAccount) }}
-						</span>
+						<TrashIcon /> Удалить из лаунчера
 					</button>
-				</ButtonStyled>
+				</div>
 			</div>
-		</div>
-	</Accordion>
+		</EdenAuthShell>
+	</NewModal>
 	<AccountsInputModals
 		ref="accountsInputModals"
 		:offline-login-disabled="offlineLoginDisabled"
@@ -128,27 +117,14 @@
 </template>
 
 <script setup lang="ts">
-import {
-	MicrosoftIcon,
-	OfflineIcon,
-	PlusIcon,
-	RadioButtonCheckedIcon,
-	RadioButtonIcon,
-	TrashIcon,
-} from '@modrinth/assets'
-import {
-	Accordion,
-	Avatar,
-	ButtonStyled,
-	defineMessages,
-	injectNotificationManager,
-	useVIntl,
-} from '@modrinth/ui'
+import { MicrosoftIcon, OfflineIcon, PlusIcon, TrashIcon } from '@modrinth/assets'
+import { Avatar, defineMessages, injectNotificationManager, NewModal, useVIntl } from '@modrinth/ui'
 import type { Ref } from 'vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 import AccountsErrorModals from '@/components/ui/astralrinth/accounts/error/AccountsErrorModals.vue'
 import AccountsInputModals from '@/components/ui/astralrinth/accounts/input/AccountsInputModals.vue'
+import EdenAuthShell from '@/components/ui/eden/EdenAuthShell.vue'
 import { trackEvent } from '@/helpers/analytics'
 import {
 	get_default_user,
@@ -176,6 +152,11 @@ const { handleError } = injectNotificationManager()
 
 const emit = defineEmits<{
 	change: []
+}>()
+
+const props = defineProps<{
+	/** Closes the surrounding account menu before a dialog opens. */
+	closeMenu?: () => void
 }>()
 
 type AccountsInputModalsHandle = {
@@ -231,11 +212,34 @@ function getAccountType(account?: MinecraftCredential) {
 	}
 }
 
+const removeModal = ref<InstanceType<typeof NewModal> | null>(null)
+const pendingRemove = ref<MinecraftCredential | null>(null)
+
+function accountTypeLabel(account: MinecraftCredential) {
+	if (account.account_type === 'microsoft') return 'Microsoft'
+	if (account.account_type === 'offline') return 'Локальный профиль'
+	return getExternalAuthProvider(account.account_type)?.name ?? 'Внешний сервис'
+}
+
+function askRemove(account: MinecraftCredential) {
+	props.closeMenu?.()
+	pendingRemove.value = account
+	removeModal.value?.show()
+}
+
+async function confirmRemove() {
+	const account = pendingRemove.value
+	removeModal.value?.hide()
+	pendingRemove.value = null
+	if (account) await logout(account.profile.id)
+}
+
 function showOfflineLoginModal() {
 	accountsInputModals.value?.showOffline()
 }
 
 function showAccountLoginModal() {
+	props.closeMenu?.()
 	accountsInputModals.value?.showAuth()
 }
 
@@ -461,5 +465,125 @@ const messages = defineMessages({
 .vector-icon {
 	width: 0.875rem;
 	height: 0.875rem;
+}
+
+.eden-accounts {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 8px;
+}
+
+.eden-accounts__empty {
+	margin: 0;
+	padding: 12px;
+	border-radius: var(--eden-radius-control);
+	color: var(--eden-text-secondary);
+	background: var(--eden-surface-raised);
+	font-size: 12px;
+}
+
+.eden-accounts__list {
+	display: flex;
+	max-height: 18rem;
+	flex-direction: column;
+	gap: 8px;
+	overflow-y: auto;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.eden-accounts__item {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding-right: 6px;
+	border: 1px solid var(--eden-border);
+	border-radius: 12px;
+	background: var(--eden-surface);
+
+	&.is-active {
+		border-color: var(--eden-accent);
+		box-shadow: inset 0 0 0 1px var(--eden-accent);
+	}
+}
+
+.eden-accounts__select {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 10px;
+	border: 0;
+	border-radius: 12px;
+	color: var(--eden-text);
+	background: transparent;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+
+	&:focus-visible {
+		outline: 2px solid var(--eden-focus);
+		outline-offset: 2px;
+	}
+
+	:deep(.avatar) {
+		border-radius: 8px;
+	}
+}
+
+.eden-accounts__copy {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	flex-direction: column;
+	gap: 3px;
+
+	strong {
+		overflow: hidden;
+		font-size: 13px;
+		font-weight: 650;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	span {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		color: var(--eden-text-secondary);
+		font-size: 11px;
+	}
+}
+
+.eden-accounts__remove {
+	display: grid;
+	width: 30px;
+	height: 30px;
+	flex: 0 0 auto;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: 8px;
+	color: var(--eden-text-secondary);
+	background: transparent;
+	cursor: pointer;
+
+	svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	&:hover {
+		color: var(--eden-error);
+		background: var(--eden-error-soft);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--eden-focus);
+		outline-offset: 2px;
+	}
 }
 </style>

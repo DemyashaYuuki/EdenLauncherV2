@@ -488,6 +488,35 @@ function resetTheme() {
 				</button>
 			</div>
 
+			<div v-if="themeStore.visualTheme === 'error'" class="eden-error-fx-setting">
+				<label class="eden-error-fx-setting__row" for="eden-error-fx-toggle">
+					<span class="eden-icon-tile"><EdenIcon name="glitch" /></span>
+					<span class="eden-error-fx-setting__copy">
+						<strong>Помехи и Glitch</strong>
+						<small>Экранные помехи и декоративная надпись ERROR</small>
+						<span
+							class="eden-error-fx-setting__status"
+							:class="{ 'is-on': themeStore.errorFxEnabled }"
+							aria-live="polite"
+						>
+							{{ themeStore.errorFxEnabled ? 'Эффект включён' : 'Эффект выключен' }}
+						</span>
+					</span>
+					<Toggle
+						id="eden-error-fx-toggle"
+						:model-value="themeStore.errorFxEnabled"
+						@update:model-value="(enabled) => themeStore.setErrorFxEnabled(!!enabled)"
+					/>
+				</label>
+				<p class="eden-error-fx-setting__note">
+					<EdenIcon name="eye" :size="18" />
+					<span>
+						Выключение убирает помехи и надпись, графитовая палитра и фон Error остаются. Параметр
+						действует на весь экран и не связан с эффектами нажатия кнопок.
+					</span>
+				</p>
+			</div>
+
 			<div v-if="themeStore.visualTheme === 'windows10'" class="eden-appearance__panel">
 				<div class="eden-appearance__row">
 					<span class="eden-appearance__row-copy">
@@ -1028,6 +1057,72 @@ function resetTheme() {
 
 .eden-wide-card__trail {
 	color: var(--eden-text-secondary);
+}
+
+.eden-error-fx-setting {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 14px;
+}
+
+.eden-error-fx-setting__row {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+	padding: 18px;
+	border: 1px solid var(--eden-border);
+	border-radius: var(--eden-radius-card);
+	background: var(--eden-surface);
+	cursor: pointer;
+}
+
+.eden-error-fx-setting__copy {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	flex-direction: column;
+	gap: 6px;
+
+	strong {
+		color: var(--eden-text);
+		font-size: 17px;
+		font-weight: 650;
+	}
+
+	small {
+		color: var(--eden-text-secondary);
+		font-size: 13px;
+	}
+}
+
+.eden-error-fx-setting__status {
+	margin-top: 6px;
+	color: var(--eden-text-secondary);
+	font-size: 12px;
+	font-weight: 600;
+
+	&.is-on {
+		color: var(--eden-success);
+	}
+}
+
+.eden-error-fx-setting__note {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	margin: 0;
+	padding: 14px 16px;
+	border-radius: var(--eden-radius-control);
+	color: var(--eden-text-secondary);
+	background: var(--eden-surface-raised);
+	font-size: 12px;
+	line-height: 1.6;
+
+	:deep(.eden-icon) {
+		flex: 0 0 auto;
+		margin-top: 1px;
+	}
 }
 
 .eden-appearance__panel {

@@ -1,26 +1,13 @@
 <script setup lang="ts">
 import type { Labrinth } from '@modrinth/api-client'
-import {
-	ChevronRightIcon,
-	CodeIcon,
-	CoffeeIcon,
-	InfoIcon,
-	MonitorIcon,
-	WrenchIcon,
-} from '@modrinth/assets'
-import {
-	Avatar,
-	commonMessages,
-	defineMessage,
-	TabbedModal,
-	type TabbedModalTab,
-	useVIntl,
-} from '@modrinth/ui'
+import { CodeIcon, CoffeeIcon, InfoIcon, MonitorIcon, WrenchIcon } from '@modrinth/assets'
+import { defineMessage } from '@modrinth/ui'
 import type { PlatformTag } from '@modrinth/utils'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { convertFileSrc } from '@tauri-apps/api/core'
 import { computed, nextTick, ref, watch } from 'vue'
 
+import EdenTabbedModal from '@/components/ui/eden/EdenTabbedModal.vue'
+import type { EdenTab } from '@/components/ui/eden/tabs'
 import GeneralSettings from '@/components/ui/instance_settings/GeneralSettings.vue'
 import HooksSettings from '@/components/ui/instance_settings/HooksSettings.vue'
 import InstallationSettings from '@/components/ui/instance_settings/InstallationSettings.vue'
@@ -34,7 +21,6 @@ import { provideInstanceSettings } from '@/providers/instance-settings'
 
 import type { GameInstance } from '../../../helpers/types'
 
-const { formatMessage } = useVIntl()
 const queryClient = useQueryClient()
 
 const props = defineProps<{
@@ -49,7 +35,7 @@ const isMinecraftServer = ref(false)
 const handleUnlinked = () => emit('unlinked')
 
 const instanceRef = computed(() => props.instance)
-const tabbedModal = ref<InstanceType<typeof TabbedModal> | null>(null)
+const tabbedModal = ref<InstanceType<typeof EdenTabbedModal> | null>(null)
 
 function hide() {
 	tabbedModal.value?.hide()
@@ -80,13 +66,15 @@ watch(
 	{ immediate: true },
 )
 
-const tabs = computed<TabbedModalTab[]>(() => [
+const tabs = computed<EdenTab[]>(() => [
 	{
 		name: defineMessage({
 			id: 'instance.settings.tabs.general',
 			defaultMessage: 'General',
 		}),
 		icon: InfoIcon,
+		description: 'Имя, значок и группы сборки',
+		edenIcon: 'info',
 		content: GeneralSettings,
 	},
 	{
@@ -95,6 +83,8 @@ const tabs = computed<TabbedModalTab[]>(() => [
 			defaultMessage: 'Installation',
 		}),
 		icon: WrenchIcon,
+		description: 'Версия игры, загрузчик и восстановление',
+		edenIcon: 'download',
 		content: InstallationSettings,
 	},
 	{
@@ -103,6 +93,8 @@ const tabs = computed<TabbedModalTab[]>(() => [
 			defaultMessage: 'Window',
 		}),
 		icon: MonitorIcon,
+		description: 'Размер окна Minecraft',
+		edenIcon: 'monitor',
 		content: WindowSettings,
 	},
 	{
@@ -111,6 +103,8 @@ const tabs = computed<TabbedModalTab[]>(() => [
 			defaultMessage: 'Java and memory',
 		}),
 		icon: CoffeeIcon,
+		description: 'Java, память и аргументы запуска',
+		edenIcon: 'memory',
 		content: JavaSettings,
 	},
 	{
@@ -119,6 +113,8 @@ const tabs = computed<TabbedModalTab[]>(() => [
 			defaultMessage: 'Launch hooks',
 		}),
 		icon: CodeIcon,
+		description: 'Команды до запуска, обёртка и после выхода',
+		edenIcon: 'code',
 		content: HooksSettings,
 	},
 ])
@@ -178,24 +174,11 @@ function show(tabIndex?: number) {
 defineExpose({ show, hide })
 </script>
 <template>
-	<TabbedModal
+	<EdenTabbedModal
 		ref="tabbedModal"
 		:tabs="tabs"
-		:max-width="'min(928px, calc(95vw - 10rem))'"
-		:width="'min(928px, calc(95vw - 10rem))'"
-	>
-		<template #title>
-			<span class="flex items-center gap-2 text-lg font-semibold text-primary">
-				<Avatar
-					:src="instance.icon_path ? convertFileSrc(instance.icon_path) : undefined"
-					size="24px"
-					:tint-by="props.instance.id"
-				/>
-				{{ instance.name }} <ChevronRightIcon />
-				<span class="font-extrabold text-contrast">{{
-					formatMessage(commonMessages.settingsLabel)
-				}}</span>
-			</span>
-		</template>
-	</TabbedModal>
+		title="Настройки сборки"
+		:sidebar-caption="instance.name"
+		footer-note="Изменения относятся только к этой сборке"
+	/>
 </template>
