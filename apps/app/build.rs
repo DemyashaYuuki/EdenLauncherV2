@@ -134,6 +134,48 @@ fn main() {
                     ),
             )
             .plugin(
+                "skin-studio",
+                InlinedPlugin::new()
+                    .commands(&[
+                        "skin_studio_library_info",
+                        "skin_studio_set_library_root",
+                        "skin_studio_list",
+                        "skin_studio_read",
+                        "skin_studio_write",
+                        "skin_studio_create_folder",
+                        "skin_studio_rename",
+                        "skin_studio_copy",
+                        "skin_studio_trash",
+                        "skin_studio_list_trash",
+                        "skin_studio_restore",
+                        "skin_studio_purge_trash",
+                        "skin_studio_recovery_put",
+                        "skin_studio_recovery_list",
+                        "skin_studio_recovery_get",
+                        "skin_studio_recovery_delete",
+                        "skin_studio_read_dropped",
+                        "skin_studio_apply_microsoft",
+                        "skin_studio_microsoft_capes",
+                        "skin_studio_set_microsoft_cape",
+                        "skin_bridge_status",
+                        "skin_bridge_set_endpoint",
+                        "skin_bridge_health",
+                        "skin_bridge_pair_start",
+                        "skin_bridge_pair_poll",
+                        "skin_bridge_pair_finalize",
+                        "skin_bridge_pair_cancel",
+                        "skin_bridge_unlink",
+                        "skin_bridge_apply_skin",
+                        "skin_bridge_job",
+                        "skin_bridge_cancel_job",
+                        "skin_bridge_looks",
+                        "skin_bridge_apply_look",
+                    ])
+                    .default_permission(
+                        DefaultPermissionRule::AllowAllCommands,
+                    ),
+            )
+            .plugin(
                 "mr-auth",
                 InlinedPlugin::new()
                     .commands(&[

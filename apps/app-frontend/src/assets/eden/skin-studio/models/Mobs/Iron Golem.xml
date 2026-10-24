@@ -1,0 +1,138 @@
+<Techne Version="2.2">
+	<Author>Mojang</Author>
+	<DateCreated />
+	<Description>Compiled from Minecraft source. Mojang pls don't sue :(</Description>
+	<Models>
+		<Model Texture="none.png">
+			<BaseClass>ModelBase</BaseClass>
+			<Name>Iron Golem</Name>
+			<DefaultTexture />
+			<Geometry>
+				<Folder Type="f8bf7d5b-37bf-455b-93f9-b6f9e81620e1" Name="Model">
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Head">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-4,-12,-5.5</Offset>
+						<Position>0,-7,-2</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>8,10,8</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>Head</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Nose">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,-5,-7.5</Offset>
+						<Position>0,-7,-2</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>2,4,2</Size>
+						<TextureOffset>24,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>Head</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Chest">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-9,-2,-6</Offset>
+						<Position>0,-7,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>18,12,11</Size>
+						<TextureOffset>0,40</TextureOffset>
+						<Scale>0</Scale>
+						<Part>Chest</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Waist">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-4.5,10,-3</Offset>
+						<Position>0,-7,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>9,5,6</Size>
+						<TextureOffset>0,70</TextureOffset>
+						<Scale>0.5</Scale>
+						<Part>Chest</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Right Arm">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-13,-2.5,-3</Offset>
+						<Position>0,-7,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>4,30,6</Size>
+						<TextureOffset>60,21</TextureOffset>
+						<Scale>0</Scale>
+						<Part>RightArm</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Left Arm">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>9,-2.5,-3</Offset>
+						<Position>0,-7,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>4,30,6</Size>
+						<TextureOffset>60,58</TextureOffset>
+						<Scale>0</Scale>
+						<Part>LeftArm</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Right Leg">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-3.5,-3,-3</Offset>
+						<Position>-4,11,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>6,16,5</Size>
+						<TextureOffset>37,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>RightLeg</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Left Leg">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>True</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-3.5,-3,-3</Offset>
+						<Position>5,11,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>6,16,5</Size>
+						<TextureOffset>60,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>LeftLeg</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+				</Folder>
+			</Geometry>
+			<TextureSize>128,128</TextureSize>
+		</Model>
+	</Models>
+	<Name>Iron Golem</Name>
+</Techne>

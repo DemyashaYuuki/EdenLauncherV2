@@ -1,0 +1,17 @@
+name: EdenSkinBridge
+version: '${version}'
+main: fun.edenworld.skinbridge.paper.EdenSkinBridgePlugin
+api-version: '1.21'
+description: Applies skins from EdenLauncher Skin Studio through SkinsRestorer after in-game linking.
+authors: [EdenWorld]
+softdepend: [SkinsRestorer, nLogin]
+commands:
+  edenstudio:
+    description: Link EdenLauncher Skin Studio to your player
+    usage: /edenstudio <link|confirm|deny|unlink>
+    permission: edenstudio.use
+permissions:
+  edenstudio.use:
+    default: true
+  edenstudio.admin:
+    default: op

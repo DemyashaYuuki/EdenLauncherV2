@@ -17,6 +17,7 @@ const sections = [
 	{ title: 'Библиотека', hint: 'Раздел', path: '/library' },
 	{ title: 'Каталог', hint: 'Раздел', path: '/browse/modpack' },
 	{ title: 'Скины', hint: 'Раздел', path: '/skins' },
+	{ title: 'Мастерская скинов', hint: 'Раздел', path: '/skin-studio' },
 	{ title: 'Друзья', hint: 'Раздел', path: '/friends' },
 	{ title: 'Загрузки', hint: 'Раздел', path: '/downloads' },
 ]

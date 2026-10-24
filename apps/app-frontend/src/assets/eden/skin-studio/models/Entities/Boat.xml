@@ -1,0 +1,168 @@
+<Techne Version="2.2">
+	<Author>Mojang</Author>
+	<DateCreated />
+	<Description>Compiled from Minecraft source. Mojang pls don't sue :(</Description>
+	<Models>
+		<Model Texture="none.png">
+			<BaseClass>ModelBase</BaseClass>
+			<Name>Boat</Name>
+			<DefaultTexture />
+			<Geometry>
+				<Folder Type="f8bf7d5b-37bf-455b-93f9-b6f9e81620e1" Name="Model">
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Bottom">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-14,-9,-3</Offset>
+						<Position>0,3,1</Position>
+						<Rotation>90,0,0</Rotation>
+						<Size>28,16,3</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Back">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-13,-7,-1</Offset>
+						<Position>-15,4,4</Position>
+						<Rotation>0,270,0</Rotation>
+						<Size>18,6,2</Size>
+						<TextureOffset>0,19</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Front">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-8,-7,-1</Offset>
+						<Position>15,4,0</Position>
+						<Rotation>0,90,0</Rotation>
+						<Size>16,6,2</Size>
+						<TextureOffset>0,27</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Right">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-14,-7,-1</Offset>
+						<Position>0,4,-9</Position>
+						<Rotation>0,180,0</Rotation>
+						<Size>28,6,2</Size>
+						<TextureOffset>0,35</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Left">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-14,-7,-1</Offset>
+						<Position>0,4,9</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>28,6,2</Size>
+						<TextureOffset>0,43</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Oar handle">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,0,-5</Offset>
+						<Position>3,-5,9</Position>
+						<Rotation>0,0,11.25</Rotation>
+						<Size>2,2,18</Size>
+						<TextureOffset>62,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Oar head">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1.001,-3,8</Offset>
+						<Position>3,-5,9</Position>
+						<Rotation>0,0,11.25</Rotation>
+						<Size>1,6,7</Size>
+						<TextureOffset>62,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Oar handle">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,0,-5</Offset>
+						<Position>3,-5,-9</Position>
+						<Rotation>0,180,11.25</Rotation>
+						<Size>2,2,18</Size>
+						<TextureOffset>62,20</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Oar head">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>0.001,-3,8</Offset>
+						<Position>3,-5,-9</Position>
+						<Rotation>0,180,11.25</Rotation>
+						<Size>1,6,7</Size>
+						<TextureOffset>62,20</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Depth box">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-14,-9,-3</Offset>
+						<Position>0,-3,1</Position>
+						<Rotation>90,0,0</Rotation>
+						<Size>28,16,3</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>True</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+				</Folder>
+			</Geometry>
+			<TextureSize>128,64</TextureSize>
+		</Model>
+	</Models>
+	<Name>Boat</Name>
+</Techne>

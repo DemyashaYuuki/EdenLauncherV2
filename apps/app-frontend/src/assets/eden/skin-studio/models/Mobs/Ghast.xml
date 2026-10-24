@@ -1,0 +1,168 @@
+<Techne Version="2.2">
+	<Author>Mojang</Author>
+	<DateCreated />
+	<Description>Compiled from Minecraft source. Mojang pls don't sue :(</Description>
+	<Models>
+		<Model Texture="none.png">
+			<BaseClass>ModelBase</BaseClass>
+			<Name>Ghast</Name>
+			<DefaultTexture />
+			<Geometry>
+				<Folder Type="f8bf7d5b-37bf-455b-93f9-b6f9e81620e1" Name="Model">
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Body">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-8,-8,-8</Offset>
+						<Position>0,8,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>16,16,16</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>Chest</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Tentacle">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,0,-1</Offset>
+						<Position>-3.75,15,-5</Position>
+						<Rotation>22.91831,0,0</Rotation>
+						<Size>2,14,2</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>LeftLeg</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Tentacle">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,0,-1</Offset>
+						<Position>1.25,15,-5</Position>
+						<Rotation>32.56086,0,0</Rotation>
+						<Size>2,14,2</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>LeftLeg</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Tentacle">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,0,-1</Offset>
+						<Position>6.25,15,-5</Position>
+						<Rotation>33.33809,0,0</Rotation>
+						<Size>2,8,2</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>LeftLeg</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Tentacle">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,0,-1</Offset>
+						<Position>-6.25,15,0</Position>
+						<Rotation>24.53543,0,0</Rotation>
+						<Size>2,14,2</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>LeftLeg</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Tentacle">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,0,-1</Offset>
+						<Position>-1.25,15,0</Position>
+						<Rotation>14.24599,0,0</Rotation>
+						<Size>2,12,2</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>LeftLeg</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Tentacle">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,0,-1</Offset>
+						<Position>3.75,15,0</Position>
+						<Rotation>11.92985,0,0</Rotation>
+						<Size>2,9,2</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>LeftLeg</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Tentacle">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,0,-1</Offset>
+						<Position>-3.75,15,5</Position>
+						<Rotation>19.71644,0,0</Rotation>
+						<Size>2,12,2</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>LeftLeg</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Tentacle">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,0,-1</Offset>
+						<Position>1.25,15,5</Position>
+						<Rotation>30.44682,0,0</Rotation>
+						<Size>2,9,2</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>LeftLeg</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Tentacle">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,0,-1</Offset>
+						<Position>6.25,15,5</Position>
+						<Rotation>34.25552,0,0</Rotation>
+						<Size>2,10,2</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>LeftLeg</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+				</Folder>
+			</Geometry>
+			<TextureSize>64,32</TextureSize>
+		</Model>
+	</Models>
+	<Name>Ghast</Name>
+</Techne>

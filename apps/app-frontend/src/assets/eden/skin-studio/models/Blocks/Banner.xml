@@ -1,0 +1,63 @@
+<Techne Version="2.2">
+	<Author>Mojang</Author>
+	<DateCreated />
+	<Description>Compiled from Minecraft source. Mojang pls don't sue :(</Description>
+	<Models>
+		<Model Texture="none.png">
+			<BaseClass>ModelBase</BaseClass>
+			<Name>Banner</Name>
+			<DefaultTexture />
+			<Geometry>
+				<Folder Type="f8bf7d5b-37bf-455b-93f9-b6f9e81620e1" Name="Model">
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Slate">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-10,0,-2</Offset>
+						<Position>0,-32,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>20,40,1</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Stand">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-1,-30,-1</Offset>
+						<Position>0,0,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>2,42,2</Size>
+						<TextureOffset>44,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Top">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-10,-32,-1</Offset>
+						<Position>0,0,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>20,2,2</Size>
+						<TextureOffset>0,42</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+				</Folder>
+			</Geometry>
+			<TextureSize>64,64</TextureSize>
+		</Model>
+	</Models>
+	<Name>Banner</Name>
+</Techne>

@@ -1,0 +1,238 @@
+{
+  "format": "minecraft-java",
+  "width": 64,
+  "height": 64,
+  "coordinateOrigin": "top-left",
+  "model": "classic",
+  "baseFaces": {
+    "head": {
+      "front": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "back": [
+        24,
+        8,
+        8,
+        8
+      ],
+      "right": [
+        0,
+        8,
+        8,
+        8
+      ],
+      "left": [
+        16,
+        8,
+        8,
+        8
+      ],
+      "top": [
+        8,
+        0,
+        8,
+        8
+      ],
+      "bottom": [
+        16,
+        0,
+        8,
+        8
+      ]
+    },
+    "body": {
+      "front": [
+        20,
+        20,
+        8,
+        12
+      ],
+      "back": [
+        32,
+        20,
+        8,
+        12
+      ],
+      "right": [
+        16,
+        20,
+        4,
+        12
+      ],
+      "left": [
+        28,
+        20,
+        4,
+        12
+      ],
+      "top": [
+        20,
+        16,
+        8,
+        4
+      ],
+      "bottom": [
+        28,
+        16,
+        8,
+        4
+      ]
+    },
+    "rightArm": {
+      "front": [
+        44,
+        20,
+        4,
+        12
+      ],
+      "back": [
+        52,
+        20,
+        4,
+        12
+      ],
+      "right": [
+        40,
+        20,
+        4,
+        12
+      ],
+      "left": [
+        48,
+        20,
+        4,
+        12
+      ],
+      "top": [
+        44,
+        16,
+        4,
+        4
+      ],
+      "bottom": [
+        48,
+        16,
+        4,
+        4
+      ]
+    },
+    "leftArm": {
+      "front": [
+        36,
+        52,
+        4,
+        12
+      ],
+      "back": [
+        44,
+        52,
+        4,
+        12
+      ],
+      "right": [
+        32,
+        52,
+        4,
+        12
+      ],
+      "left": [
+        40,
+        52,
+        4,
+        12
+      ],
+      "top": [
+        36,
+        48,
+        4,
+        4
+      ],
+      "bottom": [
+        40,
+        48,
+        4,
+        4
+      ]
+    },
+    "rightLeg": {
+      "front": [
+        4,
+        20,
+        4,
+        12
+      ],
+      "back": [
+        12,
+        20,
+        4,
+        12
+      ],
+      "right": [
+        0,
+        20,
+        4,
+        12
+      ],
+      "left": [
+        8,
+        20,
+        4,
+        12
+      ],
+      "top": [
+        4,
+        16,
+        4,
+        4
+      ],
+      "bottom": [
+        8,
+        16,
+        4,
+        4
+      ]
+    },
+    "leftLeg": {
+      "front": [
+        20,
+        52,
+        4,
+        12
+      ],
+      "back": [
+        28,
+        52,
+        4,
+        12
+      ],
+      "right": [
+        16,
+        52,
+        4,
+        12
+      ],
+      "left": [
+        24,
+        52,
+        4,
+        12
+      ],
+      "top": [
+        20,
+        48,
+        4,
+        4
+      ],
+      "bottom": [
+        24,
+        48,
+        4,
+        4
+      ]
+    }
+  },
+  "note": "Right/left refer to the character, not the viewer. Outer-layer layouts require their own offsets. Slim arms are 3 px wide and must not reuse this classic arm map."
+}

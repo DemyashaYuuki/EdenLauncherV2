@@ -17,6 +17,7 @@ pub mod process;
 pub mod reports;
 pub mod settings;
 pub mod shortcuts;
+pub mod skin_studio;
 pub mod tags;
 pub mod users;
 pub mod utils;

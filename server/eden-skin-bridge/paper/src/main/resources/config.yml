@@ -1,0 +1,44 @@
+# EdenSkinBridge — backend (Purpur/Paper) configuration.
+# The HTTP API binds to loopback by default. Publish it only through a TLS reverse proxy
+# (see docs/INSTALL.md). Never expose plain HTTP to the internet.
+http:
+  host: 127.0.0.1
+  port: 8787
+  # Addresses of your reverse proxy. Only requests from these addresses may use X-Forwarded-For.
+  trusted-proxies:
+    - 127.0.0.1
+    - ::1
+
+auth:
+  # nlogin  — current season: nLogin on this server (native or proxy implementation).
+  # proxy   — next season: VeloAuth on Velocity, answered by the EdenSkinBridge Velocity companion.
+  # auto    — nlogin when the nLogin plugin is present, otherwise proxy.
+  adapter: auto
+  # For the proxy adapter: refuse to work unless Velocity modern forwarding is enabled here.
+  require-velocity-forwarding: true
+
+proxy:
+  # Same base64 secret (32+ random bytes) as in plugins/edenskinbridge/config.properties on every
+  # Velocity proxy. Keep it private. Generate with: openssl rand -base64 32
+  shared-secret: ""
+  # The name of THIS backend in velocity.toml [servers] (for example "main").
+  server-name: "main"
+
+skins:
+  # Successful skin changes allowed per player per hour.
+  max-requests-per-hour: 10
+
+pairing:
+  code-ttl-seconds: 300
+
+tokens:
+  max-per-player: 5
+  idle-expiry-days: 180
+
+# Ready signed looks that include a cape. Each "skin" is the name of a custom skin already stored
+# in SkinsRestorer (for example created with /sr createcustom). Arbitrary PNG capes are not
+# supported by vanilla clients and cannot be listed here.
+looks: []
+#  - id: founder
+#    label: "Основатель"
+#    skin: eden_founder

@@ -67,6 +67,7 @@ type EdenIconName =
 	| 'settings'
 	| 'shield'
 	| 'shirt'
+	| 'studio'
 	| 'sun'
 	| 'user'
 	| 'users'

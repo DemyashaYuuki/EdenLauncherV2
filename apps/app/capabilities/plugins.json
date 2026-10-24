@@ -2,7 +2,9 @@
 	"identifier": "plugins",
 	"description": "",
 	"local": true,
-	"windows": ["main"],
+	"windows": [
+		"main"
+	],
 	"permissions": [
 		"dialog:allow-open",
 		"dialog:allow-confirm",
@@ -93,6 +95,15 @@
 				},
 				{
 					"url": "https://*.taila228c5.ts.net/*"
+				},
+				{
+					"url": "https://sessionserver.mojang.com/*"
+				},
+				{
+					"url": "https://textures.minecraft.net/*"
+				},
+				{
+					"url": "https://skinsystem.ely.by/*"
 				}
 			]
 		},
@@ -138,6 +149,7 @@
 		"logs:default",
 		"metadata:default",
 		"minecraft-skins:default",
+		"skin-studio:default",
 		"mr-auth:default",
 		"instance:default",
 		"install:default",

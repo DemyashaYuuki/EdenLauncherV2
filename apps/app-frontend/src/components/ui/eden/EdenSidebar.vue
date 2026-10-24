@@ -24,7 +24,7 @@ const downloads = useEdenDownloads()
 type NavItem = {
 	id: string
 	label: string
-	icon: 'home' | 'library' | 'compass' | 'shirt' | 'users'
+	icon: 'home' | 'library' | 'compass' | 'shirt' | 'studio' | 'users'
 	to: string
 	active: (current: RouteLocationNormalizedLoaded) => boolean
 }
@@ -49,6 +49,13 @@ const navItems: NavItem[] = [
 		active: (r) => (r.path.startsWith('/browse') || r.path.startsWith('/project')) && !r.query.i,
 	},
 	{ id: 'skins', label: 'Скины', icon: 'shirt', to: '/skins', active: (r) => r.path === '/skins' },
+	{
+		id: 'skin-studio',
+		label: 'Мастерская',
+		icon: 'studio',
+		to: '/skin-studio',
+		active: (r) => r.path.startsWith('/skin-studio'),
+	},
 	{
 		id: 'friends',
 		label: 'Друзья',

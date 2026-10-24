@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - codex/eden-2.10-validation
   workflow_dispatch:
 
 permissions:
@@ -14,6 +15,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  studio-checks:
+    name: Skin Studio engine and server bridge
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+      - name: Test editor engine
+        run: node --experimental-strip-types --test apps/app-frontend/tests/skin-studio/*.test.ts
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Build and test server bridge
+        working-directory: server/eden-skin-bridge
+        run: bash gradlew build --no-daemon --console=plain
+      - name: Upload server bridge packages and test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: EdenSkinBridge
+          path: |
+            server/eden-skin-bridge/paper/build/libs/EdenSkinBridge-Paper-*.jar
+            server/eden-skin-bridge/velocity/build/libs/EdenSkinBridge-Velocity-*.jar
+            server/eden-skin-bridge/*/build/test-results/test/*.xml
+          if-no-files-found: error
+
   build-windows:
     name: Windows x86_64 installer
     runs-on: windows-latest
@@ -72,6 +101,10 @@ jobs:
               }
             }
           }
+
+      - name: Apply release lockfile metadata
+        shell: pwsh
+        run: Copy-Item -LiteralPath 'Cargo.lock' -Destination 'source/Cargo.lock' -Force
 
       - name: Download EdenWorld branding
         shell: pwsh
@@ -189,6 +222,7 @@ jobs:
         run: |
           cp -a apps/. source/apps/
           cp -a packages/. source/packages/
+          cp Cargo.lock source/Cargo.lock
           rm -f source/apps/app-frontend/src/assets/astralrinth-app.svg
           rm -f source/apps/app-frontend/src/components/ui/settings/astralrinth/AstralRinthSettingsPage.vue
 
@@ -251,9 +285,11 @@ jobs:
           if-no-files-found: error
 
   publish:
+    if: github.ref == 'refs/heads/main'
     name: Publish EdenLauncher release
     runs-on: ubuntu-latest
     needs:
+      - studio-checks
       - build-windows
       - build-linux
 
@@ -272,7 +308,7 @@ jobs:
         run: |
           VERSION="$(node -p "require('./apps/app-frontend/package.json').version")"
           TAG="v${VERSION}"
-          NOTES='EdenLauncher 2.9.1: обновлённые настройки и вход в аккаунты; сохраняемый переключатель помех и Glitch в Error / Signal. Windows: встроен официальный WebView2 bootstrapper с проверкой подписи Microsoft при сборке и проверкой байтов в установщике; исправлены служебные метаданные версии приложения; убран ненужный ExecutionPolicy Bypass из помощника обновления. Установка WebView2 требует интернета, если Runtime ещё отсутствует. Сертификат для подписи самого лаунчера не покупался. Приложены протокол Windows-проверок и SHA256SUMS.txt. Обновление не гарантирует исчезновения всех предупреждений песочниц.'
+          NOTES='EdenLauncher 2.10.0: обновлённые настройки и вход в аккаунты; сохраняемый переключатель помех и Glitch в Error / Signal. Windows: встроен официальный WebView2 bootstrapper с проверкой подписи Microsoft при сборке и проверкой байтов в установщике; исправлены служебные метаданные версии приложения; убран ненужный ExecutionPolicy Bypass из помощника обновления. Установка WebView2 требует интернета, если Runtime ещё отсутствует. Сертификат для подписи самого лаунчера не покупался. Приложены протокол Windows-проверок и SHA256SUMS.txt. Обновление не гарантирует исчезновения всех предупреждений песочниц.'
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "EdenLauncher $TAG" --notes "$NOTES" --latest

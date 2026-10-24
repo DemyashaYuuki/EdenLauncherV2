@@ -1,0 +1,108 @@
+<Techne Version="2.2">
+	<Author>Mojang</Author>
+	<DateCreated />
+	<Description>Compiled from Minecraft source. Mojang pls don't sue :(</Description>
+	<Models>
+		<Model Texture="none.png">
+			<BaseClass>ModelBase</BaseClass>
+			<Name>Sheep (Wool)</Name>
+			<DefaultTexture />
+			<Geometry>
+				<Folder Type="f8bf7d5b-37bf-455b-93f9-b6f9e81620e1" Name="Model">
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Head">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-3,-4,-4</Offset>
+						<Position>0,6,-8</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>6,6,6</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0.6</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Body">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-4,-10,-7</Offset>
+						<Position>0,5,2</Position>
+						<Rotation>90,0,0</Rotation>
+						<Size>8,16,6</Size>
+						<TextureOffset>28,8</TextureOffset>
+						<Scale>1.75</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Back Right Leg">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-2,0,-2</Offset>
+						<Position>-3,12,7</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>4,6,4</Size>
+						<TextureOffset>0,16</TextureOffset>
+						<Scale>0.5</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Back Left Leg">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-2,0,-2</Offset>
+						<Position>3,12,7</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>4,6,4</Size>
+						<TextureOffset>0,16</TextureOffset>
+						<Scale>0.5</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Front Right Leg">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-2,0,-2</Offset>
+						<Position>-3,12,-5</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>4,6,4</Size>
+						<TextureOffset>0,16</TextureOffset>
+						<Scale>0.5</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Back Left Leg">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-2,0,-2</Offset>
+						<Position>3,12,-5</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>4,6,4</Size>
+						<TextureOffset>0,16</TextureOffset>
+						<Scale>0.5</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+				</Folder>
+			</Geometry>
+			<TextureSize>64,32</TextureSize>
+		</Model>
+	</Models>
+	<Name>Sheep (Wool)</Name>
+</Techne>

@@ -1,0 +1,153 @@
+<Techne Version="2.2">
+	<Author>Mojang</Author>
+	<DateCreated />
+	<Description>Compiled from Minecraft source. Mojang pls don't sue :(</Description>
+	<Models>
+		<Model Texture="none.png">
+			<BaseClass>ModelBase</BaseClass>
+			<Name>Wither</Name>
+			<DefaultTexture />
+			<Geometry>
+				<Folder Type="f8bf7d5b-37bf-455b-93f9-b6f9e81620e1" Name="Model">
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Neck">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-10,3.9,-0.5</Offset>
+						<Position>0,0,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>20,3,3</Size>
+						<TextureOffset>0,16</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Spine">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>0,0,0</Offset>
+						<Position>-2,6.9,-0.5</Position>
+						<Rotation>20.7,0,0</Rotation>
+						<Size>3,10,3</Size>
+						<TextureOffset>0,22</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Spine Bit">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-4,1.5,0.5</Offset>
+						<Position>-2,6.9,-0.5</Position>
+						<Rotation>20.7,0,0</Rotation>
+						<Size>11,2,2</Size>
+						<TextureOffset>24,22</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Spine Bit">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-4,4,0.5</Offset>
+						<Position>-2,6.9,-0.5</Position>
+						<Rotation>20.7,0,0</Rotation>
+						<Size>11,2,2</Size>
+						<TextureOffset>24,22</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Spine Bit">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-4,6.5,0.5</Offset>
+						<Position>-2,6.9,-0.5</Position>
+						<Rotation>20.7,0,0</Rotation>
+						<Size>11,2,2</Size>
+						<TextureOffset>24,22</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Tail">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>0,0,0</Offset>
+						<Position>-2,16.25444,3.034749</Position>
+						<Rotation>65.7,0,0</Rotation>
+						<Size>3,6,3</Size>
+						<TextureOffset>12,22</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Head Middle">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-4,-4,-4</Offset>
+						<Position>0,0,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>8,8,8</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Head Right">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-4,-4,-4</Offset>
+						<Position>-8,4,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>6,6,6</Size>
+						<TextureOffset>32,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Head Left">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-4,-4,-4</Offset>
+						<Position>10,4,0</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>6,6,6</Size>
+						<TextureOffset>32,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+				</Folder>
+			</Geometry>
+			<TextureSize>64,64</TextureSize>
+		</Model>
+	</Models>
+	<Name>Wither</Name>
+</Techne>

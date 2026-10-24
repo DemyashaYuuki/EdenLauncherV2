@@ -27,6 +27,11 @@ export default new createRouter({
 			component: Pages.Skins,
 		},
 		{
+			path: '/skin-studio',
+			name: 'Skin Studio',
+			component: Pages.SkinStudio,
+		},
+		{
 			path: '/friends',
 			name: 'Friends',
 			component: Pages.Friends,

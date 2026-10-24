@@ -1,0 +1,183 @@
+<Techne Version="2.2">
+	<Author>Mojang</Author>
+	<DateCreated />
+	<Description>Compiled from Minecraft source. Mojang pls don't sue :(</Description>
+	<Models>
+		<Model Texture="none.png">
+			<BaseClass>ModelBase</BaseClass>
+			<Name>Wolf</Name>
+			<DefaultTexture />
+			<Geometry>
+				<Folder Type="f8bf7d5b-37bf-455b-93f9-b6f9e81620e1" Name="Model">
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Head">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-2,-3,-2</Offset>
+						<Position>-1,13.5,-7</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>6,6,4</Size>
+						<TextureOffset>0,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>Head</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Ear Right">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-2,-5,0</Offset>
+						<Position>-1,13.5,-7</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>2,2,1</Size>
+						<TextureOffset>16,14</TextureOffset>
+						<Scale>0</Scale>
+						<Part>Head</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Ear Left">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>2,-5,0</Offset>
+						<Position>-1,13.5,-7</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>2,2,1</Size>
+						<TextureOffset>16,14</TextureOffset>
+						<Scale>0</Scale>
+						<Part>Head</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Snout">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-0.5,0,-5</Offset>
+						<Position>-1,13.5,-7</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>3,3,4</Size>
+						<TextureOffset>0,10</TextureOffset>
+						<Scale>0</Scale>
+						<Part>Head</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Body">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-3,-2,-3</Offset>
+						<Position>0,14,2</Position>
+						<Rotation>90,0,0</Rotation>
+						<Size>6,9,6</Size>
+						<TextureOffset>18,14</TextureOffset>
+						<Scale>0</Scale>
+						<Part>Chest</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Mane">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>-3,-3,-3</Offset>
+						<Position>-1,14,-3</Position>
+						<Rotation>90,0,0</Rotation>
+						<Size>8,6,7</Size>
+						<TextureOffset>21,0</TextureOffset>
+						<Scale>0</Scale>
+						<Part>Head</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Back Right Leg">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>0,0,-1</Offset>
+						<Position>-2.5,16,7</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>2,8,2</Size>
+						<TextureOffset>0,18</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Back Left Leg">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>0,0,-1</Offset>
+						<Position>0.5,16,7</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>2,8,2</Size>
+						<TextureOffset>0,18</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Front Right Leg">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>0,0,-1</Offset>
+						<Position>-2.5,16,-4</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>2,8,2</Size>
+						<TextureOffset>0,18</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Front Left Leg">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>0,0,-1</Offset>
+						<Position>0.5,16,-4</Position>
+						<Rotation>0,0,0</Rotation>
+						<Size>2,8,2</Size>
+						<TextureOffset>0,18</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+					<Shape Type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" Name="Tail">
+						<IsDecorative>False</IsDecorative>
+						<IsFixed>False</IsFixed>
+						<IsMirrored>False</IsMirrored>
+						<IsSolid>False</IsSolid>
+						<Offset>0,0,-1</Offset>
+						<Position>-1,12,8</Position>
+						<Rotation>57295.78,0,0</Rotation>
+						<Size>2,8,2</Size>
+						<TextureOffset>9,18</TextureOffset>
+						<Scale>0</Scale>
+						<Part>None</Part>
+						<Hidden>False</Hidden>
+						<IsArmor>False</IsArmor>
+					</Shape>
+				</Folder>
+			</Geometry>
+			<TextureSize>64,32</TextureSize>
+		</Model>
+	</Models>
+	<Name>Wolf</Name>
+</Techne>
