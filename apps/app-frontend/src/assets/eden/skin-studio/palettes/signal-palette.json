@@ -1,13 +1,4 @@
 {
-  "name": "signal",
-  "colors": [
-    "#110D15",
-    "#F0A1DA",
-    "#82E8DA",
-    "#CCDAE2",
-    "#CEAFCA",
-    "#594466",
-    "#FF9FAD",
-    "#FCEDF7"
-  ]
+	"name": "signal",
+	"colors": ["#110D15", "#F0A1DA", "#82E8DA", "#CCDAE2", "#CEAFCA", "#594466", "#FF9FAD", "#FCEDF7"]
 }

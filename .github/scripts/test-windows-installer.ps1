@@ -71,6 +71,11 @@ Add-Result 'NSIS fresh application installation' @{ ExitCode = $exitCode; Binary
 Test-Launch $app 'NSIS application launch'
 
 $markerPaths = @((Join-Path $env:APPDATA 'fun.edenworld.launcher\profiles\AuditFixture\preserve.txt'), (Join-Path $env:LOCALAPPDATA 'fun.edenworld.launcher\audit-preserve.txt'))
+$markerPaths += @(
+	(Join-Path $env:APPDATA 'fun.edenworld.launcher\skin-studio\library\InstallerFixture.edenskin'),
+	(Join-Path $env:APPDATA 'fun.edenworld.launcher\skin-studio\recovery\doc-installer-fixture.edenskin'),
+	(Join-Path $env:APPDATA 'fun.edenworld.launcher\skin-studio\bridge.json')
+)
 $markerText = 'EdenLauncher installer preservation fixture ' + [guid]::NewGuid().ToString('N')
 foreach ($marker in $markerPaths) { New-Item -ItemType Directory -Force -Path (Split-Path $marker) | Out-Null; [IO.File]::WriteAllText($marker, $markerText) }
 function Assert-DataPreserved([string]$Name) {

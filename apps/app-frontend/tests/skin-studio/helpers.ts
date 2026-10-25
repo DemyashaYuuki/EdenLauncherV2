@@ -24,7 +24,13 @@ export function pngChunk(type: string, data: Uint8Array | number[]): Uint8Array 
 	return new Uint8Array([...u32(data.length), ...body, ...u32(crc32(body))])
 }
 
-export function ihdr(width: number, height: number, depth: number, colorType: number, interlace = 0) {
+export function ihdr(
+	width: number,
+	height: number,
+	depth: number,
+	colorType: number,
+	interlace = 0,
+) {
 	return pngChunk('IHDR', [...u32(width), ...u32(height), depth, colorType, 0, 0, interlace])
 }
 

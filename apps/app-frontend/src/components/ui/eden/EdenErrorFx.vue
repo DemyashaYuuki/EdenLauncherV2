@@ -14,6 +14,7 @@ import { useTheming } from '@/store/state'
  * They never take pointer events or focus and sit below dialogs.
  */
 const themeStore = useTheming()
+defineProps<{ editorActive?: boolean }>()
 const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 const roomForWordmark = useMediaQuery('(min-width: 1100px) and (min-height: 640px)')
 
@@ -23,7 +24,7 @@ const wordmark = computed(() => (still.value ? wordmarkStill : wordmarkAnimated)
 </script>
 
 <template>
-	<div v-if="themeStore.errorFxActive" class="eden-error-fx" aria-hidden="true">
+	<div v-if="themeStore.errorFxActive" class="eden-error-fx" :class="{ 'eden-error-fx--studio': editorActive }" aria-hidden="true">
 		<div class="eden-error-fx__scanlines"></div>
 		<div class="eden-error-fx__grain" :style="{ backgroundImage: `url(${grainTexture})` }"></div>
 		<img class="eden-error-fx__interference" :src="interference" alt="" draggable="false" />
@@ -50,6 +51,11 @@ const wordmark = computed(() => (still.value ? wordmarkStill : wordmarkAnimated)
 .eden-error-fx > * {
 	position: absolute;
 	pointer-events: none;
+}
+
+.eden-error-fx--studio {
+	bottom: auto;
+	height: calc(var(--eden-titlebar-height, 48px) + 100px);
 }
 
 .eden-error-fx__scanlines {

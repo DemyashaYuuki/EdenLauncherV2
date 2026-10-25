@@ -9,7 +9,7 @@ import { StudioScene } from '@/skin-studio/render/scene'
 import { useSkinStudio } from '@/skin-studio/store'
 
 const props = defineProps<{ themeBackground: string }>()
-const emit = defineEmits<{ (event: 'screenshot'): void; (event: 'popout'): void }>()
+const emit = defineEmits<{ (event: 'screenshot' | 'popout'): void }>()
 
 const studio = useSkinStudio()
 const t = useStudioText()
@@ -52,7 +52,10 @@ function createScene(): void {
 
 function applyOptions(): void {
 	scene.value?.setOptions({
-		background: studio.prefs.backgroundMode === 'color' ? studio.prefs.backgroundColor : props.themeBackground,
+		background:
+			studio.prefs.backgroundMode === 'color'
+				? studio.prefs.backgroundColor
+				: props.themeBackground,
 		grass: studio.prefs.grass,
 		lighting: studio.prefs.lighting,
 		animate: studio.prefs.animate,
@@ -91,7 +94,10 @@ useResizeObserver(host, (entries) => {
 function ndc(event: PointerEvent | MouseEvent): [number, number] {
 	const rect = canvas.value?.getBoundingClientRect()
 	if (!rect) return [0, 0]
-	return [((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1]
+	return [
+		((event.clientX - rect.left) / rect.width) * 2 - 1,
+		-((event.clientY - rect.top) / rect.height) * 2 + 1,
+	]
 }
 
 function pickAt(event: PointerEvent) {
@@ -106,8 +112,16 @@ function onPointerDown(event: PointerEvent): void {
 	const c = canvas.value
 	if (!c || !scene.value) return
 	c.focus()
-	if (event.button === 2 || event.button === 1 || (event.button === 0 && studio.tool === 'camera')) {
-		drag = { mode: event.button === 1 || (event.button === 2 && event.shiftKey) ? 'pan' : 'orbit', x: event.clientX, y: event.clientY }
+	if (
+		event.button === 2 ||
+		event.button === 1 ||
+		(event.button === 0 && studio.tool === 'camera')
+	) {
+		drag = {
+			mode: event.button === 1 || (event.button === 2 && event.shiftKey) ? 'pan' : 'orbit',
+			x: event.clientX,
+			y: event.clientY,
+		}
 		c.setPointerCapture(event.pointerId)
 		return
 	}
@@ -121,7 +135,12 @@ function onPointerDown(event: PointerEvent): void {
 	lastNdc = ndc(event)
 	const started = painter.begin(
 		{ x: hit.x, y: hit.y, box: hit.box, face: hit.face },
-		{ secondary: event.shiftKey, invert: event.shiftKey, sample: event.altKey, lockFace: event.ctrlKey },
+		{
+			secondary: event.shiftKey,
+			invert: event.shiftKey,
+			sample: event.altKey,
+			lockFace: event.ctrlKey,
+		},
 		'3d',
 	)
 	if (started) c.setPointerCapture(event.pointerId)
@@ -170,7 +189,8 @@ function onPointerMove(event: PointerEvent): void {
 function onPointerUp(event: PointerEvent): void {
 	if (drag) drag = null
 	else painter.end()
-	if (canvas.value?.hasPointerCapture(event.pointerId)) canvas.value.releasePointerCapture(event.pointerId)
+	if (canvas.value?.hasPointerCapture(event.pointerId))
+		canvas.value.releasePointerCapture(event.pointerId)
 }
 
 function onPointerCancel(): void {
@@ -203,7 +223,11 @@ function zoomBy(direction: 1 | -1): void {
 	scene.value?.zoomBy(direction > 0 ? 1 / 1.2 : 1.2)
 }
 
-async function screenshot(width: number, height: number, transparent: boolean): Promise<Blob | null> {
+async function screenshot(
+	width: number,
+	height: number,
+	transparent: boolean,
+): Promise<Blob | null> {
 	return scene.value ? scene.value.screenshot(width, height, transparent) : null
 }
 
@@ -212,7 +236,18 @@ watch(
 	() => syncDocument(),
 )
 watch(
-	() => ({ ...studio.visibility, parts: { ...studio.visibility.parts }, overlay: { ...studio.visibility.overlay } }),
+	() => studio.activeId,
+	() => {
+		drag = null
+		painter.cancel()
+	},
+)
+watch(
+	() => ({
+		...studio.visibility,
+		parts: { ...studio.visibility.parts },
+		overlay: { ...studio.visibility.overlay },
+	}),
 	() => syncDocument(),
 	{ deep: true },
 )
@@ -237,7 +272,10 @@ watch(
 )
 
 onMounted(createScene)
-onBeforeUnmount(() => scene.value?.dispose())
+onBeforeUnmount(() => {
+	painter.cancel()
+	scene.value?.dispose()
+})
 
 defineExpose({ resetCamera, zoomBy, screenshot })
 </script>
@@ -259,13 +297,28 @@ defineExpose({ resetCamera, zoomBy, screenshot })
 		/>
 		<p v-if="failed" class="studio-view3d__error" role="alert">{{ t('canvas.webglError') }}</p>
 		<div class="studio-view3d__tools">
-			<button v-tooltip="t('canvas.resetCamera')" type="button" :aria-label="t('canvas.resetCamera')" @click="resetCamera">
+			<button
+				v-tooltip="t('canvas.resetCamera')"
+				type="button"
+				:aria-label="t('canvas.resetCamera')"
+				@click="resetCamera"
+			>
 				<StudioIcon name="refresh" :size="15" />
 			</button>
-			<button v-tooltip="t('canvas.screenshot')" type="button" :aria-label="t('canvas.screenshot')" @click="emit('screenshot')">
+			<button
+				v-tooltip="t('canvas.screenshot')"
+				type="button"
+				:aria-label="t('canvas.screenshot')"
+				@click="emit('screenshot')"
+			>
 				<StudioIcon name="camera" :size="15" />
 			</button>
-			<button v-tooltip="t('canvas.popout')" type="button" :aria-label="t('canvas.popout')" @click="emit('popout')">
+			<button
+				v-tooltip="t('canvas.popout')"
+				type="button"
+				:aria-label="t('canvas.popout')"
+				@click="emit('popout')"
+			>
 				<StudioIcon name="split" :size="15" />
 			</button>
 		</div>

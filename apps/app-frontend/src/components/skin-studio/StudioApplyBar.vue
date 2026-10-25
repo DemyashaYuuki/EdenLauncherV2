@@ -7,10 +7,7 @@ import { useStudioText } from '@/skin-studio/i18n'
 import { useSkinStudio } from '@/skin-studio/store'
 
 const emit = defineEmits<{
-	(event: 'apply-microsoft'): void
-	(event: 'apply-ely'): void
-	(event: 'apply-server'): void
-	(event: 'link'): void
+	(event: 'apply-microsoft' | 'apply-ely' | 'apply-server' | 'link'): void
 }>()
 
 const studio = useSkinStudio()
@@ -23,14 +20,21 @@ const doc = computed(() => {
 })
 
 const typeLabel = (type: string) =>
-	type === 'microsoft' ? 'Microsoft' : type === 'elyby' ? 'Ely.by' : type === 'offline' ? t('account.offline') : t('account.other')
+	type === 'microsoft'
+		? 'Microsoft'
+		: type === 'elyby'
+			? 'Ely.by'
+			: type === 'offline'
+				? t('account.offline')
+				: t('account.other')
 
 const blocker = computed<string | null>(() => {
 	if (!account.value) return t('apply.hint.noAccount')
 	const d = doc.value
 	if (!d) return t('footer.noDocument')
 	if (!remoteVariant(d.model)) return t('apply.hint.notPlayer')
-	if (d.image.width !== 64 || (d.image.height !== 64 && d.image.height !== 32)) return t('apply.hint.hd')
+	if (d.image.width !== 64 || (d.image.height !== 64 && d.image.height !== 32))
+		return t('apply.hint.hd')
 	return null
 })
 
@@ -72,9 +76,15 @@ function onApply(): void {
 	<section class="studio-apply" :aria-label="title">
 		<div class="studio-apply__account">
 			<StudioIcon name="account" :size="18" />
-			<select v-model="studio.selectedAccountId" :aria-label="t('apply.account')" :disabled="studio.accounts.length === 0">
+			<select
+				v-model="studio.selectedAccountId"
+				:aria-label="t('apply.account')"
+				:disabled="studio.accounts.length === 0"
+			>
 				<option v-if="studio.accounts.length === 0" :value="null">—</option>
-				<option v-for="a in studio.accounts" :key="a.id" :value="a.id">{{ a.name }} · {{ typeLabel(a.type) }}</option>
+				<option v-for="a in studio.accounts" :key="a.id" :value="a.id">
+					{{ a.name }} · {{ typeLabel(a.type) }}
+				</option>
 			</select>
 			<div class="studio-apply__copy">
 				<strong>{{ title }}</strong>

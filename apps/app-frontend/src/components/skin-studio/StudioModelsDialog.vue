@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 
 import StudioDialog from '@/components/skin-studio/StudioDialog.vue'
-import { type ModelCategory, type ModelDefinition } from '@/skin-studio/engine/model'
+import type { ModelCategory, ModelDefinition } from '@/skin-studio/engine/model'
 import { importTcn, techneToModel } from '@/skin-studio/engine/tcn'
 import { pickFiles } from '@/skin-studio/files'
 import { type StudioKey, useStudioText } from '@/skin-studio/i18n'
@@ -33,7 +33,12 @@ const entries = computed(() =>
 		.map((path) => {
 			const parts = path.split('/')
 			const folder = parts[parts.length - 2]
-			return { path, folder, name: parts[parts.length - 1].replace(/\.xml$/, ''), category: CATEGORY_MAP[folder] ?? 'custom' }
+			return {
+				path,
+				folder,
+				name: parts[parts.length - 1].replace(/\.xml$/, ''),
+				category: CATEGORY_MAP[folder] ?? 'custom',
+			}
 		})
 		.sort((a, b) => a.folder.localeCompare(b.folder) || a.name.localeCompare(b.name)),
 )
@@ -42,11 +47,18 @@ const categories = computed(() => [...new Set(entries.value.map((e) => e.categor
 const category = ref<ModelCategory>('mob')
 const loading = ref<string | null>(null)
 
-async function choose(entry: { path: string; name: string; category: ModelCategory }): Promise<void> {
+async function choose(entry: {
+	path: string
+	name: string
+	category: ModelCategory
+}): Promise<void> {
 	loading.value = entry.path
 	try {
 		const xml = await sources[entry.path]()
-		const { model } = techneToModel(xml, { id: `mcskin3d-${entry.category}-${entry.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, category: entry.category })
+		const { model } = techneToModel(xml, {
+			id: `mcskin3d-${entry.category}-${entry.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+			category: entry.category,
+		})
 		emit('choose', { ...model, name: entry.name })
 	} catch (error) {
 		emit('notify', 'error', t('error.generic', { message: (error as Error).message }))
@@ -106,8 +118,12 @@ async function importModel(): Promise<void> {
 			<p class="studio-models__credit">{{ t('model.attribution') }}</p>
 		</div>
 		<template #actions>
-			<button type="button" class="studio-btn" @click="importModel">{{ t('model.importTcn') }}</button>
-			<button type="button" class="studio-btn" @click="emit('close')">{{ t('action.close') }}</button>
+			<button type="button" class="studio-btn" @click="importModel">
+				{{ t('model.importTcn') }}
+			</button>
+			<button type="button" class="studio-btn" @click="emit('close')">
+				{{ t('action.close') }}
+			</button>
 		</template>
 	</StudioDialog>
 </template>

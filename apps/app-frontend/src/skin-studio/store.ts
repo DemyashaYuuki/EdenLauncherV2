@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, markRaw, reactive, ref, shallowRef, triggerRef, watch } from 'vue'
+import { computed, reactive, ref, shallowReactive, shallowRef, triggerRef, watch } from 'vue'
 
 import edenPalette from '@/assets/eden/skin-studio/palettes/eden-palette.json'
 import signalPalette from '@/assets/eden/skin-studio/palettes/signal-palette.json'
@@ -23,12 +23,18 @@ import {
 } from './engine/document.ts'
 import { cloneImage, createImage, type Rgba, type RgbaImage } from './engine/image.ts'
 import { builtinModel, type ModelDefinition, type Rect, remoteVariant } from './engine/model.ts'
-import { defaultToolSettings, type Patch, type StampPattern, type ToolId, type ToolSettings } from './engine/paint.ts'
+import {
+	defaultToolSettings,
+	type Patch,
+	type StampPattern,
+	type ToolId,
+	type ToolSettings,
+} from './engine/paint.ts'
 import { type Palette, parseJsonPalette } from './engine/palette.ts'
 import {
 	importPngTexture,
-	PROJECT_EXTENSION,
 	parseProject,
+	PROJECT_EXTENSION,
 	safeFileStem,
 	serializeProject,
 	uniqueStem,
@@ -127,14 +133,25 @@ function loadPrefs(): StudioPrefs {
 	if (!['3d', '2d', 'split'].includes(prefs.viewMode)) prefs.viewMode = 'split'
 	if (!['off', 'helmet', 'all'].includes(prefs.transparency)) prefs.transparency = 'helmet'
 	if (!['auto', 'base', 'overlay'].includes(prefs.paintTarget)) prefs.paintTarget = 'auto'
-	if (!/^#[0-9a-fA-F]{6}$/.test(prefs.backgroundColor)) prefs.backgroundColor = DEFAULT_PREFS.backgroundColor
+	if (!/^#[0-9a-fA-F]{6}$/.test(prefs.backgroundColor))
+		prefs.backgroundColor = DEFAULT_PREFS.backgroundColor
 	return prefs
 }
 
 function builtinPalettes(): UserPalette[] {
 	return [
-		{ id: 'eden', ...parseJsonPalette(JSON.stringify(edenPalette), 'Eden'), name: 'Eden', builtin: true },
-		{ id: 'signal', ...parseJsonPalette(JSON.stringify(signalPalette), 'Signal'), name: 'Signal', builtin: true },
+		{
+			id: 'eden',
+			...parseJsonPalette(JSON.stringify(edenPalette), 'Eden'),
+			name: 'Eden',
+			builtin: true,
+		},
+		{
+			id: 'signal',
+			...parseJsonPalette(JSON.stringify(signalPalette), 'Signal'),
+			name: 'Signal',
+			builtin: true,
+		},
 		{
 			id: 'skin-tones',
 			...parseJsonPalette(JSON.stringify(skinTonesPalette), 'Skin tones'),
@@ -157,7 +174,13 @@ function loadUserPalettes(): UserPalette[] {
 			swatches: p.swatches
 				.slice(0, 4096)
 				.filter((s) => [s.r, s.g, s.b, s.a].every((v) => Number.isInteger(v) && v >= 0 && v <= 255))
-				.map((s) => ({ r: s.r, g: s.g, b: s.b, a: s.a, name: s.name ? String(s.name).slice(0, 64) : undefined })),
+				.map((s) => ({
+					r: s.r,
+					g: s.g,
+					b: s.b,
+					a: s.a,
+					name: s.name ? String(s.name).slice(0, 64) : undefined,
+				})),
 		}))
 }
 
@@ -175,8 +198,12 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 	const storedColors = readStorage<{ primary?: Rgba; secondary?: Rgba }>(COLORS_KEY)
 	const validColor = (c: unknown): c is Rgba =>
 		Array.isArray(c) && c.length === 4 && c.every((v) => Number.isInteger(v) && v >= 0 && v <= 255)
-	const primary = ref<Rgba>(validColor(storedColors?.primary) ? storedColors.primary : [128, 225, 203, 255])
-	const secondary = ref<Rgba>(validColor(storedColors?.secondary) ? storedColors.secondary : [24, 19, 33, 255])
+	const primary = ref<Rgba>(
+		validColor(storedColors?.primary) ? storedColors.primary : [128, 225, 203, 255],
+	)
+	const secondary = ref<Rgba>(
+		validColor(storedColors?.secondary) ? storedColors.secondary : [24, 19, 33, 255],
+	)
 
 	const storedTool = readStorage<{ tool?: ToolId; settings?: Partial<ToolSettings> }>(TOOL_KEY)
 	const tool = ref<ToolId>(storedTool?.tool ?? 'pencil')
@@ -229,7 +256,9 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 
 	watch(prefs, () => writeStorage(PREFS_KEY, prefs), { deep: true })
 	watch(shortcuts, () => writeStorage(SHORTCUTS_KEY, shortcuts.value), { deep: true })
-	watch([primary, secondary], () => writeStorage(COLORS_KEY, { primary: primary.value, secondary: secondary.value }))
+	watch([primary, secondary], () =>
+		writeStorage(COLORS_KEY, { primary: primary.value, secondary: secondary.value }),
+	)
 	watch(
 		[tool, () => ({ ...settings })],
 		() => {
@@ -254,8 +283,9 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 	}
 
 	function resetVisibility(model: ModelDefinition): void {
-		for (const key of Object.keys(visibility.parts)) delete visibility.parts[key]
-		for (const key of Object.keys(visibility.overlay)) delete visibility.overlay[key]
+		for (const key of Object.keys(visibility.parts)) Reflect.deleteProperty(visibility.parts, key)
+		for (const key of Object.keys(visibility.overlay))
+			Reflect.deleteProperty(visibility.overlay, key)
 		for (const part of model.parts) {
 			visibility.parts[part.id] = true
 			visibility.overlay[part.id] = true
@@ -273,7 +303,7 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 	}
 
 	function addDocument(doc: SkinDocument): SkinDocument {
-		const raw = markRaw(doc)
+		const raw = shallowReactive(doc)
 		documents.value = [...documents.value, raw]
 		activate(raw.id)
 		return raw
@@ -378,11 +408,18 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 			if (asName) rename(doc, asName)
 			path = libraryPathFor(doc.name)
 		}
+		const savedVersion = doc.version
+		const savedEntryId = doc.history.currentEntryId
 		const bytes = await serializeProject(toProject(doc))
 		await api.writeLibraryFile(path, bytes, path === doc.path)
-		markSaved(doc, path)
-		await api.deleteRecovery(doc.id).catch(() => undefined)
-		lastSnapshot.delete(doc.id)
+		if (doc.version === savedVersion) {
+			markSaved(doc, path)
+			await api.deleteRecovery(doc.id).catch(() => undefined)
+			lastSnapshot.delete(doc.id)
+		} else {
+			doc.path = path
+			doc.savedEntryId = savedEntryId
+		}
 		touch()
 		await refreshLibrary()
 		return path
@@ -433,9 +470,10 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 		for (const doc of documents.value) {
 			if (!isDirty(doc)) continue
 			if (lastSnapshot.get(doc.id) === doc.version) continue
+			const version = doc.version
 			try {
 				await api.putRecovery(doc.id, await serializeProject(toProject(doc)))
-				lastSnapshot.set(doc.id, doc.version)
+				lastSnapshot.set(doc.id, version)
 			} catch {
 				return
 			}
@@ -460,7 +498,8 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 	}
 
 	async function discardRecovery(): Promise<void> {
-		for (const entry of recoveryFound.value) await api.deleteRecovery(entry.doc_id).catch(() => undefined)
+		for (const entry of recoveryFound.value)
+			await api.deleteRecovery(entry.doc_id).catch(() => undefined)
 		recoveryFound.value = []
 	}
 
@@ -478,7 +517,8 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 				active: c.active,
 			}))
 			if (!accounts.value.some((a) => a.id === selectedAccountId.value)) {
-				selectedAccountId.value = accounts.value.find((a) => a.active)?.id ?? accounts.value[0]?.id ?? null
+				selectedAccountId.value =
+					accounts.value.find((a) => a.active)?.id ?? accounts.value[0]?.id ?? null
 			}
 		} catch {
 			accounts.value = []
@@ -503,7 +543,8 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 		} catch {
 			recoveryFound.value = []
 		}
-		if (!recoveryTimer) recoveryTimer = setInterval(() => void snapshotRecovery(), RECOVERY_INTERVAL_MS)
+		if (!recoveryTimer)
+			recoveryTimer = setInterval(() => void snapshotRecovery(), RECOVERY_INTERVAL_MS)
 	}
 
 	function setPalette(id: string): void {
@@ -552,7 +593,9 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 		const doc = active.value
 		if (!doc) return false
 		const variant = remoteVariant(doc.model)
-		return !!variant && doc.image.width === 64 && (doc.image.height === 64 || doc.image.height === 32)
+		return (
+			!!variant && doc.image.width === 64 && (doc.image.height === 64 || doc.image.height === 32)
+		)
 	})
 
 	function snapshotImage(): RgbaImage | null {

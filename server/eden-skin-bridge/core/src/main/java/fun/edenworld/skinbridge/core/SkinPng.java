@@ -6,6 +6,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.MemoryCacheImageInputStream;
 
 /**
  * Validates skin uploads before any decoding work: bounded base64 and byte size, PNG signature,
@@ -68,8 +70,14 @@ public final class SkinPng {
 			throw new InvalidSkinException("bad_dimensions");
 		}
 		BufferedImage image;
-		try {
-			image = ImageIO.read(new ByteArrayInputStream(png));
+		try (MemoryCacheImageInputStream input = new MemoryCacheImageInputStream(new ByteArrayInputStream(png))) {
+			ImageReader reader = ImageIO.getImageReadersByFormatName("png").next();
+			try {
+				reader.setInput(input, true, true);
+				image = reader.read(0);
+			} finally {
+				reader.dispose();
+			}
 		} catch (IOException | RuntimeException e) {
 			throw new InvalidSkinException("corrupt_png");
 		}

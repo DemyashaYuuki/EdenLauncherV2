@@ -1,6 +1,6 @@
 import { History, type HistoryEntry } from './history.ts'
 import { cloneImage, type RgbaImage } from './image.ts'
-import { builtinModel, type ModelDefinition } from './model.ts'
+import type { ModelDefinition } from './model.ts'
 import type { Patch } from './paint.ts'
 import type { Palette } from './palette.ts'
 import type { ProjectData } from './project.ts'
@@ -56,7 +56,12 @@ export function createDocument(input: {
 	}
 }
 
-export function fromProject(project: ProjectData, path: string | null, saved: boolean, id?: string): SkinDocument {
+export function fromProject(
+	project: ProjectData,
+	path: string | null,
+	saved: boolean,
+	id?: string,
+): SkinDocument {
 	return createDocument({
 		name: project.name,
 		model: project.model,
@@ -82,11 +87,12 @@ export function toProject(doc: SkinDocument): ProjectData {
 }
 
 function currentEntryId(doc: SkinDocument): number {
-	const { history } = doc
-	return history.cursor > 0 ? history.list[history.cursor - 1].id : 0
+	return doc.history.currentEntryId
 }
 
 export function isDirty(doc: SkinDocument): boolean {
+	// History and pixel buffers stay raw; version invalidates shallow reactive document observers.
+	void doc.version
 	return doc.metaDirty || currentEntryId(doc) !== doc.savedEntryId
 }
 
@@ -97,7 +103,11 @@ export function markSaved(doc: SkinDocument, path: string): void {
 	doc.updatedAt = new Date().toISOString()
 }
 
-export function commitPatch(doc: SkinDocument, label: string, patch: Patch | null): HistoryEntry | null {
+export function commitPatch(
+	doc: SkinDocument,
+	label: string,
+	patch: Patch | null,
+): HistoryEntry | null {
 	if (!patch) return null
 	doc.version++
 	return doc.history.push(label, { kind: 'patch', patch })
@@ -114,8 +124,8 @@ export function replaceTexture(
 		kind: 'replace',
 		before: cloneImage(doc.image),
 		after: cloneImage(image),
-		modelBefore: doc.model.id,
-		modelAfter: model.id,
+		modelBefore: doc.model,
+		modelAfter: model,
 	})
 	doc.image = image
 	doc.model = model
@@ -123,16 +133,12 @@ export function replaceTexture(
 	return entry
 }
 
-function resolveModel(doc: SkinDocument, id: string | undefined): ModelDefinition {
-	if (!id || id === doc.model.id) return doc.model
-	return builtinModel(id) ?? doc.model
-}
-
 export function undo(doc: SkinDocument): HistoryEntry | null {
 	const result = doc.history.undo(doc.image)
 	if (!result) return null
 	doc.image = result.image
-	if (result.entry.change.kind === 'replace') doc.model = resolveModel(doc, result.entry.change.modelBefore)
+	if (result.entry.change.kind === 'replace')
+		doc.model = result.entry.change.modelBefore ?? doc.model
 	doc.version++
 	return result.entry
 }
@@ -141,7 +147,8 @@ export function redo(doc: SkinDocument): HistoryEntry | null {
 	const result = doc.history.redo(doc.image)
 	if (!result) return null
 	doc.image = result.image
-	if (result.entry.change.kind === 'replace') doc.model = resolveModel(doc, result.entry.change.modelAfter)
+	if (result.entry.change.kind === 'replace')
+		doc.model = result.entry.change.modelAfter ?? doc.model
 	doc.version++
 	return result.entry
 }
@@ -152,7 +159,10 @@ export function jumpTo(doc: SkinDocument, position: number): void {
 }
 
 export function rename(doc: SkinDocument, name: string): void {
-	const clean = name.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 80)
+	const clean = name
+		.replace(/\p{Cc}/gu, '')
+		.trim()
+		.slice(0, 80)
 	if (!clean || clean === doc.name) return
 	doc.name = clean
 	doc.metaDirty = true

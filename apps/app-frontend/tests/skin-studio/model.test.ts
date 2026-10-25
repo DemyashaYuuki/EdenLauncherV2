@@ -5,8 +5,8 @@ import {
 	builtinModel,
 	FACE_NAMES,
 	type FaceName,
-	faceRegion,
 	facePointToTexel,
+	faceRegion,
 	faceTexCoord,
 	mirrorTexel,
 	type ModelDefinition,
@@ -93,7 +93,11 @@ test('every texel of every face maps to a surface point and back to itself', () 
 				for (let y = r.y * scale.sy; y < (r.y + r.h) * scale.sy; y++) {
 					for (let x = r.x * scale.sx; x < (r.x + r.w) * scale.sx; x++) {
 						const f = texCoordToFractions(b, face, (x + 0.5) / scale.sx, (y + 0.5) / scale.sy)
-						assert.deepEqual(facePointToTexel(b, face, f, scale), [x, y], `${model.id}/${b.id}/${face}/${x},${y}`)
+						assert.deepEqual(
+							facePointToTexel(b, face, f, scale),
+							[x, y],
+							`${model.id}/${b.id}/${face}/${x},${y}`,
+						)
 					}
 				}
 			}
@@ -111,8 +115,14 @@ test('legacy left limbs mirror the right limb texture', () => {
 	const left = box(legacy, 'leftArm')
 	const right = box(legacy, 'rightArm')
 	assert.equal(textureFaceFor(left, 'left'), 'right')
-	assert.deepEqual(faceTexCoord(left, 'front', { fx: 0, fy: 0, fz: 0 }), faceTexCoord(right, 'front', { fx: 1, fy: 0, fz: 0 }))
-	assert.deepEqual(faceTexCoord(left, 'left', { fx: 1, fy: 0.5, fz: 0.25 }), faceTexCoord(right, 'right', { fx: 0, fy: 0.5, fz: 0.25 }))
+	assert.deepEqual(
+		faceTexCoord(left, 'front', { fx: 0, fy: 0, fz: 0 }),
+		faceTexCoord(right, 'front', { fx: 1, fy: 0, fz: 0 }),
+	)
+	assert.deepEqual(
+		faceTexCoord(left, 'left', { fx: 1, fy: 0.5, fz: 0.25 }),
+		faceTexCoord(right, 'right', { fx: 0, fy: 0.5, fz: 0.25 }),
+	)
 })
 
 test('symmetry maps body halves and limbs onto each other', () => {

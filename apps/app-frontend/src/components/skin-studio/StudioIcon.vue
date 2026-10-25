@@ -8,7 +8,10 @@ const icons = import.meta.glob<Component>('@/assets/eden/skin-studio/icons/*.svg
 })
 
 const byName: Record<string, Component> = Object.fromEntries(
-	Object.entries(icons).map(([path, component]) => [path.slice(path.lastIndexOf('/') + 1, -'.svg'.length), component]),
+	Object.entries(icons).map(([path, component]) => [
+		path.slice(path.lastIndexOf('/') + 1, -'.svg'.length),
+		component,
+	]),
 )
 
 const props = withDefaults(defineProps<{ name: string; size?: number }>(), { size: 18 })

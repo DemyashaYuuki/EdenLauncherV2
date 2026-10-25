@@ -13,10 +13,13 @@ export function studioLanguage(): 'ru' | 'en' {
 
 export function format(template: string, vars?: Record<string, string | number>): string {
 	if (!vars) return template
-	return template.replace(/\{(\w+)\}/g, (whole, name: string) => (name in vars ? String(vars[name]) : whole))
+	return template.replace(/\{(\w+)\}/g, (whole, name: string) =>
+		name in vars ? String(vars[name]) : whole,
+	)
 }
 
 export function useStudioText() {
 	const dictionary = computed(() => (studioLanguage() === 'ru' ? ru : en))
-	return (key: StudioKey, vars?: Record<string, string | number>) => format(dictionary.value[key] ?? key, vars)
+	return (key: StudioKey, vars?: Record<string, string | number>) =>
+		format(dictionary.value[key] ?? key, vars)
 }

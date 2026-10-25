@@ -13,7 +13,12 @@ import {
 	type Rgba,
 	setPixel,
 } from '../../src/skin-studio/engine/image.ts'
-import { builtinModel, type ModelDefinition, mirrorTexel, regionsInPixels } from '../../src/skin-studio/engine/model.ts'
+import {
+	builtinModel,
+	mirrorTexel,
+	type ModelDefinition,
+	regionsInPixels,
+} from '../../src/skin-studio/engine/model.ts'
 import {
 	brushMask,
 	capturePattern,
@@ -25,7 +30,10 @@ import {
 } from '../../src/skin-studio/engine/paint.ts'
 
 const RED: Rgba = [255, 0, 0, 255]
-const settings = (patch: Partial<ToolSettings> = {}): ToolSettings => ({ ...defaultToolSettings(), ...patch })
+const settings = (patch: Partial<ToolSettings> = {}): ToolSettings => ({
+	...defaultToolSettings(),
+	...patch,
+})
 
 function countOpaque(image: ReturnType<typeof createImage>): number {
 	let n = 0
@@ -34,7 +42,10 @@ function countOpaque(image: ReturnType<typeof createImage>): number {
 }
 
 test('brush masks: square and round footprints', () => {
-	assert.equal(brushMask('square', 3).coverage.reduce((a, b) => a + b, 0), 9)
+	assert.equal(
+		brushMask('square', 3).coverage.reduce((a, b) => a + b, 0),
+		9,
+	)
 	const round = brushMask('circle', 5)
 	assert.equal(round.coverage[0], 0)
 	assert.equal(round.coverage[12], 1)
@@ -67,14 +78,24 @@ test('a pencil stroke interpolates between pointer samples without gaps', () => 
 
 test('opacity composites over existing colours', () => {
 	const image = createImage(4, 4, [0, 0, 255, 255])
-	const stroke = new Stroke({ image, tool: 'pencil', color: RED, settings: settings({ opacity: 0.5 }) })
+	const stroke = new Stroke({
+		image,
+		tool: 'pencil',
+		color: RED,
+		settings: settings({ opacity: 0.5 }),
+	})
 	stroke.dab(1, 1)
 	assert.deepEqual(getPixel(image, 1, 1), [128, 0, 128, 255])
 })
 
 test('non-incremental strokes apply once per pixel, incremental strokes accumulate', () => {
 	const once = createImage(4, 4)
-	const a = new Stroke({ image: once, tool: 'pencil', color: RED, settings: settings({ opacity: 0.5 }) })
+	const a = new Stroke({
+		image: once,
+		tool: 'pencil',
+		color: RED,
+		settings: settings({ opacity: 0.5 }),
+	})
 	a.dab(1, 1)
 	a.dab(1, 1)
 	a.dab(1, 1)
@@ -102,7 +123,12 @@ test('eraser clears to transparent black at full opacity', () => {
 test('cancel restores the image, finish of an empty stroke is null', () => {
 	const image = createImage(8, 8, [1, 2, 3, 255])
 	const copy = cloneImage(image)
-	const stroke = new Stroke({ image, tool: 'pencil', color: RED, settings: settings({ brushSize: 3 }) })
+	const stroke = new Stroke({
+		image,
+		tool: 'pencil',
+		color: RED,
+		settings: settings({ brushSize: 3 }),
+	})
 	stroke.lineTo(1, 1)
 	stroke.lineTo(6, 6)
 	stroke.cancel()
@@ -190,7 +216,15 @@ test('flood fill: contiguous, global, tolerance and region lock', () => {
 	setPixel(base, 6, 6, [5, 5, 5, 255])
 
 	const contiguous = cloneImage(base)
-	floodFill({ image: contiguous, x: 0, y: 0, color: RED, tolerance: 0, mode: 'contiguous', opacity: 1 })
+	floodFill({
+		image: contiguous,
+		x: 0,
+		y: 0,
+		color: RED,
+		tolerance: 0,
+		mode: 'contiguous',
+		opacity: 1,
+	})
 	assert.deepEqual(getPixel(contiguous, 3, 7), RED)
 	assert.deepEqual(getPixel(contiguous, 5, 0), [0, 0, 0, 255])
 
@@ -200,7 +234,15 @@ test('flood fill: contiguous, global, tolerance and region lock', () => {
 	assert.deepEqual(getPixel(global, 6, 6), [5, 5, 5, 255])
 
 	const tolerant = cloneImage(base)
-	floodFill({ image: tolerant, x: 7, y: 7, color: RED, tolerance: 5, mode: 'contiguous', opacity: 1 })
+	floodFill({
+		image: tolerant,
+		x: 7,
+		y: 7,
+		color: RED,
+		tolerance: 5,
+		mode: 'contiguous',
+		opacity: 1,
+	})
 	assert.deepEqual(getPixel(tolerant, 6, 6), RED)
 
 	const locked = cloneImage(base)
@@ -224,7 +266,12 @@ test('history undoes and redoes complete strokes and jumps several steps', () =>
 	let image = createImage(8, 8)
 	const states = [cloneImage(image)]
 	for (let i = 0; i < 4; i++) {
-		const stroke = new Stroke({ image, tool: 'pencil', color: [i * 50, 0, 0, 255], settings: settings({ brushSize: 2 }) })
+		const stroke = new Stroke({
+			image,
+			tool: 'pencil',
+			color: [i * 50, 0, 0, 255],
+			settings: settings({ brushSize: 2 }),
+		})
 		stroke.lineTo(i, 0)
 		stroke.lineTo(i, 7)
 		history.push(`stroke ${i}`, { kind: 'patch', patch: stroke.finish()! })
@@ -240,7 +287,11 @@ test('history undoes and redoes complete strokes and jumps several steps', () =>
 	image = history.jumpTo(image, 4)
 	assert.ok(imagesEqual(image, states[4]))
 	history.jumpTo(image, 2)
-	history.push('branch', { kind: 'replace', before: cloneImage(image), after: createImage(8, 8, RED) })
+	history.push('branch', {
+		kind: 'replace',
+		before: cloneImage(image),
+		after: createImage(8, 8, RED),
+	})
 	assert.equal(history.list.length, 3)
 	assert.equal(history.canRedo, false)
 })
@@ -275,7 +326,8 @@ test('legacy conversion mirrors the right limbs like the game', () => {
 
 test('arm width conversion repacks the arm regions', () => {
 	const classic = createImage(64, 64)
-	for (let y = 16; y < 32; y++) for (let x = 40; x < 56; x++) setPixel(classic, x, y, [x, y, 0, 255])
+	for (let y = 16; y < 32; y++)
+		for (let x = 40; x < 56; x++) setPixel(classic, x, y, [x, y, 0, 255])
 	const slim = convertArmWidth(classic, 4, 3)
 	assert.ok(looksSlim(slim))
 	assert.equal(getPixel(slim, 55, 25)[3], 0)

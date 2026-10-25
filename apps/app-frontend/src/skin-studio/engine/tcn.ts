@@ -1,4 +1,11 @@
-import type { LayerKind, ModelBox, ModelCategory, ModelDefinition, ModelPartInfo, Vec3 } from './model.ts'
+import type {
+	LayerKind,
+	ModelBox,
+	ModelCategory,
+	ModelDefinition,
+	ModelPartInfo,
+	Vec3,
+} from './model.ts'
 import { attribute, child, children, parseXml, type XmlElement } from './xml.ts'
 import { readZipDirectory, readZipEntry } from './zip.ts'
 
@@ -40,7 +47,8 @@ const PART_MAP: Record<string, [string, LayerKind]> = {
 function parseNumbers(text: string | undefined, count: number, label: string): number[] {
 	if (text === undefined) return new Array(count).fill(0)
 	const parts = text.split(',').map((p) => p.trim())
-	if (parts.length !== count) throw new ModelImportError('number', `${label} must have ${count} values`)
+	if (parts.length !== count)
+		throw new ModelImportError('number', `${label} must have ${count} values`)
 	return parts.map((p) => {
 		if (!/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(p)) {
 			throw new ModelImportError('number', `${label} is not a number`)
@@ -84,7 +92,11 @@ export function techneToModel(xml: string, options: TechneOptions = {}): Importe
 	const first = models ? children(models, 'Model')[0] : undefined
 	if (!first) throw new ModelImportError('format', 'Techne file has no model')
 	const warnings: string[] = []
-	const name = (child(first, 'Name')?.text.trim() || child(root, 'Name')?.text.trim() || 'Model').slice(0, 80)
+	const name = (
+		child(first, 'Name')?.text.trim() ||
+		child(root, 'Name')?.text.trim() ||
+		'Model'
+	).slice(0, 80)
 	const size = parseNumbers(child(first, 'TextureSize')?.text.trim() ?? '64,32', 2, 'TextureSize')
 	const textureWidth = Math.round(size[0])
 	const textureHeight = Math.round(size[1])
@@ -104,7 +116,8 @@ export function techneToModel(xml: string, options: TechneOptions = {}): Importe
 	}
 	if (geometry) collect(geometry, 'Model', 0)
 	if (shapes.length === 0) throw new ModelImportError('empty', 'Model has no shapes')
-	if (shapes.length > MAX_SHAPES) throw new ModelImportError('too-many', 'Model has too many shapes')
+	if (shapes.length > MAX_SHAPES)
+		throw new ModelImportError('too-many', 'Model has too many shapes')
 
 	const boxes: ModelBox[] = []
 	const partIds = new Map<string, ModelPartInfo>()
@@ -125,7 +138,11 @@ export function techneToModel(xml: string, options: TechneOptions = {}): Importe
 		if (sizeValues.some((v) => v < 0 || v > 512 || !Number.isInteger(Math.round(v)))) {
 			throw new ModelImportError('size', `Shape ${shapeName} has an invalid size`)
 		}
-		const uvValues = parseNumbers(child(element, 'TextureOffset')?.text.trim() ?? '0,0', 2, 'TextureOffset')
+		const uvValues = parseNumbers(
+			child(element, 'TextureOffset')?.text.trim() ?? '0,0',
+			2,
+			'TextureOffset',
+		)
 		const scaleText = child(element, 'Scale')?.text.trim()
 		const inflate = scaleText ? parseNumbers(scaleText, 1, 'Scale')[0] : 0
 		const smallest = Math.min(...sizeValues.map((v) => Math.round(v)))
@@ -171,7 +188,10 @@ export function techneToModel(xml: string, options: TechneOptions = {}): Importe
 }
 
 /** Imports a Techne .tcn archive: the first safe .xml entry is the model. */
-export async function importTcn(bytes: Uint8Array, options: TechneOptions = {}): Promise<ImportedModel> {
+export async function importTcn(
+	bytes: Uint8Array,
+	options: TechneOptions = {},
+): Promise<ImportedModel> {
 	const entries = readZipDirectory(bytes)
 	const entry = entries.find((e) => e.name.toLowerCase().endsWith('.xml'))
 	if (!entry) throw new ModelImportError('format', 'TCN archive has no model XML')

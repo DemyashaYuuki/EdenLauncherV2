@@ -34,7 +34,9 @@ const editedColor = computed<Rgba>({
 })
 
 const tool = computed(() => studio.tool)
-const usesBrush = computed(() => ['pencil', 'eraser', 'noise', 'dodgeBurn', 'darkenLighten', 'stamp'].includes(tool.value))
+const usesBrush = computed(() =>
+	['pencil', 'eraser', 'noise', 'dodgeBurn', 'darkenLighten', 'stamp'].includes(tool.value),
+)
 const usesExposure = computed(() => tool.value === 'dodgeBurn' || tool.value === 'darkenLighten')
 
 const history = computed(() => {
@@ -62,7 +64,8 @@ function removeSwatch(index: number): void {
 
 function addSwatch(): void {
 	let palette = studio.activePalette
-	if (!palette || palette.builtin) palette = studio.addPalette({ name: t('inspector.palette.new'), swatches: [] })
+	if (!palette || palette.builtin)
+		palette = studio.addPalette({ name: t('inspector.palette.new'), swatches: [] })
 	const [r, g, b, a] = studio.primary
 	studio.updatePalette(palette.id, (p) => {
 		if (p.swatches.length < 4096) p.swatches.push({ r, g, b, a, name: toHex(studio.primary) })
@@ -85,7 +88,10 @@ function renamePalette(): void {
 
 async function importPalette(): Promise<void> {
 	try {
-		const files = await pickFiles([{ name: 'Palette', extensions: ['gpl', 'gimp', 'aco', 'act', 'swtch', 'json'] }], true)
+		const files = await pickFiles(
+			[{ name: 'Palette', extensions: ['gpl', 'gimp', 'aco', 'act', 'swtch', 'json'] }],
+			true,
+		)
 		for (const file of files) {
 			const format = formatFromFileName(file.name)
 			if (!format) throw new Error(t('error.format'))
@@ -101,7 +107,11 @@ async function exportPalette(format: PaletteFormat): Promise<void> {
 	const palette = studio.activePalette
 	if (!palette) return
 	try {
-		await saveBytes(`${palette.name}.${format}`, [{ name: format.toUpperCase(), extensions: [format] }], writePalette(format, palette))
+		await saveBytes(
+			`${palette.name}.${format}`,
+			[{ name: format.toUpperCase(), extensions: [format] }],
+			writePalette(format, palette),
+		)
 	} catch (error) {
 		emit('notify', 'error', t('export.failed', { message: (error as Error).message }))
 	}
@@ -115,7 +125,13 @@ const exportFormat = ref<PaletteFormat>('gpl')
 		<section>
 			<div class="studio-inspector__head">
 				<h3>{{ t('inspector.color') }}</h3>
-				<button v-tooltip="t('inspector.swap')" type="button" class="studio-ghost" :aria-label="t('inspector.swap')" @click="studio.swapColors()">
+				<button
+					v-tooltip="t('inspector.swap')"
+					type="button"
+					class="studio-ghost"
+					:aria-label="t('inspector.swap')"
+					@click="studio.swapColors()"
+				>
 					⇄
 				</button>
 			</div>
@@ -127,7 +143,11 @@ const exportFormat = ref<PaletteFormat>('gpl')
 					:class="{ active: editing === 'primary' }"
 					@click="editing = 'primary'"
 				>
-					<span :style="{ background: `rgba(${studio.primary[0]}, ${studio.primary[1]}, ${studio.primary[2]}, ${studio.primary[3] / 255})` }" />
+					<span
+						:style="{
+							background: `rgba(${studio.primary[0]}, ${studio.primary[1]}, ${studio.primary[2]}, ${studio.primary[3] / 255})`,
+						}"
+					/>
 					{{ t('inspector.primary') }}
 				</button>
 				<button
@@ -137,7 +157,11 @@ const exportFormat = ref<PaletteFormat>('gpl')
 					:class="{ active: editing === 'secondary' }"
 					@click="editing = 'secondary'"
 				>
-					<span :style="{ background: `rgba(${studio.secondary[0]}, ${studio.secondary[1]}, ${studio.secondary[2]}, ${studio.secondary[3] / 255})` }" />
+					<span
+						:style="{
+							background: `rgba(${studio.secondary[0]}, ${studio.secondary[1]}, ${studio.secondary[2]}, ${studio.secondary[3] / 255})`,
+						}"
+					/>
 					{{ t('inspector.secondary') }}
 				</button>
 			</div>
@@ -148,33 +172,71 @@ const exportFormat = ref<PaletteFormat>('gpl')
 			<h3>{{ t('inspector.brush') }}</h3>
 			<template v-if="usesBrush">
 				<label class="studio-range">
-					<span>{{ t('inspector.size') }} <b>{{ studio.settings.brushSize }} px</b></span>
-					<input v-model.number="studio.settings.brushSize" type="range" min="1" :max="MAX_BRUSH_SIZE" />
+					<span
+						>{{ t('inspector.size') }} <b>{{ studio.settings.brushSize }} px</b></span
+					>
+					<input
+						v-model.number="studio.settings.brushSize"
+						type="range"
+						min="1"
+						:max="MAX_BRUSH_SIZE"
+					/>
 				</label>
 				<label class="studio-field">
 					<span>{{ t('inspector.shape') }}</span>
 					<select v-model="studio.settings.brushShape">
 						<option value="square">{{ t('inspector.shape.square') }}</option>
 						<option value="circle">{{ t('inspector.shape.circle') }}</option>
-						<option value="custom" :disabled="!studio.settings.customBrush">{{ t('inspector.shape.custom') }}</option>
+						<option value="custom" :disabled="!studio.settings.customBrush">
+							{{ t('inspector.shape.custom') }}
+						</option>
 					</select>
 				</label>
 			</template>
 			<label class="studio-range">
-				<span>{{ t('inspector.opacity') }} <b>{{ Math.round(studio.settings.opacity * 100) }}%</b></span>
-				<input v-model.number="studio.settings.opacity" type="range" min="0.05" max="1" step="0.05" />
+				<span
+					>{{ t('inspector.opacity') }}
+					<b>{{ Math.round(studio.settings.opacity * 100) }}%</b></span
+				>
+				<input
+					v-model.number="studio.settings.opacity"
+					type="range"
+					min="0.05"
+					max="1"
+					step="0.05"
+				/>
 			</label>
 			<label v-if="usesExposure" class="studio-range">
-				<span>{{ t('inspector.exposure') }} <b>{{ Math.round(studio.settings.exposure * 100) }}%</b></span>
-				<input v-model.number="studio.settings.exposure" type="range" min="0.05" max="1" step="0.05" />
+				<span
+					>{{ t('inspector.exposure') }}
+					<b>{{ Math.round(studio.settings.exposure * 100) }}%</b></span
+				>
+				<input
+					v-model.number="studio.settings.exposure"
+					type="range"
+					min="0.05"
+					max="1"
+					step="0.05"
+				/>
 			</label>
 			<label v-if="tool === 'noise'" class="studio-range">
-				<span>{{ t('inspector.noise') }} <b>{{ Math.round(studio.settings.noiseStrength * 100) }}%</b></span>
-				<input v-model.number="studio.settings.noiseStrength" type="range" min="0.02" max="1" step="0.02" />
+				<span
+					>{{ t('inspector.noise') }}
+					<b>{{ Math.round(studio.settings.noiseStrength * 100) }}%</b></span
+				>
+				<input
+					v-model.number="studio.settings.noiseStrength"
+					type="range"
+					min="0.02"
+					max="1"
+					step="0.02"
+				/>
 			</label>
 			<template v-if="tool === 'fill'">
 				<label class="studio-range">
-					<span>{{ t('inspector.tolerance') }} <b>{{ studio.settings.fillTolerance }}</b></span>
+					<span
+						>{{ t('inspector.tolerance') }} <b>{{ studio.settings.fillTolerance }}</b></span
+					>
 					<input v-model.number="studio.settings.fillTolerance" type="range" min="0" max="255" />
 				</label>
 				<label class="studio-field">
@@ -202,15 +264,23 @@ const exportFormat = ref<PaletteFormat>('gpl')
 				<input v-model="studio.settings.mirror" type="checkbox" />
 			</label>
 			<div v-if="studio.selection" class="studio-inspector__selection">
-				<span>{{ t('inspector.selection') }}: {{ studio.selection.w }} × {{ studio.selection.h }}</span>
-				<button type="button" class="studio-ghost" @click="studio.selection = null">{{ t('inspector.selection.clear') }}</button>
+				<span
+					>{{ t('inspector.selection') }}: {{ studio.selection.w }} × {{ studio.selection.h }}</span
+				>
+				<button type="button" class="studio-ghost" @click="studio.selection = null">
+					{{ t('inspector.selection.clear') }}
+				</button>
 			</div>
 		</section>
 
 		<section>
 			<div class="studio-inspector__head">
 				<h3>{{ t('inspector.palette') }}</h3>
-				<select v-model="studio.activePaletteId" class="studio-inspector__palette-select" :aria-label="t('inspector.palette')">
+				<select
+					v-model="studio.activePaletteId"
+					class="studio-inspector__palette-select"
+					:aria-label="t('inspector.palette')"
+				>
 					<option v-for="palette in studio.palettes" :key="palette.id" :value="palette.id">
 						{{ palette.name }}{{ palette.builtin ? ` · ${t('inspector.palette.builtin')}` : '' }}
 					</option>
@@ -227,15 +297,30 @@ const exportFormat = ref<PaletteFormat>('gpl')
 					:style="swatchStyle(swatch)"
 					:aria-label="swatch.name || toHex([swatch.r, swatch.g, swatch.b, swatch.a])"
 					@click="(event: MouseEvent) => useSwatch(swatch, event.shiftKey)"
-					@contextmenu.prevent="studio.activePalette?.builtin ? useSwatch(swatch, true) : removeSwatch(index)"
+					@contextmenu.prevent="
+						studio.activePalette?.builtin ? useSwatch(swatch, true) : removeSwatch(index)
+					"
 				/>
-				<button v-tooltip="t('inspector.palette.add')" type="button" class="studio-palette__add" :aria-label="t('inspector.palette.add')" @click="addSwatch">
+				<button
+					v-tooltip="t('inspector.palette.add')"
+					type="button"
+					class="studio-palette__add"
+					:aria-label="t('inspector.palette.add')"
+					@click="addSwatch"
+				>
 					<StudioIcon name="plus" :size="14" />
 				</button>
 			</div>
 			<div class="studio-inspector__row">
-				<button type="button" class="studio-ghost" @click="newPalette">{{ t('inspector.palette.new') }}</button>
-				<button type="button" class="studio-ghost" :disabled="studio.activePalette?.builtin" @click="renamePalette">
+				<button type="button" class="studio-ghost" @click="newPalette">
+					{{ t('inspector.palette.new') }}
+				</button>
+				<button
+					type="button"
+					class="studio-ghost"
+					:disabled="studio.activePalette?.builtin"
+					@click="renamePalette"
+				>
 					{{ t('action.rename') }}
 				</button>
 				<button
@@ -248,7 +333,9 @@ const exportFormat = ref<PaletteFormat>('gpl')
 				</button>
 			</div>
 			<div class="studio-inspector__row">
-				<button type="button" class="studio-ghost" @click="importPalette">{{ t('inspector.palette.import') }}</button>
+				<button type="button" class="studio-ghost" @click="importPalette">
+					{{ t('inspector.palette.import') }}
+				</button>
 				<select v-model="exportFormat" :aria-label="t('inspector.palette.export')">
 					<option value="gpl">GPL</option>
 					<option value="aco">ACO</option>
@@ -256,7 +343,9 @@ const exportFormat = ref<PaletteFormat>('gpl')
 					<option value="swtch">SWTCH</option>
 					<option value="json">JSON</option>
 				</select>
-				<button type="button" class="studio-ghost" @click="exportPalette(exportFormat)">{{ t('action.export') }}</button>
+				<button type="button" class="studio-ghost" @click="exportPalette(exportFormat)">
+					{{ t('action.export') }}
+				</button>
 			</div>
 		</section>
 
@@ -288,7 +377,11 @@ const exportFormat = ref<PaletteFormat>('gpl')
 			</div>
 			<ol class="studio-history">
 				<li>
-					<button type="button" :class="{ current: history.cursor === 0 }" @click="studio.jumpActive(0)">
+					<button
+						type="button"
+						:class="{ current: history.cursor === 0 }"
+						@click="studio.jumpActive(0)"
+					>
 						{{ t('inspector.history.start') }}
 					</button>
 				</li>
@@ -300,7 +393,9 @@ const exportFormat = ref<PaletteFormat>('gpl')
 						@click="studio.jumpActive(index + 1)"
 					>
 						{{ entry.label }}
-						<small v-if="entry.change.kind === 'patch'">· {{ entry.change.patch.pixels.length }} px</small>
+						<small v-if="entry.change.kind === 'patch'"
+							>· {{ entry.change.patch.pixels.length }} px</small
+						>
 					</button>
 				</li>
 			</ol>

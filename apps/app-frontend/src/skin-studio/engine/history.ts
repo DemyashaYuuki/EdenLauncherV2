@@ -1,9 +1,16 @@
 import { cloneImage, type RgbaImage } from './image.ts'
+import type { ModelDefinition } from './model.ts'
 import { applyPatch, type Patch, patchBytes } from './paint.ts'
 
 export type HistoryChange =
 	| { kind: 'patch'; patch: Patch }
-	| { kind: 'replace'; before: RgbaImage; after: RgbaImage; modelBefore?: string; modelAfter?: string }
+	| {
+			kind: 'replace'
+			before: RgbaImage
+			after: RgbaImage
+			modelBefore?: ModelDefinition
+			modelAfter?: ModelDefinition
+	  }
 
 export interface HistoryEntry {
 	id: number
@@ -37,6 +44,7 @@ export class History {
 	private position = 0
 	private nextId = 1
 	private totalBytes = 0
+	private baseId = 0
 	readonly limits: HistoryLimits
 
 	constructor(limits: HistoryLimits = DEFAULT_HISTORY_LIMITS) {
@@ -50,6 +58,10 @@ export class History {
 	/** Number of entries currently applied. */
 	get cursor(): number {
 		return this.position
+	}
+
+	get currentEntryId(): number {
+		return this.position > 0 ? this.entries[this.position - 1].id : this.baseId
 	}
 
 	get bytes(): number {
@@ -67,7 +79,13 @@ export class History {
 	push(label: string, change: HistoryChange, time = Date.now()): HistoryEntry {
 		const dropped = this.entries.splice(this.position)
 		for (const entry of dropped) this.totalBytes -= entry.bytes
-		const entry: HistoryEntry = { id: this.nextId++, label, change, bytes: changeBytes(change), time }
+		const entry: HistoryEntry = {
+			id: this.nextId++,
+			label,
+			change,
+			bytes: changeBytes(change),
+			time,
+		}
 		this.entries.push(entry)
 		this.totalBytes += entry.bytes
 		this.position = this.entries.length
@@ -76,6 +94,7 @@ export class History {
 			(this.entries.length > this.limits.maxEntries || this.totalBytes > this.limits.maxBytes)
 		) {
 			const removed = this.entries.shift() as HistoryEntry
+			this.baseId = removed.id
 			this.totalBytes -= removed.bytes
 			this.position--
 		}
@@ -108,6 +127,7 @@ export class History {
 		this.entries = []
 		this.position = 0
 		this.totalBytes = 0
+		this.baseId = 0
 	}
 }
 

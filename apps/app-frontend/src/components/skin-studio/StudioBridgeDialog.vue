@@ -7,11 +7,20 @@ import { useStudioText } from '@/skin-studio/i18n'
 import { useSkinStudio } from '@/skin-studio/store'
 
 const props = defineProps<{ open: boolean }>()
-const emit = defineEmits<{ (event: 'close'): void; (event: 'settings'): void }>()
+const emit = defineEmits<{ (event: 'close' | 'settings'): void }>()
 const studio = useSkinStudio()
 const t = useStudioText()
 
-type Phase = 'checking' | 'unconfigured' | 'unavailable' | 'linked' | 'code' | 'awaiting' | 'expired' | 'rejected' | 'error'
+type Phase =
+	| 'checking'
+	| 'unconfigured'
+	| 'unavailable'
+	| 'linked'
+	| 'code'
+	| 'awaiting'
+	| 'expired'
+	| 'rejected'
+	| 'error'
 const phase = ref<Phase>('checking')
 const message = ref('')
 const pairing = ref<api.PairStart | null>(null)
@@ -121,7 +130,8 @@ async function unlink(): Promise<void> {
 
 async function close(): Promise<void> {
 	stop()
-	if (phase.value === 'code' || phase.value === 'awaiting') await api.bridgePairCancel().catch(() => undefined)
+	if (phase.value === 'code' || phase.value === 'awaiting')
+		await api.bridgePairCancel().catch(() => undefined)
 	emit('close')
 }
 
@@ -155,7 +165,9 @@ onBeforeUnmount(stop)
 			<p class="studio-note studio-note--error" role="alert">{{ message }}</p>
 		</template>
 		<template v-else-if="phase === 'linked' && linked">
-			<p class="studio-note studio-note--success" role="status">{{ t('bridge.linked', { name: linked.player_name }) }}</p>
+			<p class="studio-note studio-note--success" role="status">
+				{{ t('bridge.linked', { name: linked.player_name }) }}
+			</p>
 			<p>{{ t('bridge.awaitingUuid', { uuid: linked.player_uuid }) }}</p>
 		</template>
 		<template v-else-if="(phase === 'code' || phase === 'awaiting') && pairing">
@@ -175,7 +187,12 @@ onBeforeUnmount(stop)
 				<span class="studio-spinner" aria-hidden="true" />
 				{{ t('bridge.waiting') }}
 			</div>
-			<div v-else-if="state" class="studio-note studio-note--success" role="status" aria-live="polite">
+			<div
+				v-else-if="state"
+				class="studio-note studio-note--success"
+				role="status"
+				aria-live="polite"
+			>
 				{{ t('bridge.awaiting', { name: state.player_name ?? '' }) }}<br />
 				{{ t('bridge.awaitingUuid', { uuid: state.player_uuid ?? '' }) }}
 			</div>
@@ -187,13 +204,46 @@ onBeforeUnmount(stop)
 			<p class="studio-note studio-note--error" role="alert">{{ t('bridge.rejected') }}</p>
 		</template>
 		<template #actions>
-			<button v-if="phase === 'unconfigured' || phase === 'unavailable'" type="button" class="studio-btn" @click="emit('settings')">
+			<button
+				v-if="phase === 'unconfigured' || phase === 'unavailable'"
+				type="button"
+				class="studio-btn"
+				@click="emit('settings')"
+			>
 				{{ t('action.settings') }}
 			</button>
-			<button v-if="phase === 'unavailable' || phase === 'error'" type="button" class="studio-btn" @click="check">{{ t('action.retry') }}</button>
-			<button v-if="phase === 'expired' || phase === 'rejected'" type="button" class="studio-btn" @click="startPairing">{{ t('bridge.newCode') }}</button>
-			<button v-if="phase === 'linked'" type="button" class="studio-btn studio-btn--danger" @click="unlink">{{ t('bridge.unlink') }}</button>
-			<button v-if="phase === 'awaiting'" type="button" class="studio-btn studio-btn--primary" @click="finalize">{{ t('bridge.finalize') }}</button>
+			<button
+				v-if="phase === 'unavailable' || phase === 'error'"
+				type="button"
+				class="studio-btn"
+				@click="check"
+			>
+				{{ t('action.retry') }}
+			</button>
+			<button
+				v-if="phase === 'expired' || phase === 'rejected'"
+				type="button"
+				class="studio-btn"
+				@click="startPairing"
+			>
+				{{ t('bridge.newCode') }}
+			</button>
+			<button
+				v-if="phase === 'linked'"
+				type="button"
+				class="studio-btn studio-btn--danger"
+				@click="unlink"
+			>
+				{{ t('bridge.unlink') }}
+			</button>
+			<button
+				v-if="phase === 'awaiting'"
+				type="button"
+				class="studio-btn studio-btn--primary"
+				@click="finalize"
+			>
+				{{ t('bridge.finalize') }}
+			</button>
 			<button type="button" class="studio-btn" @click="close">{{ t('action.close') }}</button>
 		</template>
 	</StudioDialog>

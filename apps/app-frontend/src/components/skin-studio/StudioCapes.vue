@@ -7,8 +7,7 @@ import { type StudioKey, useStudioText } from '@/skin-studio/i18n'
 import { useSkinStudio } from '@/skin-studio/store'
 
 const emit = defineEmits<{
-	(event: 'cape-template'): void
-	(event: 'link'): void
+	(event: 'cape-template' | 'link'): void
 	(event: 'apply-look', look: api.BridgeLook): void
 	(event: 'notify', kind: 'error' | 'info', text: string): void
 }>()
@@ -17,7 +16,9 @@ const studio = useSkinStudio()
 const t = useStudioText()
 
 const microsoftAccount = computed(() =>
-	studio.selectedAccount?.type === 'microsoft' ? studio.selectedAccount : studio.accounts.find((a) => a.type === 'microsoft') ?? null,
+	studio.selectedAccount?.type === 'microsoft'
+		? studio.selectedAccount
+		: (studio.accounts.find((a) => a.type === 'microsoft') ?? null),
 )
 const capes = ref<api.AccountCapes | null>(null)
 const loadingCapes = ref(false)
@@ -48,7 +49,11 @@ async function setCape(id: string | null): Promise<void> {
 	try {
 		const report = await api.setMicrosoftCape(account.id, id)
 		if (report.status !== 'applied') {
-			emit('notify', 'error', t(`apply.state.${report.status}` as StudioKey, { message: report.message ?? '' }))
+			emit(
+				'notify',
+				'error',
+				t(`apply.state.${report.status}` as StudioKey, { message: report.message ?? '' }),
+			)
 		}
 		await loadCapes()
 	} catch (error) {
@@ -76,7 +81,11 @@ const capeStatusText = computed(() => {
 })
 
 watch(microsoftAccount, () => void loadCapes(), { immediate: true })
-watch(() => studio.bridge, () => void loadLooks(), { immediate: true })
+watch(
+	() => studio.bridge,
+	() => void loadLooks(),
+	{ immediate: true },
+)
 </script>
 
 <template>
@@ -91,16 +100,25 @@ watch(() => studio.bridge, () => void loadLooks(), { immediate: true })
 				<p>{{ t('capes.microsoftBody') }}</p>
 				<p v-if="!microsoftAccount" class="studio-note">{{ t('capes.noMicrosoft') }}</p>
 				<template v-else>
-					<p class="studio-capes__account"><StudioIcon name="account" :size="15" /> {{ microsoftAccount.name }}</p>
+					<p class="studio-capes__account">
+						<StudioIcon name="account" :size="15" /> {{ microsoftAccount.name }}
+					</p>
 					<p v-if="loadingCapes" aria-live="polite">…</p>
 					<p v-else-if="capeStatusText" class="studio-note studio-note--error" role="alert">
 						{{ capeStatusText }}
-						<button type="button" class="studio-btn studio-btn--small" @click="loadCapes">{{ t('action.retry') }}</button>
+						<button type="button" class="studio-btn studio-btn--small" @click="loadCapes">
+							{{ t('action.retry') }}
+						</button>
 					</p>
 					<p v-else-if="capes && capes.capes.length === 0">{{ t('capes.none') }}</p>
 					<ul v-else-if="capes" class="studio-capes__list">
 						<li v-for="cape in capes.capes" :key="cape.id" :class="{ active: cape.active }">
-							<span class="studio-capes__preview" :style="{ backgroundImage: `url(${cape.texture})` }" role="img" :aria-label="cape.name" />
+							<span
+								class="studio-capes__preview"
+								:style="{ backgroundImage: `url(${cape.texture})` }"
+								role="img"
+								:aria-label="cape.name"
+							/>
 							<span class="studio-capes__name">{{ cape.name }}</span>
 							<span v-if="cape.active" class="studio-chip">{{ t('capes.active') }}</span>
 							<button
@@ -133,16 +151,26 @@ watch(() => studio.bridge, () => void loadLooks(), { immediate: true })
 					<p class="studio-note">{{ t('bridge.notConfigured') }}</p>
 				</template>
 				<template v-else-if="!studio.bridge.link">
-					<button type="button" class="studio-badge" @click="emit('link')">{{ t('capes.edenLink') }}</button>
+					<button type="button" class="studio-badge" @click="emit('link')">
+						{{ t('capes.edenLink') }}
+					</button>
 				</template>
 				<template v-else>
-					<p v-if="looksError" class="studio-note studio-note--error" role="alert">{{ t('bridge.unreachable', { message: looksError }) }}</p>
+					<p v-if="looksError" class="studio-note studio-note--error" role="alert">
+						{{ t('bridge.unreachable', { message: looksError }) }}
+					</p>
 					<p v-else-if="looks && looks.length === 0">{{ t('capes.edenEmpty') }}</p>
 					<ul v-else-if="looks" class="studio-capes__list">
 						<li v-for="look in looks" :key="look.id">
 							<span class="studio-capes__name">{{ look.label }}</span>
 							<span v-if="look.has_cape" class="studio-chip">{{ t('part.cape') }}</span>
-							<button type="button" class="studio-btn studio-btn--small" @click="emit('apply-look', look)">{{ t('action.apply') }}</button>
+							<button
+								type="button"
+								class="studio-btn studio-btn--small"
+								@click="emit('apply-look', look)"
+							>
+								{{ t('action.apply') }}
+							</button>
 						</li>
 					</ul>
 				</template>

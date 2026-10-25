@@ -107,11 +107,21 @@ async function lookup(): Promise<void> {
 			</label>
 			<label class="studio-form-row">
 				{{ t('fetch.name') }}
-				<input v-model="name" class="studio-input" type="text" maxlength="32" autocomplete="off" spellcheck="false" required />
+				<input
+					v-model="name"
+					class="studio-input"
+					type="text"
+					maxlength="32"
+					autocomplete="off"
+					spellcheck="false"
+					required
+				/>
 			</label>
 			<p v-if="error" class="studio-note studio-note--error" role="alert">{{ error }}</p>
 			<div class="studio-fetch__actions">
-				<button type="button" class="studio-btn" @click="emit('close')">{{ t('action.cancel') }}</button>
+				<button type="button" class="studio-btn" @click="emit('close')">
+					{{ t('action.cancel') }}
+				</button>
 				<button type="submit" class="studio-btn studio-btn--primary" :disabled="busy">
 					<span v-if="busy" class="studio-spinner" aria-hidden="true" />
 					{{ t('fetch.go') }}

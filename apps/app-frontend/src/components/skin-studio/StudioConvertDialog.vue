@@ -21,7 +21,13 @@ const emit = defineEmits<{ (event: 'close'): void }>()
 const studio = useSkinStudio()
 const t = useStudioText()
 
-type Operation = 'legacyToModern' | 'modernToLegacy' | 'classicToSlim' | 'slimToClassic' | 'scale' | 'crop'
+type Operation =
+	| 'legacyToModern'
+	| 'modernToLegacy'
+	| 'classicToSlim'
+	| 'slimToClassic'
+	| 'scale'
+	| 'crop'
 
 const operation = ref<Operation | null>(null)
 const factor = ref(1)
@@ -36,8 +42,9 @@ const available = computed<Operation[]>(() => {
 	if (!d) return []
 	const ops: Operation[] = []
 	const square = d.image.width === d.image.height
-	if (d.image.width === d.image.height * 2) ops.push('legacyToModern')
-	if (square && d.model.category === 'player') {
+	const playerLayout = !!d.model.playerVariant && d.image.width >= 64 && d.image.width % 64 === 0
+	if (playerLayout && d.image.width === d.image.height * 2) ops.push('legacyToModern')
+	if (playerLayout && square) {
 		ops.push('modernToLegacy')
 		ops.push(d.model.playerVariant === 'slim' ? 'slimToClassic' : 'classicToSlim')
 	}
@@ -60,14 +67,28 @@ const factors = computed(() => {
 	for (const f of [0.25, 0.5, 1, 2, 4, 8, 16]) {
 		const w = d.model.textureWidth * f * (d.image.width / d.model.textureWidth)
 		const h = d.model.textureHeight * f * (d.image.height / d.model.textureHeight)
-		if (w >= d.model.textureWidth && w <= 4096 && h <= 4096 && Number.isInteger(w) && Number.isInteger(h)) out.push(f)
+		if (
+			w >= d.model.textureWidth &&
+			w <= 4096 &&
+			h <= 4096 &&
+			Number.isInteger(w) &&
+			Number.isInteger(h)
+		)
+			out.push(f)
 	}
 	return out
 })
 
 const mismatch = computed(() => {
 	const d = doc.value
-	return d ? !matchesModelAspect(d.image.width, d.image.height, d.model.textureWidth, d.model.textureHeight) : false
+	return d
+		? !matchesModelAspect(
+				d.image.width,
+				d.image.height,
+				d.model.textureWidth,
+				d.model.textureHeight,
+			)
+		: false
 })
 
 function compute(): { image: RgbaImage; model: ModelDefinition } | null {
@@ -76,13 +97,25 @@ function compute(): { image: RgbaImage; model: ModelDefinition } | null {
 	if (!d || !op) return null
 	switch (op) {
 		case 'legacyToModern':
-			return { image: convertLegacyToModern(d.image), model: builtinModel('player-classic') as ModelDefinition }
+			return {
+				image: convertLegacyToModern(d.image),
+				model: builtinModel('player-classic') as ModelDefinition,
+			}
 		case 'modernToLegacy':
-			return { image: convertModernToLegacy(d.image), model: builtinModel('player-legacy') as ModelDefinition }
+			return {
+				image: convertModernToLegacy(d.image),
+				model: builtinModel('player-legacy') as ModelDefinition,
+			}
 		case 'classicToSlim':
-			return { image: convertArmWidth(d.image, 4, 3), model: builtinModel('player-slim') as ModelDefinition }
+			return {
+				image: convertArmWidth(d.image, 4, 3),
+				model: builtinModel('player-slim') as ModelDefinition,
+			}
 		case 'slimToClassic':
-			return { image: convertArmWidth(d.image, 3, 4), model: builtinModel('player-classic') as ModelDefinition }
+			return {
+				image: convertArmWidth(d.image, 3, 4),
+				model: builtinModel('player-classic') as ModelDefinition,
+			}
 		case 'scale': {
 			const w = Math.round(d.image.width * factor.value)
 			const h = Math.round(d.image.height * factor.value)
@@ -90,7 +123,10 @@ function compute(): { image: RgbaImage; model: ModelDefinition } | null {
 		}
 		case 'crop': {
 			const s = Math.max(1, Math.round((d.image.width / d.model.textureWidth) * factor.value))
-			return { image: cropOrExtend(d.image, d.model.textureWidth * s, d.model.textureHeight * s), model: d.model }
+			return {
+				image: cropOrExtend(d.image, d.model.textureWidth * s, d.model.textureHeight * s),
+				model: d.model,
+			}
 		}
 	}
 }
@@ -133,7 +169,8 @@ function apply(): void {
 			{{ t('convert.resize') }}
 			<select v-model.number="factor" class="studio-select">
 				<option v-for="f in factors" :key="f" :value="f">
-					×{{ f }} → {{ Math.round((doc?.image.width ?? 0) * f) }} × {{ Math.round((doc?.image.height ?? 0) * f) }}
+					×{{ f }} → {{ Math.round((doc?.image.width ?? 0) * f) }} ×
+					{{ Math.round((doc?.image.height ?? 0) * f) }}
 				</option>
 			</select>
 		</label>
@@ -145,14 +182,27 @@ function apply(): void {
 			<span aria-hidden="true">→</span>
 			<figure>
 				<StudioThumb :image="preview?.image ?? null" />
-				<figcaption>{{ t('convert.preview') }}: {{ preview?.image.width }} × {{ preview?.image.height }}</figcaption>
+				<figcaption>
+					{{ t('convert.preview') }}: {{ preview?.image.width }} × {{ preview?.image.height }}
+				</figcaption>
 			</figure>
 		</div>
-		<p v-if="operation === 'modernToLegacy'" class="studio-note studio-note--error">{{ t('convert.lossy') }}</p>
+		<p v-if="operation === 'modernToLegacy'" class="studio-note studio-note--error">
+			{{ t('convert.lossy') }}
+		</p>
 		<p class="studio-note">{{ t('convert.note') }}</p>
 		<template #actions>
-			<button type="button" class="studio-btn" @click="emit('close')">{{ t('action.cancel') }}</button>
-			<button type="button" class="studio-btn studio-btn--primary" :disabled="!preview" @click="apply">{{ t('convert.apply') }}</button>
+			<button type="button" class="studio-btn" @click="emit('close')">
+				{{ t('action.cancel') }}
+			</button>
+			<button
+				type="button"
+				class="studio-btn studio-btn--primary"
+				:disabled="!preview"
+				@click="apply"
+			>
+				{{ t('convert.apply') }}
+			</button>
 		</template>
 	</StudioDialog>
 </template>

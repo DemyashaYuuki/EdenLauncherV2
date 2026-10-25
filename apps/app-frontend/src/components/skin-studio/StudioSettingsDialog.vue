@@ -13,7 +13,10 @@ import { type StudioKey, useStudioText } from '@/skin-studio/i18n'
 import { useSkinStudio } from '@/skin-studio/store'
 
 const props = defineProps<{ open: boolean }>()
-const emit = defineEmits<{ (event: 'close'): void; (event: 'notify', kind: 'error' | 'info', text: string): void }>()
+const emit = defineEmits<{
+	(event: 'close'): void
+	(event: 'notify', kind: 'error' | 'info', text: string): void
+}>()
 const studio = useSkinStudio()
 const t = useStudioText()
 
@@ -79,20 +82,54 @@ async function saveEndpoint(): Promise<void> {
 		<section class="studio-settings__section">
 			<h3>{{ t('settings.view') }}</h3>
 			<div class="studio-settings__grid">
-				<label><input v-model="studio.prefs.grid" type="checkbox" /> {{ t('settings.grid') }}</label>
+				<label
+					><input v-model="studio.prefs.grid" type="checkbox" /> {{ t('settings.grid') }}</label
+				>
 				<label>
 					{{ t('settings.gridOpacity') }}
-					<input v-model.number="studio.prefs.gridOpacity" type="range" min="0.05" max="1" step="0.05" />
+					<input
+						v-model.number="studio.prefs.gridOpacity"
+						type="range"
+						min="0.05"
+						max="1"
+						step="0.05"
+					/>
 				</label>
-				<label><input v-model="studio.prefs.regions" type="checkbox" /> {{ t('settings.regions') }}</label>
-				<label><input v-model="studio.prefs.alphaChecker" type="checkbox" /> {{ t('settings.alphaChecker') }}</label>
-				<label><input v-model="studio.prefs.protectHidden" type="checkbox" /> {{ t('settings.protectHidden') }}</label>
-				<label><input v-model="studio.prefs.grass" type="checkbox" /> {{ t('settings.grass') }}</label>
-				<label><input v-model="studio.prefs.lighting" type="checkbox" /> {{ t('settings.lighting') }}</label>
-				<label><input v-model="studio.prefs.animate" type="checkbox" /> {{ t('settings.animate') }}</label>
-				<label><input v-model="studio.prefs.followCursor" type="checkbox" /> {{ t('settings.followCursor') }}</label>
-				<label><input v-model="studio.prefs.multisampling" type="checkbox" /> {{ t('settings.multisampling') }}</label>
-				<label><input v-model="studio.prefs.recovery" type="checkbox" /> {{ t('settings.recovery') }}</label>
+				<label
+					><input v-model="studio.prefs.regions" type="checkbox" />
+					{{ t('settings.regions') }}</label
+				>
+				<label
+					><input v-model="studio.prefs.alphaChecker" type="checkbox" />
+					{{ t('settings.alphaChecker') }}</label
+				>
+				<label
+					><input v-model="studio.prefs.protectHidden" type="checkbox" />
+					{{ t('settings.protectHidden') }}</label
+				>
+				<label
+					><input v-model="studio.prefs.grass" type="checkbox" /> {{ t('settings.grass') }}</label
+				>
+				<label
+					><input v-model="studio.prefs.lighting" type="checkbox" />
+					{{ t('settings.lighting') }}</label
+				>
+				<label
+					><input v-model="studio.prefs.animate" type="checkbox" />
+					{{ t('settings.animate') }}</label
+				>
+				<label
+					><input v-model="studio.prefs.followCursor" type="checkbox" />
+					{{ t('settings.followCursor') }}</label
+				>
+				<label
+					><input v-model="studio.prefs.multisampling" type="checkbox" />
+					{{ t('settings.multisampling') }}</label
+				>
+				<label
+					><input v-model="studio.prefs.recovery" type="checkbox" />
+					{{ t('settings.recovery') }}</label
+				>
 				<label>
 					{{ t('settings.transparency') }}
 					<select v-model="studio.prefs.transparency" class="studio-select">
@@ -134,30 +171,53 @@ async function saveEndpoint(): Promise<void> {
 					/>
 				</label>
 			</div>
-			<button type="button" class="studio-btn studio-btn--small" @click="studio.resetShortcuts()">{{ t('settings.resetShortcuts') }}</button>
+			<button type="button" class="studio-btn studio-btn--small" @click="studio.resetShortcuts()">
+				{{ t('settings.resetShortcuts') }}
+			</button>
 		</section>
 
 		<section class="studio-settings__section">
 			<h3>{{ t('settings.bridge') }}</h3>
 			<label class="studio-form-row">
 				{{ t('bridge.endpoint') }}
-				<input v-model="endpoint" class="studio-input" type="url" placeholder="https://skins.example.org" spellcheck="false" />
+				<input
+					v-model="endpoint"
+					class="studio-input"
+					type="url"
+					placeholder="https://skins.example.org"
+					spellcheck="false"
+				/>
 			</label>
 			<p class="studio-settings__muted">{{ t('bridge.endpointHint') }}</p>
 			<div class="studio-settings__row">
-				<button type="button" class="studio-btn studio-btn--small" :disabled="checking" @click="saveEndpoint">
+				<button
+					type="button"
+					class="studio-btn studio-btn--small"
+					:disabled="checking"
+					@click="saveEndpoint"
+				>
 					{{ t('bridge.check') }}
 				</button>
-				<span v-if="health" :class="health.reachable && health.auth_ready && health.skins_ready ? 'studio-settings__ok' : 'studio-settings__bad'">
-					{{ health.service ?? '—' }} {{ health.version ?? '' }} · auth: {{ health.auth_adapter ?? '—' }}
-					{{ health.auth_ready ? '✓' : '✗' }} · SkinsRestorer {{ health.skins_ready ? '✓' : '✗' }} · MineSkin
+				<span
+					v-if="health"
+					:class="
+						health.reachable && health.auth_ready && health.skins_ready
+							? 'studio-settings__ok'
+							: 'studio-settings__bad'
+					"
+				>
+					{{ health.service ?? '—' }} {{ health.version ?? '' }} · auth:
+					{{ health.auth_adapter ?? '—' }} {{ health.auth_ready ? '✓' : '✗' }} · SkinsRestorer
+					{{ health.skins_ready ? '✓' : '✗' }} · MineSkin
 					{{ health.generator_ready ? '✓' : '✗' }}
 					<template v-if="health.message">— {{ health.message }}</template>
 				</span>
 			</div>
 		</section>
 		<template #actions>
-			<button type="button" class="studio-btn studio-btn--primary" @click="emit('close')">{{ t('action.done') }}</button>
+			<button type="button" class="studio-btn studio-btn--primary" @click="emit('close')">
+				{{ t('action.done') }}
+			</button>
 		</template>
 	</StudioDialog>
 </template>

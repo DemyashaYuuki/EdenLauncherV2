@@ -163,7 +163,8 @@ export function normalizeCombo(text: string): string | null {
 	let key: string | null = null
 	for (const part of parts) {
 		const lower = part.toLowerCase()
-		if (lower === 'ctrl' || lower === 'control' || lower === 'cmd' || lower === 'meta') mods.add('Ctrl')
+		if (lower === 'ctrl' || lower === 'control' || lower === 'cmd' || lower === 'meta')
+			mods.add('Ctrl')
 		else if (lower === 'alt' || lower === 'option') mods.add('Alt')
 		else if (lower === 'shift') mods.add('Shift')
 		else if (key) return null

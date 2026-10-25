@@ -3,8 +3,8 @@ import { useResizeObserver } from '@vueuse/core'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import StudioIcon from '@/components/skin-studio/StudioIcon.vue'
-import { useStudioText } from '@/skin-studio/i18n'
 import { regionsInPixels } from '@/skin-studio/engine/model'
+import { useStudioText } from '@/skin-studio/i18n'
 import { usePainter } from '@/skin-studio/painter'
 import { useSkinStudio } from '@/skin-studio/store'
 
@@ -38,7 +38,15 @@ function fitZoom(): number {
 	const d = doc.value
 	if (!d) return 1
 	const margin = 48
-	return Math.max(1, Math.floor(Math.min((size.value.width - margin) / d.image.width, (size.value.height - margin) / d.image.height)))
+	return Math.max(
+		1,
+		Math.floor(
+			Math.min(
+				(size.value.width - margin) / d.image.width,
+				(size.value.height - margin) / d.image.height,
+			),
+		),
+	)
 }
 
 const effectiveZoom = computed(() => (zoom.value > 0 ? zoom.value : fitZoom()))
@@ -56,7 +64,11 @@ function origin() {
 function syncImage(): void {
 	const d = doc.value
 	if (!d) return
-	if (!imageCanvas || imageCanvas.width !== d.image.width || imageCanvas.height !== d.image.height) {
+	if (
+		!imageCanvas ||
+		imageCanvas.width !== d.image.width ||
+		imageCanvas.height !== d.image.height
+	) {
 		imageCanvas = document.createElement('canvas')
 		imageCanvas.width = d.image.width
 		imageCanvas.height = d.image.height
@@ -64,13 +76,16 @@ function syncImage(): void {
 	}
 	const context = imageCanvas.getContext('2d')
 	if (!context) return
-	if (!imageBuffer || imageBuffer.width !== d.image.width) imageBuffer = context.createImageData(d.image.width, d.image.height)
+	if (!imageBuffer || imageBuffer.width !== d.image.width)
+		imageBuffer = context.createImageData(d.image.width, d.image.height)
 	imageBuffer.data.set(d.image.data)
 	context.putImageData(imageBuffer, 0, 0)
 }
 
 function cssVar(name: string, fallback: string): string {
-	const value = getComputedStyle(host.value ?? document.documentElement).getPropertyValue(name).trim()
+	const value = getComputedStyle(host.value ?? document.documentElement)
+		.getPropertyValue(name)
+		.trim()
 	return value || fallback
 }
 
@@ -135,7 +150,8 @@ function draw(): void {
 			const box = d.model.boxes[region.box]
 			const visible =
 				studio.visibility.parts[box.part] !== false &&
-				(box.layer === 'base' || (studio.visibility.overlayGlobal && studio.visibility.overlay[box.part] !== false))
+				(box.layer === 'base' ||
+					(studio.visibility.overlayGlobal && studio.visibility.overlay[box.part] !== false))
 			if (visible) continue
 			const r = region.rect
 			ctx.fillRect(o.x + r.x * z, o.y + r.y * z, r.w * z, r.h * z)
@@ -191,7 +207,10 @@ function onPointerDown(event: PointerEvent): void {
 	const c = canvas.value
 	if (!c) return
 	c.focus()
-	if (event.button === 1 || (event.button === 0 && (studio.tool === 'camera' || event.altKey && studio.tool !== 'stamp'))) {
+	if (
+		event.button === 1 ||
+		(event.button === 0 && (studio.tool === 'camera' || (event.altKey && studio.tool !== 'stamp')))
+	) {
 		panning = { x: event.clientX, y: event.clientY, px: pan.value.x, py: pan.value.y }
 		c.setPointerCapture(event.pointerId)
 		return
@@ -215,7 +234,10 @@ function onPointerDown(event: PointerEvent): void {
 
 function onPointerMove(event: PointerEvent): void {
 	if (panning) {
-		pan.value = { x: panning.px + event.clientX - panning.x, y: panning.py + event.clientY - panning.y }
+		pan.value = {
+			x: panning.px + event.clientX - panning.x,
+			y: panning.py + event.clientY - panning.y,
+		}
 		schedule()
 		return
 	}
@@ -224,7 +246,8 @@ function onPointerMove(event: PointerEvent): void {
 	const d = doc.value
 	if (d) painter.updateHover(d, texel ? { x: texel[0], y: texel[1] } : null)
 	if (texel && painter.active) {
-		const events = typeof event.getCoalescedEvents === 'function' ? event.getCoalescedEvents() : [event]
+		const events =
+			typeof event.getCoalescedEvents === 'function' ? event.getCoalescedEvents() : [event]
 		for (const e of events.length ? events : [event]) {
 			const p = texelAt(e)
 			if (p) painter.move({ x: p[0], y: p[1] }, '2d')
@@ -239,7 +262,8 @@ function onPointerUp(event: PointerEvent): void {
 	} else {
 		painter.end()
 	}
-	if (canvas.value?.hasPointerCapture(event.pointerId)) canvas.value.releasePointerCapture(event.pointerId)
+	if (canvas.value?.hasPointerCapture(event.pointerId))
+		canvas.value.releasePointerCapture(event.pointerId)
 	schedule()
 }
 
@@ -252,14 +276,25 @@ function onPointerCancel(): void {
 function onWheel(event: WheelEvent): void {
 	event.preventDefault()
 	const current = effectiveZoom.value
-	const next = Math.max(1, Math.min(64, event.deltaY < 0 ? current + Math.max(1, Math.round(current * 0.15)) : current - Math.max(1, Math.round(current * 0.15))))
+	const next = Math.max(
+		1,
+		Math.min(
+			64,
+			event.deltaY < 0
+				? current + Math.max(1, Math.round(current * 0.15))
+				: current - Math.max(1, Math.round(current * 0.15)),
+		),
+	)
 	zoom.value = next
 	schedule()
 }
 
 function zoomBy(direction: 1 | -1): void {
 	const current = effectiveZoom.value
-	zoom.value = Math.max(1, Math.min(64, current + direction * Math.max(1, Math.round(current * 0.2))))
+	zoom.value = Math.max(
+		1,
+		Math.min(64, current + direction * Math.max(1, Math.round(current * 0.2))),
+	)
 	schedule()
 }
 
@@ -275,18 +310,32 @@ function onLeave(): void {
 }
 
 watch(
-	() => [studio.revision, studio.prefs.grid, studio.prefs.gridOpacity, studio.prefs.alphaChecker, studio.prefs.regions, studio.prefs.protectHidden, studio.selection, studio.visibility],
+	() => [
+		studio.revision,
+		studio.prefs.grid,
+		studio.prefs.gridOpacity,
+		studio.prefs.alphaChecker,
+		studio.prefs.regions,
+		studio.prefs.protectHidden,
+		studio.selection,
+		studio.visibility,
+	],
 	schedule,
 	{ deep: true },
 )
 
 watch(
 	() => studio.activeId,
-	() => fit(),
+	() => {
+		panning = null
+		painter.cancel()
+		fit()
+	},
 )
 
 onMounted(schedule)
 onBeforeUnmount(() => {
+	painter.cancel()
 	if (frame) cancelAnimationFrame(frame)
 })
 
@@ -309,11 +358,25 @@ defineExpose({ zoomBy, fit })
 			@contextmenu.prevent
 		/>
 		<div class="studio-canvas2d__tools">
-			<button v-tooltip="t('canvas.zoomOut')" type="button" :aria-label="t('canvas.zoomOut')" @click="zoomBy(-1)">−</button>
+			<button
+				v-tooltip="t('canvas.zoomOut')"
+				type="button"
+				:aria-label="t('canvas.zoomOut')"
+				@click="zoomBy(-1)"
+			>
+				−
+			</button>
 			<button v-tooltip="t('canvas.fit')" type="button" :aria-label="t('canvas.fit')" @click="fit">
 				<StudioIcon name="grid" :size="15" />
 			</button>
-			<button v-tooltip="t('canvas.zoomIn')" type="button" :aria-label="t('canvas.zoomIn')" @click="zoomBy(1)">+</button>
+			<button
+				v-tooltip="t('canvas.zoomIn')"
+				type="button"
+				:aria-label="t('canvas.zoomIn')"
+				@click="zoomBy(1)"
+			>
+				+
+			</button>
 		</div>
 	</div>
 </template>

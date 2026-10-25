@@ -8,7 +8,10 @@ import { encodePng } from '@/skin-studio/engine/png'
 import { type StudioKey, useStudioText } from '@/skin-studio/i18n'
 import { useSkinStudio } from '@/skin-studio/store'
 
-export type ApplyMode = { kind: 'microsoft' } | { kind: 'server' } | { kind: 'look'; look: api.BridgeLook }
+export type ApplyMode =
+	| { kind: 'microsoft' }
+	| { kind: 'server' }
+	| { kind: 'look'; look: api.BridgeLook }
 
 const props = defineProps<{ open: boolean; mode: ApplyMode | null }>()
 const emit = defineEmits<{ (event: 'close'): void }>()
@@ -41,7 +44,12 @@ const summary = computed(() => {
 	const d = doc.value
 	if (!d || !props.mode) return ''
 	if (props.mode.kind === 'look') return props.mode.look.label
-	return t('apply.confirm.body', { target: targetName.value, model: d.model.name, w: d.image.width, h: d.image.height })
+	return t('apply.confirm.body', {
+		target: targetName.value,
+		model: d.model.name,
+		w: d.image.width,
+		h: d.image.height,
+	})
 })
 
 function stopPolling(): void {
@@ -90,13 +98,18 @@ async function applyMicrosoft(): Promise<void> {
 	statusText.value = t('apply.state.uploading')
 	try {
 		const png = await encodePng(d.image)
-		const report = await withTimeout(api.applyMicrosoftSkin(account.id, png, variant === 'slim' ? 'SLIM' : 'CLASSIC'), MICROSOFT_TIMEOUT_MS)
+		const report = await withTimeout(
+			api.applyMicrosoftSkin(account.id, png, variant === 'slim' ? 'SLIM' : 'CLASSIC'),
+			MICROSOFT_TIMEOUT_MS,
+		)
 		if (report.status === 'applied') {
 			phase.value = 'done'
 			statusText.value = t('apply.state.applied', { name: account.name })
 		} else {
 			phase.value = 'error'
-			statusText.value = t(`apply.state.${report.status}` as StudioKey, { message: report.message ?? '' })
+			statusText.value = t(`apply.state.${report.status}` as StudioKey, {
+				message: report.message ?? '',
+			})
 		}
 	} catch (error) {
 		phase.value = 'error'
@@ -109,7 +122,10 @@ async function applyMicrosoft(): Promise<void> {
 
 function describeJob(value: api.BridgeJob): string {
 	const name = studio.bridge?.link?.player_name ?? ''
-	return t(`bridge.job.${value.status}` as StudioKey, { name, message: value.message ?? value.error_code ?? '' })
+	return t(`bridge.job.${value.status}` as StudioKey, {
+		name,
+		message: value.message ?? value.error_code ?? '',
+	})
 }
 
 async function pollJob(started: number): Promise<void> {
@@ -191,30 +207,56 @@ onBeforeUnmount(stopPolling)
 </script>
 
 <template>
-	<StudioDialog :open="open" :title="t('apply.confirm.title')" :closable="phase !== 'working' || mode?.kind !== 'microsoft'" @close="emit('close')">
+	<StudioDialog
+		:open="open"
+		:title="t('apply.confirm.title')"
+		:closable="phase !== 'working' || mode?.kind !== 'microsoft'"
+		@close="emit('close')"
+	>
 		<p>{{ summary }}</p>
-		<p v-if="mode?.kind !== 'microsoft' && phase !== 'done'" class="studio-note">{{ t('bridge.job.queuedNote') }}</p>
+		<p v-if="mode?.kind !== 'microsoft' && phase !== 'done'" class="studio-note">
+			{{ t('bridge.job.queuedNote') }}
+		</p>
 		<div v-if="phase === 'working'" class="studio-progress" role="status" aria-live="polite">
 			<span class="studio-spinner" aria-hidden="true" />
 			{{ statusText }}
 		</div>
-		<p v-else-if="phase === 'done'" class="studio-note studio-note--success" role="status">{{ statusText }}</p>
-		<p v-else-if="phase === 'error'" class="studio-note studio-note--error" role="alert">{{ statusText }}</p>
+		<p v-else-if="phase === 'done'" class="studio-note studio-note--success" role="status">
+			{{ statusText }}
+		</p>
+		<p v-else-if="phase === 'error'" class="studio-note studio-note--error" role="alert">
+			{{ statusText }}
+		</p>
 		<template #actions>
 			<template v-if="phase === 'confirm'">
-				<button type="button" class="studio-btn" @click="emit('close')">{{ t('action.cancel') }}</button>
-				<button type="button" class="studio-btn studio-btn--primary" @click="start">{{ t('apply.button') }}</button>
+				<button type="button" class="studio-btn" @click="emit('close')">
+					{{ t('action.cancel') }}
+				</button>
+				<button type="button" class="studio-btn studio-btn--primary" @click="start">
+					{{ t('apply.button') }}
+				</button>
 			</template>
 			<template v-else-if="phase === 'working'">
-				<button v-if="job && (job.status === 'queued' || job.status === 'generating')" type="button" class="studio-btn" @click="cancelJob">
+				<button
+					v-if="job && (job.status === 'queued' || job.status === 'generating')"
+					type="button"
+					class="studio-btn"
+					@click="cancelJob"
+				>
 					{{ t('bridge.job.cancel') }}
 				</button>
 			</template>
 			<template v-else-if="phase === 'error'">
-				<button type="button" class="studio-btn" @click="emit('close')">{{ t('action.close') }}</button>
-				<button type="button" class="studio-btn studio-btn--primary" @click="retry">{{ t('action.retry') }}</button>
+				<button type="button" class="studio-btn" @click="emit('close')">
+					{{ t('action.close') }}
+				</button>
+				<button type="button" class="studio-btn studio-btn--primary" @click="retry">
+					{{ t('action.retry') }}
+				</button>
 			</template>
-			<button v-else type="button" class="studio-btn studio-btn--primary" @click="emit('close')">{{ t('action.done') }}</button>
+			<button v-else type="button" class="studio-btn studio-btn--primary" @click="emit('close')">
+				{{ t('action.done') }}
+			</button>
 		</template>
 	</StudioDialog>
 </template>

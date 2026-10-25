@@ -35,7 +35,8 @@ function decodeEntities(text: string): string {
 	return text.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);/g, (whole, ref: string) => {
 		if (ref[0] === '#') {
 			const code = ref[1] === 'x' ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10)
-			if (!Number.isFinite(code) || code < 0 || code > 0x10ffff) throw new XmlError('Bad character reference')
+			if (!Number.isFinite(code) || code < 0 || code > 0x10ffff)
+				throw new XmlError('Bad character reference')
 			return String.fromCodePoint(code)
 		}
 		if (ref in PREDEFINED) return PREDEFINED[ref]
@@ -45,8 +46,9 @@ function decodeEntities(text: string): string {
 
 export function parseXml(source: string, limits: XmlLimits = DEFAULT_XML_LIMITS): XmlElement {
 	if (source.length > limits.maxChars) throw new XmlError('XML document is too large')
-	const text = source.replace(/^﻿/, '')
-	if (/<!DOCTYPE|<!ENTITY/i.test(text)) throw new XmlError('DTD and entity declarations are not allowed')
+	const text = source.charCodeAt(0) === 0xfeff ? source.slice(1) : source
+	if (/<!DOCTYPE|<!ENTITY/i.test(text))
+		throw new XmlError('DTD and entity declarations are not allowed')
 	let i = 0
 	let elements = 0
 	const stack: XmlElement[] = []
@@ -111,7 +113,9 @@ export function parseXml(source: string, limits: XmlLimits = DEFAULT_XML_LIMITS)
 					i++
 					break
 				}
-				const attr = /^([A-Za-z_][\w.\-:]*)\s*=\s*("([^"<]*)"|'([^'<]*)')/.exec(text.slice(i, i + 65536))
+				const attr = /^([A-Za-z_][\w.\-:]*)\s*=\s*("([^"<]*)"|'([^'<]*)')/.exec(
+					text.slice(i, i + 65536),
+				)
 				if (!attr) throw new XmlError(`Invalid attribute in <${element.name}>`)
 				if (attr[1] in element.attributes) throw new XmlError('Duplicate attribute')
 				element.attributes[attr[1]] = decodeEntities(attr[3] ?? attr[4] ?? '')
@@ -152,6 +156,7 @@ export function children(element: XmlElement, name: string): XmlElement[] {
 
 export function attribute(element: XmlElement, name: string): string | undefined {
 	const lower = name.toLowerCase()
-	for (const [key, value] of Object.entries(element.attributes)) if (key.toLowerCase() === lower) return value
+	for (const [key, value] of Object.entries(element.attributes))
+		if (key.toLowerCase() === lower) return value
 	return undefined
 }

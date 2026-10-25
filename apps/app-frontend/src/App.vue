@@ -41,6 +41,7 @@ import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import pilotVideo from '@/assets/pilot.mp4'
+import StudioExitGuard from '@/components/skin-studio/StudioExitGuard.vue'
 import AccountSwitcherButton from '@/components/ui/AccountSwitcherButton.vue'
 import AppActionBar from '@/components/ui/AppActionBar.vue'
 import Breadcrumbs from '@/components/ui/Breadcrumbs.vue'
@@ -891,6 +892,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 </script>
 
 <template>
+	<StudioExitGuard v-if="stateInitialized" />
 	<SplashScreen v-if="!stateFailed" ref="splashScreen" data-tauri-drag-region />
 	<div id="teleports"></div>
 	<div
@@ -934,7 +936,9 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			<button @click="openWindowsRoute('/library')"><LibraryIcon /> Библиотека</button>
 			<button @click="openWindowsRoute('/browse/modpack')"><CompassIcon /> Каталог Modrinth</button>
 			<button @click="openWindowsRoute('/skins')"><ShirtIcon /> Скины</button>
-			<button @click="openWindowsRoute('/skin-studio')"><EdenIcon name="studio" /> Мастерская скинов</button>
+			<button @click="openWindowsRoute('/skin-studio')">
+				<EdenIcon name="studio" /> Мастерская скинов
+			</button>
 			<button @click="openWindowsRoute('/friends')"><EdenIcon name="users" /> Друзья</button>
 			<button @click="openWindowsRoute('/downloads')"><EdenIcon name="download" /> Загрузки</button>
 			<button @click="createGameInstance"><PlusIcon /> Создать игровую сборку</button>
@@ -1107,7 +1111,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			</RouterView>
 		</div>
 	</div>
-	<EdenErrorFx />
+	<EdenErrorFx :editor-active="route.name === 'Skin Studio'" />
 	<I18nDebugPanel />
 	<NotificationPanel :has-sidebar="false" />
 	<PopupNotificationPanel :has-sidebar="false" />

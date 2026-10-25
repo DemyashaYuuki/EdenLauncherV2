@@ -574,7 +574,7 @@ async fn add_and_equip_custom_skin_now(
     variant: MinecraftSkinVariant,
     cape_id: Option<Uuid>,
     local_texture_key: &str,
-) -> crate::Result<()> {
+) -> crate::Result<Arc<str>> {
     let state = State::get().await?;
 
     let previous_profile = selected_credentials
@@ -671,7 +671,7 @@ async fn add_and_equip_custom_skin_now(
         return Err(error);
     }
 
-    Ok(())
+    Ok(equipped_skin_texture_key)
 }
 
 /// Equips the given skin for the currently selected Minecraft profile, then applies its cape.
@@ -1197,6 +1197,7 @@ async fn execute_pending_skin_change(
                 local_texture_key,
             )
             .await
+            .map(|_| ())
         }
         PendingSkinChange::Equip {
             selected_credentials,
@@ -1586,13 +1587,16 @@ pub async fn apply_custom_skin_now(
         .remove(&credentials.offline_profile.id);
     let _guard = SKIN_CHANGE_FLUSH_LOCK.lock().await;
 
-    let current_cape = credentials
-        .online_profile_fresh()
-        .await
-        .and_then(|profile| profile.current_cape().map(|cape| cape.id));
+    let Some(previous_profile) = credentials.online_profile_fresh().await else {
+        return Ok(SkinApplyReport::with(
+            SkinApplyStatus::ProfileUnavailable,
+            Some("The current skin and cape could not be read".to_string()),
+        ));
+    };
+    let current_cape = previous_profile.current_cape().map(|cape| cape.id);
     let local_texture_key = local_skin_texture_key(&texture_blob);
 
-    if let Err(error) = add_and_equip_custom_skin_now(
+    let uploaded_texture_key = match add_and_equip_custom_skin_now(
         &credentials,
         Bytes::clone(&texture_blob),
         variant,
@@ -1601,11 +1605,12 @@ pub async fn apply_custom_skin_now(
     )
     .await
     {
-        return Ok(SkinApplyReport::with(
+        Ok(key) => key,
+        Err(error) => return Ok(SkinApplyReport::with(
             classify_error(&error),
             Some(error.to_string()),
-        ));
-    }
+        )),
+    };
 
     let Some(profile) = credentials.refresh_online_profile().await else {
         return Ok(SkinApplyReport::with(
@@ -1614,7 +1619,9 @@ pub async fn apply_custom_skin_now(
         ));
     };
     match profile.current_skin() {
-        Ok(skin) if skin.variant == variant => Ok(SkinApplyReport {
+        Ok(skin) if skin.variant == variant
+            && skin.texture_key() == uploaded_texture_key
+            && profile.current_cape().map(|cape| cape.id) == current_cape => Ok(SkinApplyReport {
             status: SkinApplyStatus::Applied,
             message: None,
             variant: Some(skin.variant),
@@ -1622,7 +1629,7 @@ pub async fn apply_custom_skin_now(
         Ok(skin) => Ok(SkinApplyReport {
             status: SkinApplyStatus::Failed,
             message: Some(
-                "The active skin model does not match the request"
+                "The active skin or cape does not match the confirmed upload"
                     .to_string(),
             ),
             variant: Some(skin.variant),

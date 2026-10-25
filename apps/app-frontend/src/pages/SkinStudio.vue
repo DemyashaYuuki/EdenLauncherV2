@@ -6,8 +6,8 @@ import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import operatorUrl from '@/assets/eden/skin-studio/textures/signal-operator.png'
 import rangerUrl from '@/assets/eden/skin-studio/textures/eden-ranger.png'
+import operatorUrl from '@/assets/eden/skin-studio/textures/signal-operator.png'
 import StudioApplyDialog, { type ApplyMode } from '@/components/skin-studio/StudioApplyDialog.vue'
 import StudioBridgeDialog from '@/components/skin-studio/StudioBridgeDialog.vue'
 import StudioCapes from '@/components/skin-studio/StudioCapes.vue'
@@ -69,10 +69,15 @@ let toastId = 0
 function notify(kind: 'error' | 'info', text: string): void {
 	const id = ++toastId
 	toasts.value = [...toasts.value.slice(-3), { id, kind, text }]
-	setTimeout(() => (toasts.value = toasts.value.filter((x) => x.id !== id)), kind === 'error' ? 9000 : 4500)
+	setTimeout(
+		() => (toasts.value = toasts.value.filter((x) => x.id !== id)),
+		kind === 'error' ? 9000 : 4500,
+	)
 }
 
-const prompt = ref<{ title: string; value: string; done: (value: string | null) => void } | null>(null)
+const prompt = ref<{ title: string; value: string; done: (value: string | null) => void } | null>(
+	null,
+)
 const promptValue = ref('')
 function askPrompt(title: string, value: string, done: (value: string | null) => void): void {
 	promptValue.value = value
@@ -129,12 +134,22 @@ async function assetBytes(url: string): Promise<Uint8Array> {
 	return new Uint8Array(await response.arrayBuffer())
 }
 
-async function createDocument(options: { name: string; model: ModelDefinition; scale: number; template: NewTemplate }): Promise<void> {
+async function createDocument(options: {
+	name: string
+	model: ModelDefinition
+	scale: number
+	template: NewTemplate
+}): Promise<void> {
 	dialogs.value.new = false
 	try {
-		let image = createImage(options.model.textureWidth * options.scale, options.model.textureHeight * options.scale)
+		let image = createImage(
+			options.model.textureWidth * options.scale,
+			options.model.textureHeight * options.scale,
+		)
 		if (options.template !== 'blank') {
-			image = await decodePng(await assetBytes(options.template === 'ranger' ? rangerUrl : operatorUrl))
+			image = await decodePng(
+				await assetBytes(options.template === 'ranger' ? rangerUrl : operatorUrl),
+			)
 		}
 		studio.newDocument(options.name, options.model, image)
 		studio.tab = 'editor'
@@ -168,9 +183,12 @@ async function importFiles(files: PickedFile[]): Promise<void> {
 			} else if (lower.endsWith('.png')) {
 				await studio.importPng(file.name.replace(/\.png$/i, ''), file.bytes)
 			} else if (lower.endsWith('.tcn') || lower.endsWith('.xml')) {
-				const imported = lower.endsWith('.tcn') ? await importTcn(file.bytes) : techneToModel(new TextDecoder().decode(file.bytes))
+				const imported = lower.endsWith('.tcn')
+					? await importTcn(file.bytes)
+					: techneToModel(new TextDecoder().decode(file.bytes))
 				chooseModel(imported.model)
-				if (imported.warnings.length) notify('info', t('model.importWarnings', { details: imported.warnings.join(', ') }))
+				if (imported.warnings.length)
+					notify('info', t('model.importWarnings', { details: imported.warnings.join(', ') }))
 			} else {
 				const format = formatFromFileName(file.name)
 				if (!format) throw new Error(t('error.format'))
@@ -178,7 +196,10 @@ async function importFiles(files: PickedFile[]): Promise<void> {
 			}
 			count++
 		} catch (error) {
-			notify('error', t('library.importFailed', { name: file.name, message: (error as Error).message }))
+			notify(
+				'error',
+				t('library.importFailed', { name: file.name, message: (error as Error).message }),
+			)
 		}
 	}
 	if (count) {
@@ -190,7 +211,12 @@ async function importFiles(files: PickedFile[]): Promise<void> {
 async function importDialog(): Promise<void> {
 	try {
 		const files = await pickFiles(
-			[{ name: 'Skin Studio', extensions: ['png', PROJECT_EXTENSION, 'tcn', 'xml', 'gpl', 'aco', 'act', 'swtch'] }],
+			[
+				{
+					name: 'Skin Studio',
+					extensions: ['png', PROJECT_EXTENSION, 'tcn', 'xml', 'gpl', 'aco', 'act', 'swtch'],
+				},
+			],
 			true,
 		)
 		await importFiles(files)
@@ -220,7 +246,9 @@ function chooseModel(model: ModelDefinition): void {
 		dialogs.value.new = true
 		return
 	}
-	if (matchesModelAspect(doc.image.width, doc.image.height, model.textureWidth, model.textureHeight)) {
+	if (
+		matchesModelAspect(doc.image.width, doc.image.height, model.textureWidth, model.textureHeight)
+	) {
 		studio.replace(model.name, doc.image, model)
 	} else {
 		studio.newDocument(model.name, model, createImage(model.textureWidth, model.textureHeight))
@@ -284,7 +312,11 @@ async function exportForEly(): Promise<void> {
 	const doc = studio.active
 	if (!doc) return
 	try {
-		const saved = await saveBytes(`${safeFileStem(doc.name)}.png`, [{ name: 'PNG', extensions: ['png'] }], await encodePng(doc.image))
+		const saved = await saveBytes(
+			`${safeFileStem(doc.name)}.png`,
+			[{ name: 'PNG', extensions: ['png'] }],
+			await encodePng(doc.image),
+		)
 		if (saved) {
 			await openUrl(ELY_UPLOAD_PAGE)
 			dialogs.value.ely = false
@@ -355,7 +387,9 @@ async function openPopout(): Promise<void> {
 			minWidth: 320,
 			minHeight: 360,
 		})
-		previewWindow.once('tauri://error', (event) => notify('error', t('error.generic', { message: String(event.payload) })))
+		previewWindow.once('tauri://error', (event) =>
+			notify('error', t('error.generic', { message: String(event.payload) })),
+		)
 	} catch (error) {
 		notify('error', t('error.generic', { message: (error as Error).message }))
 	}
@@ -404,7 +438,8 @@ function runShortcut(action: ShortcutAction): boolean {
 			if (studio.active) dialogs.value.export = true
 			return true
 		case 'view.toggleMode':
-			studio.prefs.viewMode = studio.prefs.viewMode === '3d' ? '2d' : studio.prefs.viewMode === '2d' ? 'split' : '3d'
+			studio.prefs.viewMode =
+				studio.prefs.viewMode === '3d' ? '2d' : studio.prefs.viewMode === '2d' ? 'split' : '3d'
 			return true
 		case 'view.toggleOverlay':
 			studio.visibility.overlayGlobal = !studio.visibility.overlayGlobal
@@ -413,7 +448,12 @@ function runShortcut(action: ShortcutAction): boolean {
 			studio.prefs.grid = !studio.prefs.grid
 			return true
 		case 'view.toggleTransparency':
-			studio.prefs.transparency = studio.prefs.transparency === 'off' ? 'helmet' : studio.prefs.transparency === 'helmet' ? 'all' : 'off'
+			studio.prefs.transparency =
+				studio.prefs.transparency === 'off'
+					? 'helmet'
+					: studio.prefs.transparency === 'helmet'
+						? 'all'
+						: 'off'
 			return true
 		case 'view.resetCamera':
 			editor.value?.resetCamera()
@@ -452,7 +492,12 @@ function runShortcut(action: ShortcutAction): boolean {
 }
 
 function anyDialogOpen(): boolean {
-	return Object.values(dialogs.value).some(Boolean) || !!prompt.value || !!confirmState.value || !!unsaved.value
+	return (
+		Object.values(dialogs.value).some(Boolean) ||
+		!!prompt.value ||
+		!!confirmState.value ||
+		!!unsaved.value
+	)
 }
 
 function onKeyDown(event: KeyboardEvent): void {
@@ -472,9 +517,15 @@ async function listenForDrops(): Promise<void> {
 		const files: PickedFile[] = []
 		for (const path of event.payload.paths.slice(0, 32)) {
 			try {
-				files.push({ name: path.split(/[\\/]/).pop() ?? path, bytes: await api.readDroppedFile(path) })
+				files.push({
+					name: path.split(/[\\/]/).pop() ?? path,
+					bytes: await api.readDroppedFile(path),
+				})
 			} catch (error) {
-				notify('error', t('library.importFailed', { name: path, message: (error as Error).message }))
+				notify(
+					'error',
+					t('library.importFailed', { name: path, message: (error as Error).message }),
+				)
 			}
 		}
 		await importFiles(files)
@@ -507,7 +558,6 @@ onBeforeUnmount(() => {
 	channel?.close()
 	channel = null
 })
-
 </script>
 
 <template>
@@ -519,13 +569,29 @@ onBeforeUnmount(() => {
 				<p>{{ t('page.subtitle') }}</p>
 			</div>
 			<div class="studio-page__actions">
-				<button v-tooltip="t('action.settings')" type="button" class="studio-btn" :aria-label="t('action.settings')" @click="dialogs.settings = true">
+				<button
+					v-tooltip="t('action.settings')"
+					type="button"
+					class="studio-btn"
+					:aria-label="t('action.settings')"
+					@click="dialogs.settings = true"
+				>
 					<StudioIcon name="settings" />
 				</button>
-				<button type="button" class="studio-btn" :disabled="!studio.active" @click="dialogs.export = true">
+				<button
+					type="button"
+					class="studio-btn"
+					:disabled="!studio.active"
+					@click="dialogs.export = true"
+				>
 					<StudioIcon name="export" /> {{ t('action.export') }}
 				</button>
-				<button type="button" class="studio-btn studio-btn--primary" :disabled="!studio.active" @click="save(false)">
+				<button
+					type="button"
+					class="studio-btn studio-btn--primary"
+					:disabled="!studio.active"
+					@click="save(false)"
+				>
 					<StudioIcon name="save" /> {{ t('action.save') }}
 				</button>
 			</div>
@@ -534,8 +600,20 @@ onBeforeUnmount(() => {
 		<div v-if="studio.recoveryFound.length" class="studio-page__recovery" role="status">
 			<span>{{ t('recovery.body', { count: studio.recoveryFound.length }) }}</span>
 			<div>
-				<button type="button" class="studio-btn studio-btn--small studio-btn--primary" @click="restoreRecovery">{{ t('recovery.restore') }}</button>
-				<button type="button" class="studio-btn studio-btn--small" @click="studio.discardRecovery()">{{ t('recovery.dismiss') }}</button>
+				<button
+					type="button"
+					class="studio-btn studio-btn--small studio-btn--primary"
+					@click="restoreRecovery"
+				>
+					{{ t('recovery.restore') }}
+				</button>
+				<button
+					type="button"
+					class="studio-btn studio-btn--small"
+					@click="studio.discardRecovery()"
+				>
+					{{ t('recovery.dismiss') }}
+				</button>
 			</div>
 		</div>
 
@@ -554,41 +632,44 @@ onBeforeUnmount(() => {
 			</button>
 		</nav>
 
-		<div class="studio-page__body" :class="{ 'studio-page__body--editor': studio.tab === 'editor' }">
-		<StudioEditor
-			v-show="studio.tab === 'editor'"
-			ref="editor"
-			:theme-background="themeBackground"
-			@new="(customModel = null), (dialogs.new = true)"
-			@close="requestClose"
-			@models="dialogs.models = true"
-			@convert="dialogs.convert = true"
-			@screenshot="dialogs.export = true"
-			@popout="openPopout"
-			@apply-microsoft="openApply({ kind: 'microsoft' })"
-			@apply-ely="dialogs.ely = true"
-			@apply-server="openApply({ kind: 'server' })"
-			@link="dialogs.bridge = true"
-			@prompt="askPrompt"
-			@notify="notify"
-		/>
-		<StudioLibrary
-			v-if="studio.tab === 'library'"
-			@new="(customModel = null), (dialogs.new = true)"
-			@import="importDialog"
-			@fetch="dialogs.fetch = true"
-			@template="openTemplate"
-			@prompt="askPrompt"
-			@confirm="askConfirm"
-			@notify="notify"
-		/>
-		<StudioCapes
-			v-if="studio.tab === 'capes'"
-			@cape-template="openCapeTemplate"
-			@link="dialogs.bridge = true"
-			@apply-look="(look) => openApply({ kind: 'look', look })"
-			@notify="notify"
-		/>
+		<div
+			class="studio-page__body"
+			:class="{ 'studio-page__body--editor': studio.tab === 'editor' }"
+		>
+			<StudioEditor
+				v-show="studio.tab === 'editor'"
+				ref="editor"
+				:theme-background="themeBackground"
+				@new="((customModel = null), (dialogs.new = true))"
+				@close="requestClose"
+				@models="dialogs.models = true"
+				@convert="dialogs.convert = true"
+				@screenshot="dialogs.export = true"
+				@popout="openPopout"
+				@apply-microsoft="openApply({ kind: 'microsoft' })"
+				@apply-ely="dialogs.ely = true"
+				@apply-server="openApply({ kind: 'server' })"
+				@link="dialogs.bridge = true"
+				@prompt="askPrompt"
+				@notify="notify"
+			/>
+			<StudioLibrary
+				v-if="studio.tab === 'library'"
+				@new="((customModel = null), (dialogs.new = true))"
+				@import="importDialog"
+				@fetch="dialogs.fetch = true"
+				@template="openTemplate"
+				@prompt="askPrompt"
+				@confirm="askConfirm"
+				@notify="notify"
+			/>
+			<StudioCapes
+				v-if="studio.tab === 'capes'"
+				@cape-template="openCapeTemplate"
+				@link="dialogs.bridge = true"
+				@apply-look="(look) => openApply({ kind: 'look', look })"
+				@notify="notify"
+			/>
 		</div>
 
 		<footer class="studio-page__footer">
@@ -601,9 +682,14 @@ onBeforeUnmount(() => {
 			:custom-model="customModel"
 			@close="dialogs.new = false"
 			@create="createDocument"
-			@models="(modelsForNew = true), (dialogs.models = true)"
+			@models="((modelsForNew = true), (dialogs.models = true))"
 		/>
-		<StudioModelsDialog :open="dialogs.models" @close="dialogs.models = false" @choose="chooseModel" @notify="notify" />
+		<StudioModelsDialog
+			:open="dialogs.models"
+			@close="dialogs.models = false"
+			@choose="chooseModel"
+			@notify="notify"
+		/>
 		<StudioConvertDialog :open="dialogs.convert" @close="dialogs.convert = false" />
 		<StudioExportDialog
 			:open="dialogs.export"
@@ -612,16 +698,28 @@ onBeforeUnmount(() => {
 			@notify="notify"
 		/>
 		<StudioApplyDialog :open="dialogs.apply" :mode="applyMode" @close="dialogs.apply = false" />
-		<StudioBridgeDialog :open="dialogs.bridge" @close="dialogs.bridge = false" @settings="(dialogs.bridge = false), (dialogs.settings = true)" />
+		<StudioBridgeDialog
+			:open="dialogs.bridge"
+			@close="dialogs.bridge = false"
+			@settings="((dialogs.bridge = false), (dialogs.settings = true))"
+		/>
 		<StudioFetchDialog :open="dialogs.fetch" @close="dialogs.fetch = false" @fetched="onFetched" />
-		<StudioSettingsDialog :open="dialogs.settings" @close="dialogs.settings = false" @notify="notify" />
+		<StudioSettingsDialog
+			:open="dialogs.settings"
+			@close="dialogs.settings = false"
+			@notify="notify"
+		/>
 
 		<StudioDialog :open="dialogs.ely" :title="t('ely.title')" @close="dialogs.ely = false">
 			<p>{{ t('ely.body') }}</p>
 			<p class="studio-note">{{ t('ely.fallback') }}</p>
 			<template #actions>
-				<button type="button" class="studio-btn" @click="dialogs.ely = false">{{ t('action.cancel') }}</button>
-				<button type="button" class="studio-btn studio-btn--primary" @click="exportForEly">{{ t('ely.export') }}</button>
+				<button type="button" class="studio-btn" @click="dialogs.ely = false">
+					{{ t('action.cancel') }}
+				</button>
+				<button type="button" class="studio-btn studio-btn--primary" @click="exportForEly">
+					{{ t('ely.export') }}
+				</button>
 			</template>
 		</StudioDialog>
 
@@ -629,31 +727,63 @@ onBeforeUnmount(() => {
 			<form class="studio-page__prompt" @submit.prevent="finishPrompt(true)">
 				<input v-model="promptValue" class="studio-input" type="text" maxlength="80" autofocus />
 				<div class="studio-page__prompt-actions">
-					<button type="button" class="studio-btn" @click="finishPrompt(false)">{{ t('action.cancel') }}</button>
-					<button type="submit" class="studio-btn studio-btn--primary">{{ t('action.confirm') }}</button>
+					<button type="button" class="studio-btn" @click="finishPrompt(false)">
+						{{ t('action.cancel') }}
+					</button>
+					<button type="submit" class="studio-btn studio-btn--primary">
+						{{ t('action.confirm') }}
+					</button>
 				</div>
 			</form>
 		</StudioDialog>
 
-		<StudioDialog :open="!!confirmState" :title="confirmState?.title ?? ''" @close="finishConfirm(false)">
+		<StudioDialog
+			:open="!!confirmState"
+			:title="confirmState?.title ?? ''"
+			@close="finishConfirm(false)"
+		>
 			<p>{{ confirmState?.body }}</p>
 			<template #actions>
-				<button type="button" class="studio-btn" @click="finishConfirm(false)">{{ t('action.cancel') }}</button>
-				<button type="button" class="studio-btn studio-btn--danger" @click="finishConfirm(true)">{{ t('action.confirm') }}</button>
+				<button type="button" class="studio-btn" @click="finishConfirm(false)">
+					{{ t('action.cancel') }}
+				</button>
+				<button type="button" class="studio-btn studio-btn--danger" @click="finishConfirm(true)">
+					{{ t('action.confirm') }}
+				</button>
 			</template>
 		</StudioDialog>
 
 		<StudioDialog :open="!!unsaved" :title="t('unsaved.title')" @close="resolveUnsaved('cancel')">
 			<p>{{ t('unsaved.body', { name: unsaved?.name ?? '' }) }}</p>
 			<template #actions>
-				<button type="button" class="studio-btn" @click="resolveUnsaved('cancel')">{{ t('action.cancel') }}</button>
-				<button type="button" class="studio-btn studio-btn--danger" @click="resolveUnsaved('discard')">{{ t('action.discard') }}</button>
-				<button type="button" class="studio-btn studio-btn--primary" @click="resolveUnsaved('save')">{{ t('unsaved.save') }}</button>
+				<button type="button" class="studio-btn" @click="resolveUnsaved('cancel')">
+					{{ t('action.cancel') }}
+				</button>
+				<button
+					type="button"
+					class="studio-btn studio-btn--danger"
+					@click="resolveUnsaved('discard')"
+				>
+					{{ t('action.discard') }}
+				</button>
+				<button
+					type="button"
+					class="studio-btn studio-btn--primary"
+					@click="resolveUnsaved('save')"
+				>
+					{{ t('unsaved.save') }}
+				</button>
 			</template>
 		</StudioDialog>
 
 		<div class="studio-toasts" aria-live="polite">
-			<div v-for="toast in toasts" :key="toast.id" class="studio-toast" :class="`studio-toast--${toast.kind}`" :role="toast.kind === 'error' ? 'alert' : 'status'">
+			<div
+				v-for="toast in toasts"
+				:key="toast.id"
+				class="studio-toast"
+				:class="`studio-toast--${toast.kind}`"
+				:role="toast.kind === 'error' ? 'alert' : 'status'"
+			>
 				{{ toast.text }}
 			</div>
 		</div>
@@ -664,7 +794,7 @@ onBeforeUnmount(() => {
 .studio-page {
 	display: flex;
 	height: 100%;
-	min-height: 640px;
+	min-height: 0;
 	flex-direction: column;
 	gap: 14px;
 	padding: 22px 26px 14px;

@@ -1,7 +1,7 @@
 import { getVersion } from '@tauri-apps/api/app'
 import { isTauri } from '@tauri-apps/api/core'
-import { ref } from 'vue'
 import { fetch } from '@tauri-apps/plugin-http'
+import { ref } from 'vue'
 
 import { getOS, initUpdateLauncher, isDev } from '@/helpers/utils.js'
 
@@ -187,7 +187,7 @@ function resolveOperationalSystemExtension(): string[] {
 			default:
 				throw new Error(String("Operational System can't be resolved"))
 		}
-	} catch (error) {
+	} catch {
 		console.error("Operational System can't be resolved")
 		return []
 	}

@@ -5,7 +5,13 @@ import StudioIcon from '@/components/skin-studio/StudioIcon.vue'
 import { useStudioText } from '@/skin-studio/i18n'
 
 const props = withDefaults(
-	defineProps<{ open: boolean; title: string; eyebrow?: string; width?: string; closable?: boolean }>(),
+	defineProps<{
+		open: boolean
+		title: string
+		eyebrow?: string
+		width?: string
+		closable?: boolean
+	}>(),
 	{ eyebrow: 'Skin Studio', width: '540px', closable: true },
 )
 const emit = defineEmits<{ (event: 'close'): void }>()
@@ -54,7 +60,13 @@ onBeforeUnmount(() => {
 					<div class="studio-dialog__eyebrow">{{ eyebrow }}</div>
 					<h2 :id="titleId">{{ title }}</h2>
 				</div>
-				<button v-if="closable" type="button" class="studio-dialog__close" :aria-label="t('action.close')" @click="emit('close')">
+				<button
+					v-if="closable"
+					type="button"
+					class="studio-dialog__close"
+					:aria-label="t('action.close')"
+					@click="emit('close')"
+				>
 					<StudioIcon name="close" :size="16" />
 				</button>
 			</header>

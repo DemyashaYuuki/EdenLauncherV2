@@ -43,7 +43,10 @@ export function isPng(bytes: Uint8Array): boolean {
 
 function readU32(bytes: Uint8Array, offset: number): number {
 	return (
-		((bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]) >>>
+		((bytes[offset] << 24) |
+			(bytes[offset + 1] << 16) |
+			(bytes[offset + 2] << 8) |
+			bytes[offset + 3]) >>>
 		0
 	)
 }
@@ -195,7 +198,13 @@ function unfilter(
 	return { rows, next: p }
 }
 
-function sample(rows: Uint8Array, rowBytes: number, y: number, index: number, depth: number): number {
+function sample(
+	rows: Uint8Array,
+	rowBytes: number,
+	y: number,
+	index: number,
+	depth: number,
+): number {
 	if (depth === 8) return rows[y * rowBytes + index]
 	if (depth === 16) return rows[y * rowBytes + index * 2]
 	const perByte = 8 / depth
@@ -239,7 +248,8 @@ function writePassPixels(
 			if (colorType === 3) {
 				const index = sample(rows, rowBytes, y, x, bitDepth)
 				const palette = extra.palette as Uint8Array
-				if (index * 3 + 2 >= palette.length) throw new PngError('palette', 'Palette index out of range')
+				if (index * 3 + 2 >= palette.length)
+					throw new PngError('palette', 'Palette index out of range')
 				r = palette[index * 3]
 				g = palette[index * 3 + 1]
 				b = palette[index * 3 + 2]
@@ -317,7 +327,10 @@ export interface DecodeOptions {
  * than `maxDimension` before inflating, and bounds the inflated size to what the header implies.
  * Metadata chunks are ignored, so re-encoding the result strips them.
  */
-export async function decodePng(bytes: Uint8Array, options: DecodeOptions = {}): Promise<RgbaImage> {
+export async function decodePng(
+	bytes: Uint8Array,
+	options: DecodeOptions = {},
+): Promise<RgbaImage> {
 	const maxBytes = options.maxBytes ?? MAX_PNG_BYTES
 	const maxDimension = options.maxDimension ?? MAX_TEXTURE_SIZE
 	if (bytes.length > maxBytes) throw new PngError('too-big', 'PNG file is too large')
@@ -371,7 +384,8 @@ export async function decodePng(bytes: Uint8Array, options: DecodeOptions = {}):
 			}
 			header = { width, height, bitDepth, colorType, interlace }
 		} else if (type === 'PLTE') {
-			if (length % 3 !== 0 || length === 0 || length > 768) throw new PngError('palette', 'Bad palette')
+			if (length % 3 !== 0 || length === 0 || length > 768)
+				throw new PngError('palette', 'Bad palette')
 			extra.palette = data.slice()
 		} else if (type === 'tRNS') {
 			extra.transparency = data.slice()
@@ -522,7 +536,8 @@ export function bytesToBase64(bytes: Uint8Array): string {
 
 export function base64ToBytes(text: string, maxBytes: number): Uint8Array {
 	if (!/^[A-Za-z0-9+/]*={0,2}$/.test(text)) throw new PngError('base64', 'Invalid base64 data')
-	if ((text.length * 3) / 4 > maxBytes + 3) throw new PngError('too-big', 'Embedded data is too large')
+	if ((text.length * 3) / 4 > maxBytes + 3)
+		throw new PngError('too-big', 'Embedded data is too large')
 	const binary = atob(text)
 	const out = new Uint8Array(binary.length)
 	for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i)

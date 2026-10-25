@@ -148,7 +148,8 @@ export const ru = {
 	'apply.title.ely': 'Профиль Ely.by',
 	'apply.title.offline': 'Применить на сервере EdenWorld',
 	'apply.hint.microsoft': 'Сохранение проекта и установка скина — отдельные действия.',
-	'apply.hint.ely': 'Ely.by не даёт API загрузки скинов: экспортируем PNG и откроем страницу Ely.by.',
+	'apply.hint.ely':
+		'Ely.by не даёт API загрузки скинов: экспортируем PNG и откроем страницу Ely.by.',
 	'apply.hint.offline': 'Скин применится к твоему игроку на сервере после привязки в игре.',
 	'apply.hint.offlineLinked': 'Привязан игрок {name}.',
 	'apply.hint.noAccount': 'Добавь аккаунт в лаунчере, чтобы применять скины.',
@@ -159,7 +160,8 @@ export const ru = {
 	'apply.buttonLink': 'Привязать игрока',
 	'apply.account': 'Аккаунт для применения',
 	'apply.confirm.title': 'Применить скин?',
-	'apply.confirm.body': 'Цель: {target}. Модель: {model}, PNG {w} × {h}. Локальный проект останется в библиотеке.',
+	'apply.confirm.body':
+		'Цель: {target}. Модель: {model}, PNG {w} × {h}. Локальный проект останется в библиотеке.',
 	'apply.state.uploading': 'Отправка скина…',
 	'apply.state.verifying': 'Проверка ответа Minecraft…',
 	'apply.state.applied': 'Скин установлен в профиль {name}.',
@@ -170,12 +172,12 @@ export const ru = {
 	'apply.state.invalid_texture': 'Сервис не принял текстуру: нужен PNG 64 × 64 или 64 × 32.',
 	'apply.state.unsupported_account': 'Этот тип аккаунта не поддерживает установку скина.',
 	'apply.state.account_not_found': 'Аккаунт не найден. Обнови список аккаунтов.',
-	'apply.state.profile_unavailable': 'У аккаунта нет профиля Minecraft: Java Edition.',
+	'apply.state.profile_unavailable': 'Не удалось получить или подтвердить профиль Minecraft. Проверь вход и соединение.',
 	'apply.state.failed': 'Не удалось применить скин: {message}',
 	'apply.state.timeout': 'Сервис не ответил вовремя. Скин мог не примениться — проверь и повтори.',
 	'ely.title': 'Скин для Ely.by',
 	'ely.body':
-		'У Ely.by нет открытого API для загрузки скинов (scope change_skin не подключён ни к одному методу). Сохраним PNG и откроем официальную страницу загрузки — там войди в Ely.by и выбери файл.',
+		'Сохрани PNG и открой официальную страницу Ely.by, затем войди в свой аккаунт и выбери файл. Автоматическая установка из этой версии лаунчера пока недоступна.',
 	'ely.fallback': 'Это запасной путь: скин не применяется автоматически.',
 	'ely.export': 'Сохранить PNG и открыть Ely.by',
 	'bridge.title': 'Связать с EdenWorld',
@@ -193,11 +195,13 @@ export const ru = {
 	'bridge.rejected': 'Привязка отклонена в игре.',
 	'bridge.newCode': 'Новый код',
 	'bridge.unlink': 'Отвязать игрока',
-	'bridge.notConfigured': 'Сервер EdenWorld ещё не подключил мост скинов. Адрес моста можно указать в настройках мастерской.',
+	'bridge.notConfigured':
+		'Сервер EdenWorld ещё не подключил мост скинов. Адрес моста можно указать в настройках мастерской.',
 	'bridge.unreachable': 'Мост скинов недоступен: {message}',
 	'bridge.notReady': 'Сервер не готов: {message}',
 	'bridge.endpoint': 'Адрес моста скинов EdenWorld',
-	'bridge.endpointHint': 'HTTPS-адрес, который выдаёт администрация сервера. Пусто — мост отключён.',
+	'bridge.endpointHint':
+		'HTTPS-адрес, который выдаёт администрация сервера. Пусто — мост отключён.',
 	'bridge.check': 'Проверить',
 	'bridge.job.queued': 'В очереди на генерацию подписи скина…',
 	'bridge.job.generating': 'Генерация подписанной текстуры…',
@@ -210,10 +214,12 @@ export const ru = {
 	'bridge.job.queuedNote': 'Генерация в очереди — это ещё не применение в игре.',
 	'library.heroEyebrow': 'Твой следующий образ',
 	'library.heroTitle': 'Каждый пиксель — твой.',
-	'library.heroBody': 'Собирай образы, пробуй новые детали и возвращайся к любой версии. Все проекты хранятся на твоём компьютере.',
+	'library.heroBody':
+		'Собирай образы, пробуй новые детали и возвращайся к любой версии. Все проекты хранятся на твоём компьютере.',
 	'library.empty': 'В библиотеке пока нет проектов.',
 	'library.blankTitle': 'Начать с чистого листа',
-	'library.blankBody': 'Classic, Slim, Legacy или другая модель. Импортируй текстуру или создай свою.',
+	'library.blankBody':
+		'Classic, Slim, Legacy или другая модель. Импортируй текстуру или создай свою.',
 	'library.templates': 'Шаблоны',
 	'library.continue': 'Продолжить редактирование',
 	'library.openInEditor': 'Открыть в редакторе',
@@ -245,7 +251,8 @@ export const ru = {
 	'new.template.ranger': 'Eden Ranger',
 	'new.template.operator': 'Signal Operator',
 	'fetch.title': 'Скин по нику',
-	'fetch.body': 'Загрузим публичный скин игрока и откроем его как новый проект. Аккаунты не используются.',
+	'fetch.body':
+		'Загрузим публичный скин игрока и откроем его как новый проект. Аккаунты не используются.',
 	'fetch.provider': 'Источник',
 	'fetch.provider.mojang': 'Minecraft (Mojang)',
 	'fetch.provider.ely': 'Ely.by',
@@ -269,7 +276,8 @@ export const ru = {
 	'export.copied': 'Снимок скопирован в буфер обмена.',
 	'export.saved': 'Файл сохранён.',
 	'export.failed': 'Не удалось сохранить файл: {message}',
-	'export.remoteNote': 'Для установки в профиль нужен стандартный размер скина. HD-проект можно редактировать и сохранять.',
+	'export.remoteNote':
+		'Для установки в профиль нужен стандартный размер скина. HD-проект можно редактировать и сохранять.',
 	'unsaved.title': 'Сохранить изменения?',
 	'unsaved.body': 'В проекте «{name}» есть несохранённые изменения.',
 	'unsaved.save': 'Сохранить',
@@ -287,13 +295,15 @@ export const ru = {
 	'convert.crop': 'Обрезать / дополнить',
 	'convert.preview': 'Предпросмотр результата',
 	'convert.note': 'Изменение — один шаг истории, его можно отменить.',
-	'convert.lossy': 'Внешний слой и отдельные левые конечности не поместятся в 64 × 32 и будут потеряны.',
+	'convert.lossy':
+		'Внешний слой и отдельные левые конечности не поместятся в 64 × 32 и будут потеряны.',
 	'convert.apply': 'Преобразовать',
 	'convert.mismatch': 'Размер текстуры не подходит к модели. Обрежь или масштабируй её.',
 	'capes.title': 'Плащи твоего аккаунта',
 	'capes.subtitle': 'Здесь отображаются только плащи, доступные у выбранного провайдера.',
 	'capes.microsoft': 'Каталог аккаунта Microsoft',
-	'capes.microsoftBody': 'Список и изображения загружаются из Minecraft Services. Плащ активируется только после ответа сервиса.',
+	'capes.microsoftBody':
+		'Список и изображения загружаются из Minecraft Services. Плащ активируется только после ответа сервиса.',
 	'capes.none': 'У этого аккаунта нет плащей.',
 	'capes.noMicrosoft': 'Выбери аккаунт Microsoft в панели применения.',
 	'capes.equip': 'Надеть',
@@ -310,10 +320,12 @@ export const ru = {
 	'capes.customBody':
 		'Текстуру можно рисовать и сохранить как PNG-проект. Произвольный PNG нельзя установить как плащ на обычный клиент Minecraft.',
 	'capes.customOpen': 'Открыть шаблон плаща',
-	'capes.note': 'Выбор плаща не выдаёт права владения плащом Microsoft. Клиентский мод не требуется и не устанавливается.',
+	'capes.note':
+		'Выбор плаща не выдаёт права владения плащом Microsoft. Клиентский мод не требуется и не устанавливается.',
 	'settings.title': 'Настройки мастерской',
 	'settings.shortcuts': 'Сочетания клавиш',
-	'settings.shortcutsHint': 'Нажми на поле и затем нужные клавиши. Esc — отмена, Backspace — очистить.',
+	'settings.shortcutsHint':
+		'Нажми на поле и затем нужные клавиши. Esc — отмена, Backspace — очистить.',
 	'settings.shortcutConflict': 'Сочетание уже занято: {action}',
 	'settings.resetShortcuts': 'Сбросить сочетания',
 	'settings.view': 'Вид',
@@ -348,7 +360,8 @@ export const ru = {
 	'model.importTcn': 'Импорт модели Techne (.tcn/.xml)',
 	'model.importWarnings': 'Часть фигур пропущена: {details}',
 	'model.attribution': 'Геометрия моделей — из MCSkin3D (GPL v3), без текстур.',
-	'model.notPlayer': 'Не модель игрока: можно рисовать и экспортировать, но не применять к аккаунту.',
+	'model.notPlayer':
+		'Не модель игрока: можно рисовать и экспортировать, но не применять к аккаунту.',
 	'shortcut.tool.pencil': 'Карандаш',
 	'shortcut.tool.eraser': 'Ластик',
 	'shortcut.tool.dropper': 'Пипетка',
@@ -552,7 +565,8 @@ export const en: StudioMessages = {
 	'apply.buttonLink': 'Link player',
 	'apply.account': 'Account to apply to',
 	'apply.confirm.title': 'Apply the skin?',
-	'apply.confirm.body': 'Target: {target}. Model: {model}, PNG {w} × {h}. The local project stays in the library.',
+	'apply.confirm.body':
+		'Target: {target}. Model: {model}, PNG {w} × {h}. The local project stays in the library.',
 	'apply.state.uploading': 'Uploading skin…',
 	'apply.state.verifying': 'Checking the Minecraft response…',
 	'apply.state.applied': 'Skin set on {name}.',
@@ -560,15 +574,17 @@ export const en: StudioMessages = {
 	'apply.state.forbidden': 'Minecraft refused to change the skin for this account.',
 	'apply.state.rate_limited': 'Too many requests. Wait a minute and retry.',
 	'apply.state.network': 'The service is unreachable. Your project is saved — you can retry.',
-	'apply.state.invalid_texture': 'The service rejected the texture: a 64 × 64 or 64 × 32 PNG is required.',
+	'apply.state.invalid_texture':
+		'The service rejected the texture: a 64 × 64 or 64 × 32 PNG is required.',
 	'apply.state.unsupported_account': 'This account type cannot set skins.',
 	'apply.state.account_not_found': 'Account not found. Refresh the account list.',
-	'apply.state.profile_unavailable': 'This account has no Minecraft: Java Edition profile.',
+	'apply.state.profile_unavailable': 'Could not read or confirm the Minecraft profile. Check your sign-in and connection.',
 	'apply.state.failed': 'Could not apply the skin: {message}',
-	'apply.state.timeout': 'The service did not respond in time. The skin may not be applied — check and retry.',
+	'apply.state.timeout':
+		'The service did not respond in time. The skin may not be applied — check and retry.',
 	'ely.title': 'Skin for Ely.by',
 	'ely.body':
-		'Ely.by has no public skin upload API (the change_skin scope is not wired to any endpoint). We save the PNG and open the official upload page — sign in to Ely.by there and choose the file.',
+		'Save the PNG and open the official Ely.by page, then sign in and choose the file. Automatic application from this launcher version is not available yet.',
 	'ely.fallback': 'This is a fallback: the skin is not applied automatically.',
 	'ely.export': 'Save PNG and open Ely.by',
 	'bridge.title': 'Link with EdenWorld',
@@ -586,7 +602,8 @@ export const en: StudioMessages = {
 	'bridge.rejected': 'Linking was declined in game.',
 	'bridge.newCode': 'New code',
 	'bridge.unlink': 'Unlink player',
-	'bridge.notConfigured': 'The EdenWorld server has not enabled the skin bridge yet. The bridge address can be set in studio settings.',
+	'bridge.notConfigured':
+		'The EdenWorld server has not enabled the skin bridge yet. The bridge address can be set in studio settings.',
 	'bridge.unreachable': 'The skin bridge is unreachable: {message}',
 	'bridge.notReady': 'The server is not ready: {message}',
 	'bridge.endpoint': 'EdenWorld skin bridge address',
@@ -603,10 +620,12 @@ export const en: StudioMessages = {
 	'bridge.job.queuedNote': 'Queued generation is not yet applied in game.',
 	'library.heroEyebrow': 'Your next look',
 	'library.heroTitle': 'Every pixel is yours.',
-	'library.heroBody': 'Collect looks, try new details and return to any version. All projects are stored on your computer.',
+	'library.heroBody':
+		'Collect looks, try new details and return to any version. All projects are stored on your computer.',
 	'library.empty': 'No projects in the library yet.',
 	'library.blankTitle': 'Start from scratch',
-	'library.blankBody': 'Classic, Slim, Legacy or another model. Import a texture or create your own.',
+	'library.blankBody':
+		'Classic, Slim, Legacy or another model. Import a texture or create your own.',
 	'library.templates': 'Templates',
 	'library.continue': 'Continue editing',
 	'library.openInEditor': 'Open in editor',
@@ -638,7 +657,8 @@ export const en: StudioMessages = {
 	'new.template.ranger': 'Eden Ranger',
 	'new.template.operator': 'Signal Operator',
 	'fetch.title': 'Skin by name',
-	'fetch.body': 'Downloads a player’s public skin and opens it as a new project. No account is used.',
+	'fetch.body':
+		'Downloads a player’s public skin and opens it as a new project. No account is used.',
 	'fetch.provider': 'Source',
 	'fetch.provider.mojang': 'Minecraft (Mojang)',
 	'fetch.provider.ely': 'Ely.by',
@@ -662,7 +682,8 @@ export const en: StudioMessages = {
 	'export.copied': 'Screenshot copied to the clipboard.',
 	'export.saved': 'File saved.',
 	'export.failed': 'Could not save the file: {message}',
-	'export.remoteNote': 'Setting a skin on a profile needs a standard size. HD projects can be edited and saved.',
+	'export.remoteNote':
+		'Setting a skin on a profile needs a standard size. HD projects can be edited and saved.',
 	'unsaved.title': 'Save changes?',
 	'unsaved.body': 'Project “{name}” has unsaved changes.',
 	'unsaved.save': 'Save',
@@ -680,20 +701,23 @@ export const en: StudioMessages = {
 	'convert.crop': 'Crop / extend',
 	'convert.preview': 'Result preview',
 	'convert.note': 'The change is a single history step and can be undone.',
-	'convert.lossy': 'The outer layer and separate left limbs do not fit in 64 × 32 and will be lost.',
+	'convert.lossy':
+		'The outer layer and separate left limbs do not fit in 64 × 32 and will be lost.',
 	'convert.apply': 'Convert',
 	'convert.mismatch': 'The texture size does not fit the model. Crop or scale it.',
 	'capes.title': 'Your account capes',
 	'capes.subtitle': 'Only capes available from the selected provider are shown.',
 	'capes.microsoft': 'Microsoft account catalogue',
-	'capes.microsoftBody': 'The list and images come from Minecraft Services. A cape is active only after the service confirms.',
+	'capes.microsoftBody':
+		'The list and images come from Minecraft Services. A cape is active only after the service confirms.',
 	'capes.none': 'This account has no capes.',
 	'capes.noMicrosoft': 'Choose a Microsoft account in the apply panel.',
 	'capes.equip': 'Equip',
 	'capes.unequip': 'Remove cape',
 	'capes.active': 'Equipped',
 	'capes.ely': 'Ely.by',
-	'capes.elyBody': 'Ely.by capes are granted by the service itself; there is no API to choose them.',
+	'capes.elyBody':
+		'Ely.by capes are granted by the service itself; there is no API to choose them.',
 	'capes.eden': 'For EdenWorld',
 	'capes.edenBody':
 		'Ready signed looks with a skin and a cape from the server catalogue (SkinsRestorer). Your own PNG cape is not added to them.',
@@ -703,7 +727,8 @@ export const en: StudioMessages = {
 	'capes.customBody':
 		'You can paint a cape texture and save it as a PNG project. An arbitrary PNG cannot be set as a cape on the regular Minecraft client.',
 	'capes.customOpen': 'Open cape template',
-	'capes.note': 'Choosing a cape does not grant Microsoft cape ownership. No client mod is required or installed.',
+	'capes.note':
+		'Choosing a cape does not grant Microsoft cape ownership. No client mod is required or installed.',
 	'settings.title': 'Studio settings',
 	'settings.shortcuts': 'Keyboard shortcuts',
 	'settings.shortcutsHint': 'Click a field, then press the keys. Esc cancels, Backspace clears.',
@@ -741,7 +766,8 @@ export const en: StudioMessages = {
 	'model.importTcn': 'Import Techne model (.tcn/.xml)',
 	'model.importWarnings': 'Some shapes were skipped: {details}',
 	'model.attribution': 'Model geometry from MCSkin3D (GPL v3), without textures.',
-	'model.notPlayer': 'Not a player model: you can paint and export it, but not apply it to an account.',
+	'model.notPlayer':
+		'Not a player model: you can paint and export it, but not apply it to an account.',
 	'shortcut.tool.pencil': 'Pencil',
 	'shortcut.tool.eraser': 'Eraser',
 	'shortcut.tool.dropper': 'Dropper',

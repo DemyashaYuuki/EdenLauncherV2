@@ -80,7 +80,11 @@ export async function readLibraryFile(path: string): Promise<Uint8Array> {
 	return base64ToBytes(data, MAX_FILE_BYTES)
 }
 
-export async function writeLibraryFile(path: string, bytes: Uint8Array, overwrite: boolean): Promise<LibraryEntry> {
+export async function writeLibraryFile(
+	path: string,
+	bytes: Uint8Array,
+	overwrite: boolean,
+): Promise<LibraryEntry> {
 	return invoke(plugin('skin_studio_write'), { path, data: bytesToBase64(bytes), overwrite })
 }
 
@@ -141,14 +145,21 @@ export async function applyMicrosoftSkin(
 	png: Uint8Array,
 	variant: 'CLASSIC' | 'SLIM',
 ): Promise<SkinApplyReport> {
-	return invoke(plugin('skin_studio_apply_microsoft'), { profileId, data: bytesToBase64(png), variant })
+	return invoke(plugin('skin_studio_apply_microsoft'), {
+		profileId,
+		data: bytesToBase64(png),
+		variant,
+	})
 }
 
 export async function microsoftCapes(profileId: string): Promise<AccountCapes> {
 	return invoke(plugin('skin_studio_microsoft_capes'), { profileId })
 }
 
-export async function setMicrosoftCape(profileId: string, capeId: string | null): Promise<SkinApplyReport> {
+export async function setMicrosoftCape(
+	profileId: string,
+	capeId: string | null,
+): Promise<SkinApplyReport> {
 	return invoke(plugin('skin_studio_set_microsoft_cape'), { profileId, capeId })
 }
 
@@ -176,7 +187,13 @@ export interface BridgeHealth {
 	message: string | null
 }
 
-export type PairPhase = 'pending' | 'awaiting_launcher' | 'confirmed' | 'expired' | 'rejected' | 'cancelled'
+export type PairPhase =
+	| 'pending'
+	| 'awaiting_launcher'
+	| 'confirmed'
+	| 'expired'
+	| 'rejected'
+	| 'cancelled'
 
 export interface PairStart {
 	code: string
@@ -252,7 +269,11 @@ export async function bridgeApplySkin(
 	variant: 'classic' | 'slim',
 	idempotencyKey: string,
 ): Promise<BridgeJob> {
-	return invoke(bridge('skin_bridge_apply_skin'), { data: bytesToBase64(png), variant, idempotencyKey })
+	return invoke(bridge('skin_bridge_apply_skin'), {
+		data: bytesToBase64(png),
+		variant,
+		idempotencyKey,
+	})
 }
 
 export async function bridgeJob(jobId: string): Promise<BridgeJob> {

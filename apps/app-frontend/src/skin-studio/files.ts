@@ -25,7 +25,10 @@ function baseName(path: string): string {
 }
 
 /** Reads a user-chosen file after checking its size, so huge files are never loaded into memory. */
-export async function readPickedPath(path: string, maxBytes = MAX_IMPORT_BYTES): Promise<PickedFile> {
+export async function readPickedPath(
+	path: string,
+	maxBytes = MAX_IMPORT_BYTES,
+): Promise<PickedFile> {
 	const info = await stat(path)
 	if (!info.isFile || info.size > maxBytes) throw new FileTooLargeError(baseName(path))
 	return { name: baseName(path), bytes: await readFile(path) }
@@ -46,7 +49,11 @@ export async function pickDirectory(): Promise<string | null> {
 }
 
 /** Asks for a destination and writes the bytes there. Returns false when the user cancelled. */
-export async function saveBytes(defaultName: string, filters: FileFilter[], bytes: Uint8Array): Promise<boolean> {
+export async function saveBytes(
+	defaultName: string,
+	filters: FileFilter[],
+	bytes: Uint8Array,
+): Promise<boolean> {
 	const path = await save({ defaultPath: defaultName, filters })
 	if (!path) return false
 	await writeFile(path, bytes)

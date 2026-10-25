@@ -85,7 +85,10 @@ test('decodes Adam7 interlaced images', async () => {
 })
 
 test('rejects a non-PNG signature', async () => {
-	await assert.rejects(decodePng(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9])), (e: PngError) => e.code === 'signature')
+	await assert.rejects(
+		decodePng(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9])),
+		(e: PngError) => e.code === 'signature',
+	)
 })
 
 test('rejects oversized dimensions before inflating', async () => {

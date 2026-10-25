@@ -28,7 +28,12 @@ import {
 	serializeProject,
 	uniqueStem,
 } from '../../src/skin-studio/engine/project.ts'
-import { importTcn, ModelImportError, stripTechneImages, techneToModel } from '../../src/skin-studio/engine/tcn.ts'
+import {
+	importTcn,
+	ModelImportError,
+	stripTechneImages,
+	techneToModel,
+} from '../../src/skin-studio/engine/tcn.ts'
 import { parseXml, XmlError } from '../../src/skin-studio/engine/xml.ts'
 import { isSafeEntryName, readZipDirectory, ZipError } from '../../src/skin-studio/engine/zip.ts'
 import { buildZip, readAsset, srcRoot } from './helpers.ts'
@@ -80,9 +85,18 @@ test('ACO HSB and CMYK colours convert; unsupported spaces and versions fail lou
 		(({ r, g, b }) => [r, g, b])(parseAco(make(2, [65535, 0, 0, 65535]), 'x').swatches[0]),
 		[255, 0, 0],
 	)
-	assert.throws(() => parseAco(make(7, [0, 0, 0, 0]), 'x'), (e: PaletteError) => e.code === 'colorspace')
-	assert.throws(() => parseAco(make(0, [0, 0, 0, 0], 5), 'x'), (e: PaletteError) => e.code === 'version')
-	assert.throws(() => parseAco(make(0, [0, 0, 0, 0]).subarray(0, 8), 'x'), (e: PaletteError) => e.code === 'truncated')
+	assert.throws(
+		() => parseAco(make(7, [0, 0, 0, 0]), 'x'),
+		(e: PaletteError) => e.code === 'colorspace',
+	)
+	assert.throws(
+		() => parseAco(make(0, [0, 0, 0, 0], 5), 'x'),
+		(e: PaletteError) => e.code === 'version',
+	)
+	assert.throws(
+		() => parseAco(make(0, [0, 0, 0, 0]).subarray(0, 8), 'x'),
+		(e: PaletteError) => e.code === 'truncated',
+	)
 })
 
 test('ACT handles 768 and 772 byte tables with a transparent index', () => {
@@ -99,7 +113,10 @@ test('MCSkin3D .swtch and design kit JSON palettes', () => {
 	const parsed = parseSwtch(writeSwtch(palette), 'swatch')
 	assert.equal(parsed.swatches[0].name, 'Red')
 	assert.equal(parsed.swatches[2].a, 0)
-	const kit = parseJsonPalette(new TextDecoder().decode(readAsset('palettes/signal-palette.json')), 'x')
+	const kit = parseJsonPalette(
+		new TextDecoder().decode(readAsset('palettes/signal-palette.json')),
+		'x',
+	)
 	assert.ok(kit.swatches.length > 0)
 	for (const format of ['gpl', 'aco', 'act', 'swtch', 'json'] as const) {
 		const again = parsePalette(format, writePalette(format, palette), 'x')
@@ -153,13 +170,23 @@ test('TCN archives import safely; zip slip, oversized and corrupt entries are re
 	assert.equal(isSafeEntryName('a\\b.xml'), false)
 	assert.equal(isSafeEntryName('dir/model.xml'), true)
 	const slip = await buildZip([{ name: '../../model.xml', data: xml }])
-	assert.throws(() => readZipDirectory(slip), (e: ZipError) => e.code === 'unsafe-name')
+	assert.throws(
+		() => readZipDirectory(slip),
+		(e: ZipError) => e.code === 'unsafe-name',
+	)
 
 	const bombData = new Uint8Array(4 * 1024 * 1024)
-	const lying = await buildZip([{ name: 'model.xml', data: bombData, compress: true, declaredSize: 100 }])
+	const lying = await buildZip([
+		{ name: 'model.xml', data: bombData, compress: true, declaredSize: 100 },
+	])
 	await assert.rejects(importTcn(lying), ZipError)
-	const huge = await buildZip([{ name: 'model.xml', data: new Uint8Array(10), declaredSize: 64 * 1024 * 1024 }])
-	assert.throws(() => readZipDirectory(huge), (e: ZipError) => e.code === 'too-big')
+	const huge = await buildZip([
+		{ name: 'model.xml', data: new Uint8Array(10), declaredSize: 64 * 1024 * 1024 },
+	])
+	assert.throws(
+		() => readZipDirectory(huge),
+		(e: ZipError) => e.code === 'too-big',
+	)
 	await assert.rejects(importTcn(new Uint8Array([1, 2, 3])), ZipError)
 })
 
@@ -201,18 +228,45 @@ test('projects round-trip and reject tampered input', async () => {
 	assert.equal(parsed.palette?.swatches.length, 3)
 
 	const doc = JSON.parse(new TextDecoder().decode(bytes))
-	const tamper = async (mutate: (d: Record<string, any>) => void) => {
+	const tamper = async (
+		mutate: (d: {
+			version: number
+			format: string
+			model: unknown
+			texture: { width: number; png: string }
+			path?: string
+			name: string
+		}) => void,
+	) => {
 		const copy = structuredClone(doc)
 		mutate(copy)
 		return parseProject(new TextEncoder().encode(JSON.stringify(copy)))
 	}
-	await assert.rejects(tamper((d) => (d.version = 99)), (e: ProjectError) => e.code === 'newer-version')
-	await assert.rejects(tamper((d) => (d.format = 'other')), ProjectError)
-	await assert.rejects(tamper((d) => (d.model = { id: 'no-such-model' })), ProjectError)
-	await assert.rejects(tamper((d) => (d.texture.width = 128)), ProjectError)
-	await assert.rejects(tamper((d) => (d.texture.png = '!!!')), ProjectError)
 	await assert.rejects(
-		tamper((d) => (d.model = { definition: { ...model, boxes: [{ ...model.boxes[0], size: [1e9, 1, 1] }] } })),
+		tamper((d) => (d.version = 99)),
+		(e: ProjectError) => e.code === 'newer-version',
+	)
+	await assert.rejects(
+		tamper((d) => (d.format = 'other')),
+		ProjectError,
+	)
+	await assert.rejects(
+		tamper((d) => (d.model = { id: 'no-such-model' })),
+		ProjectError,
+	)
+	await assert.rejects(
+		tamper((d) => (d.texture.width = 128)),
+		ProjectError,
+	)
+	await assert.rejects(
+		tamper((d) => (d.texture.png = '!!!')),
+		ProjectError,
+	)
+	await assert.rejects(
+		tamper(
+			(d) =>
+				(d.model = { definition: { ...model, boxes: [{ ...model.boxes[0], size: [1e9, 1, 1] }] } }),
+		),
 		ProjectError,
 	)
 	const withPath = await tamper((d) => {
@@ -228,7 +282,14 @@ test('custom model definitions survive a project round-trip', async () => {
 	const { model } = techneToModel(TECHNE)
 	const image = createImage(128, 64)
 	const parsed = await parseProject(
-		await serializeProject({ name: 'Mob', model, image, palette: null, createdAt: '', updatedAt: '' }),
+		await serializeProject({
+			name: 'Mob',
+			model,
+			image,
+			palette: null,
+			createdAt: '',
+			updatedAt: '',
+		}),
 	)
 	assert.equal(parsed.model.boxes.length, 1)
 	assert.equal(parsed.model.boxes[0].mirror, true)

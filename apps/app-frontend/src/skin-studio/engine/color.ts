@@ -43,7 +43,11 @@ export function hsvToRgb(h: number, s: number, v: number): [number, number, numb
 	else if (hh < 240) rgb = [0, x, c]
 	else if (hh < 300) rgb = [x, 0, c]
 	else rgb = [c, 0, x]
-	return [clampByte((rgb[0] + m) * 255), clampByte((rgb[1] + m) * 255), clampByte((rgb[2] + m) * 255)]
+	return [
+		clampByte((rgb[0] + m) * 255),
+		clampByte((rgb[1] + m) * 255),
+		clampByte((rgb[2] + m) * 255),
+	]
 }
 
 /** Accepts #RGB, #RGBA, #RRGGBB and #RRGGBBAA (the # is optional). */
@@ -122,7 +126,11 @@ export function hslToRgb(h: number, s: number, l: number): [number, number, numb
 	else if (hh < 4) rgb = [0, x, c]
 	else if (hh < 5) rgb = [x, 0, c]
 	else rgb = [c, 0, x]
-	return [clampByte((rgb[0] + m) * 255), clampByte((rgb[1] + m) * 255), clampByte((rgb[2] + m) * 255)]
+	return [
+		clampByte((rgb[0] + m) * 255),
+		clampByte((rgb[1] + m) * 255),
+		clampByte((rgb[2] + m) * 255),
+	]
 }
 
 /** WCAG relative luminance, used for choosing readable text over swatches. */

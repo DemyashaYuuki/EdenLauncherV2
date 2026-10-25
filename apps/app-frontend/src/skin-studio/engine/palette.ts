@@ -32,7 +32,7 @@ export class PaletteError extends Error {
 
 export function cleanName(name: string | undefined | null): string | undefined {
 	if (!name) return undefined
-	const text = name.replace(/[\u0000-\u001f\u007f]/g, '').trim()
+	const text = name.replace(/\p{Cc}/gu, '').trim()
 	return text ? text.slice(0, MAX_NAME) : undefined
 }
 
@@ -71,9 +71,10 @@ export function parseGpl(text: string, fallbackName: string): Palette {
 			}
 			continue
 		}
-		const match = channels === 4
-			? /^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s+(.*))?$/.exec(line)
-			: /^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s+(.*))?$/.exec(line)
+		const match =
+			channels === 4
+				? /^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s+(.*))?$/.exec(line)
+				: /^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s+(.*))?$/.exec(line)
 		if (!match) throw new PaletteError('syntax', `Invalid palette line: ${line.slice(0, 40)}`)
 		const values = match.slice(1, channels + 1).map(Number)
 		if (values.some((v) => v > 255)) throw new PaletteError('range', 'Colour value out of range')
@@ -94,7 +95,9 @@ export function writeGpl(palette: Palette): string {
 	if (hasAlpha) lines.push('Channels: RGBA')
 	lines.push('Columns: 8', '#')
 	for (const s of palette.swatches) {
-		const values = [s.r, s.g, s.b, ...(hasAlpha ? [s.a] : [])].map((v) => String(v).padStart(3, ' '))
+		const values = [s.r, s.g, s.b, ...(hasAlpha ? [s.a] : [])].map((v) =>
+			String(v).padStart(3, ' '),
+		)
 		lines.push(`${values.join(' ')}\t${cleanName(s.name) ?? 'Untitled'}`)
 	}
 	return lines.join('\n') + '\n'
@@ -109,7 +112,13 @@ export function parseSwtch(text: string, fallbackName: string): Palette {
 		if (!match) throw new PaletteError('syntax', `Invalid swatch line: ${line.slice(0, 40)}`)
 		const values = match.slice(1, 5).map(Number)
 		if (values.some((v) => v > 255)) throw new PaletteError('range', 'Colour value out of range')
-		pushSwatch(swatches, { r: values[0], g: values[1], b: values[2], a: values[3], name: cleanName(match[5]) })
+		pushSwatch(swatches, {
+			r: values[0],
+			g: values[1],
+			b: values[2],
+			a: values[3],
+			name: cleanName(match[5]),
+		})
 	}
 	return { name: fallbackName, swatches }
 }
@@ -125,7 +134,13 @@ export function writeSwtch(palette: Palette): string {
 	)
 }
 
-function acoColor(space: number, w: number, x: number, y: number, z: number): [number, number, number] {
+function acoColor(
+	space: number,
+	w: number,
+	x: number,
+	y: number,
+	z: number,
+): [number, number, number] {
 	switch (space) {
 		case 0:
 			return [w >> 8, x >> 8, y >> 8]
@@ -153,14 +168,17 @@ function acoColor(space: number, w: number, x: number, y: number, z: number): [n
 
 /** Photoshop .aco version 1 and 2 (names are read from version 2 when present). */
 export function parseAco(bytes: Uint8Array, fallbackName: string): Palette {
-	if (bytes.length > MAX_PALETTE_BYTES) throw new PaletteError('too-big', 'Palette file is too large')
+	if (bytes.length > MAX_PALETTE_BYTES)
+		throw new PaletteError('too-big', 'Palette file is too large')
 	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
 	const need = (offset: number, size: number) => {
-		if (offset + size > bytes.length) throw new PaletteError('truncated', 'Palette file is truncated')
+		if (offset + size > bytes.length)
+			throw new PaletteError('truncated', 'Palette file is truncated')
 	}
 	need(0, 4)
 	const version = view.getUint16(0)
-	if (version !== 1 && version !== 2) throw new PaletteError('version', `ACO version ${version} is not supported`)
+	if (version !== 1 && version !== 2)
+		throw new PaletteError('version', `ACO version ${version} is not supported`)
 	let offset = 0
 	let swatches: Swatch[] = []
 	const readSection = (sectionVersion: number) => {
@@ -216,7 +234,10 @@ export function parseAco(bytes: Uint8Array, fallbackName: string): Palette {
 export function writeAco(palette: Palette): Uint8Array {
 	const names = palette.swatches.map((s) => cleanName(s.name) ?? '')
 	const size =
-		4 + palette.swatches.length * 10 + 4 + palette.swatches.reduce((sum, _s, i) => sum + 14 + (names[i].length + 1) * 2, 0)
+		4 +
+		palette.swatches.length * 10 +
+		4 +
+		palette.swatches.reduce((sum, _s, i) => sum + 14 + (names[i].length + 1) * 2, 0)
 	const bytes = new Uint8Array(size)
 	const view = new DataView(bytes.buffer)
 	let offset = 0
@@ -312,18 +333,29 @@ export function parseJsonPalette(text: string, fallbackName: string): Palette {
 			name: typeof name === 'string' ? cleanName(name) : undefined,
 		})
 	}
-	return { name: (typeof record.name === 'string' && cleanName(record.name)) || fallbackName, swatches }
+	return {
+		name: (typeof record.name === 'string' && cleanName(record.name)) || fallbackName,
+		swatches,
+	}
 }
 
 export function writeJsonPalette(palette: Palette): string {
 	const hex = (s: Swatch) =>
 		'#' +
-		[s.r, s.g, s.b, ...(s.a !== 255 ? [s.a] : [])].map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase()
+		[s.r, s.g, s.b, ...(s.a !== 255 ? [s.a] : [])]
+			.map((v) => v.toString(16).padStart(2, '0'))
+			.join('')
+			.toUpperCase()
 	return JSON.stringify({ name: palette.name, colors: palette.swatches.map(hex) }, null, 2) + '\n'
 }
 
-export function parsePalette(format: PaletteFormat, bytes: Uint8Array, fallbackName: string): Palette {
-	if (bytes.length > MAX_PALETTE_BYTES) throw new PaletteError('too-big', 'Palette file is too large')
+export function parsePalette(
+	format: PaletteFormat,
+	bytes: Uint8Array,
+	fallbackName: string,
+): Palette {
+	if (bytes.length > MAX_PALETTE_BYTES)
+		throw new PaletteError('too-big', 'Palette file is too large')
 	const text = () => new TextDecoder('utf-8', { fatal: false }).decode(bytes)
 	switch (format) {
 		case 'gpl':

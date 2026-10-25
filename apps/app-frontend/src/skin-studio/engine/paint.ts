@@ -1,5 +1,12 @@
 import { clampByte, colorDistance, hslToRgb, hsvToRgb, rgbToHsl, rgbToHsv } from './color.ts'
-import { compositeOver, packRgba, readPacked, type Rgba, type RgbaImage, writePacked } from './image.ts'
+import {
+	compositeOver,
+	packRgba,
+	readPacked,
+	type Rgba,
+	type RgbaImage,
+	writePacked,
+} from './image.ts'
 import type { Rect } from './model.ts'
 
 export type ToolId =
@@ -64,7 +71,11 @@ export function defaultToolSettings(): ToolSettings {
 	}
 }
 
-export function brushMask(shape: BrushShape, size: number, custom: BrushMask | null = null): BrushMask {
+export function brushMask(
+	shape: BrushShape,
+	size: number,
+	custom: BrushMask | null = null,
+): BrushMask {
 	if (shape === 'custom' && custom) return custom
 	const n = Math.max(1, Math.min(MAX_BRUSH_SIZE, Math.round(size)))
 	const coverage = new Float32Array(n * n)
@@ -90,7 +101,12 @@ export function maskFromPattern(pattern: StampPattern): BrushMask {
 	return { width: pattern.width, height: pattern.height, coverage }
 }
 
-export function capturePattern(image: RgbaImage, cx: number, cy: number, size: number): StampPattern {
+export function capturePattern(
+	image: RgbaImage,
+	cx: number,
+	cy: number,
+	size: number,
+): StampPattern {
 	const n = Math.max(1, Math.min(MAX_BRUSH_SIZE, Math.round(size)))
 	const start = Math.floor(n / 2)
 	const data = new Uint8ClampedArray(n * n * 4)
@@ -222,7 +238,10 @@ export class Stroke {
 				const px = startX + mx
 				const py = startY + my
 				if (px < 0 || py < 0 || px >= image.width || py >= image.height) continue
-				if (clip && (px < clip.x || py < clip.y || px >= clip.x + clip.w || py >= clip.y + clip.h)) {
+				if (
+					clip &&
+					(px < clip.x || py < clip.y || px >= clip.x + clip.w || py >= clip.y + clip.h)
+				) {
 					continue
 				}
 				this.apply(px, py, c, mx, my)
@@ -378,7 +397,8 @@ export function floodFill(options: FillOptions): Patch | null {
 	const { width, height } = image
 	if (x < 0 || y < 0 || x >= width || y >= height) return null
 	const accept = (px: number, py: number) =>
-		(!regions || regions.length === 0 || insideAny(regions, px, py)) && (!allowed || allowed(px, py))
+		(!regions || regions.length === 0 || insideAny(regions, px, py)) &&
+		(!allowed || allowed(px, py))
 	if (!accept(x, y)) return null
 	const seed = readPacked(image, y * width + x)
 	const seedRgba: Rgba = [seed & 255, (seed >>> 8) & 255, (seed >>> 16) & 255, seed >>> 24]
@@ -466,5 +486,9 @@ export function solidPatchFill(image: RgbaImage, rect: Rect, color: Rgba): Patch
 		}
 	}
 	if (!pixels.length) return null
-	return { pixels: Uint32Array.from(pixels), before: Uint32Array.from(before), after: Uint32Array.from(after) }
+	return {
+		pixels: Uint32Array.from(pixels),
+		before: Uint32Array.from(before),
+		after: Uint32Array.from(after),
+	}
 }

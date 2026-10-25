@@ -15,7 +15,10 @@ const props = defineProps<{
 	open: boolean
 	screenshot: (w: number, h: number, transparent: boolean) => Promise<Blob | null> | null
 }>()
-const emit = defineEmits<{ (event: 'close'): void; (event: 'notify', kind: 'error' | 'info', text: string): void }>()
+const emit = defineEmits<{
+	(event: 'close'): void
+	(event: 'notify', kind: 'error' | 'info', text: string): void
+}>()
 const studio = useSkinStudio()
 const t = useStudioText()
 
@@ -41,7 +44,11 @@ async function exportFile(): Promise<void> {
 	try {
 		let saved = false
 		if (kind.value === 'png') {
-			saved = await saveBytes(`${stem.value}.png`, [{ name: 'PNG', extensions: ['png'] }], await encodePng(d.image))
+			saved = await saveBytes(
+				`${stem.value}.png`,
+				[{ name: 'PNG', extensions: ['png'] }],
+				await encodePng(d.image),
+			)
 		} else if (kind.value === 'project') {
 			saved = await saveBytes(
 				`${stem.value}.${PROJECT_EXTENSION}`,
@@ -51,7 +58,11 @@ async function exportFile(): Promise<void> {
 		} else {
 			const blob = await props.screenshot(resolution.value, resolution.value, transparent.value)
 			if (!blob) throw new Error(t('canvas.webglError'))
-			saved = await saveBytes(`${stem.value}-render.png`, [{ name: 'PNG', extensions: ['png'] }], await blobBytes(blob))
+			saved = await saveBytes(
+				`${stem.value}-render.png`,
+				[{ name: 'PNG', extensions: ['png'] }],
+				await blobBytes(blob),
+			)
 		}
 		if (saved) {
 			emit('notify', 'info', t('export.saved'))
@@ -77,21 +88,38 @@ async function copyScreenshot(): Promise<void> {
 		busy.value = false
 	}
 }
-
 </script>
 
 <template>
 	<StudioDialog :open="open" :title="t('export.title')" @close="emit('close')">
 		<div class="studio-choice-grid" role="radiogroup">
-			<button type="button" role="radio" class="studio-choice" :aria-checked="kind === 'png'" @click="kind = 'png'">
+			<button
+				type="button"
+				role="radio"
+				class="studio-choice"
+				:aria-checked="kind === 'png'"
+				@click="kind = 'png'"
+			>
 				<StudioIcon name="texture" /> {{ t('export.png') }}
 				<small>{{ t('export.pngHint') }}</small>
 			</button>
-			<button type="button" role="radio" class="studio-choice" :aria-checked="kind === 'project'" @click="kind = 'project'">
+			<button
+				type="button"
+				role="radio"
+				class="studio-choice"
+				:aria-checked="kind === 'project'"
+				@click="kind = 'project'"
+			>
 				<StudioIcon name="save" /> {{ t('export.project') }}
 				<small>{{ t('export.projectHint') }}</small>
 			</button>
-			<button type="button" role="radio" class="studio-choice" :aria-checked="kind === 'screenshot'" @click="kind = 'screenshot'">
+			<button
+				type="button"
+				role="radio"
+				class="studio-choice"
+				:aria-checked="kind === 'screenshot'"
+				@click="kind = 'screenshot'"
+			>
 				<StudioIcon name="camera" /> {{ t('export.screenshot') }}
 				<small>{{ t('export.screenshotHint') }}</small>
 			</button>
@@ -110,10 +138,21 @@ async function copyScreenshot(): Promise<void> {
 		</template>
 		<p v-if="remoteNote" class="studio-note">{{ t('export.remoteNote') }}</p>
 		<template #actions>
-			<button v-if="kind === 'screenshot'" type="button" class="studio-btn" :disabled="busy" @click="copyScreenshot">
+			<button
+				v-if="kind === 'screenshot'"
+				type="button"
+				class="studio-btn"
+				:disabled="busy"
+				@click="copyScreenshot"
+			>
 				{{ t('export.toClipboard') }}
 			</button>
-			<button type="button" class="studio-btn studio-btn--primary" :disabled="busy || !doc" @click="exportFile">
+			<button
+				type="button"
+				class="studio-btn studio-btn--primary"
+				:disabled="busy || !doc"
+				@click="exportFile"
+			>
 				{{ t('export.toFile') }}
 			</button>
 		</template>

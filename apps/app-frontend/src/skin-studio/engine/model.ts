@@ -84,7 +84,11 @@ export function boxBounds(box: ModelBox): BoxBounds {
 	const i = box.inflate
 	return {
 		min: [box.origin[0] - i, box.origin[1] - i, box.origin[2] - i],
-		max: [box.origin[0] + box.size[0] + i, box.origin[1] + box.size[1] + i, box.origin[2] + box.size[2] + i],
+		max: [
+			box.origin[0] + box.size[0] + i,
+			box.origin[1] + box.size[1] + i,
+			box.origin[2] + box.size[2] + i,
+		],
 	}
 }
 
@@ -96,7 +100,11 @@ export interface FaceFractions {
 }
 
 /** Returns texture coordinates (in model texture units) for a point on a physical face. */
-export function faceTexCoord(box: ModelBox, physical: FaceName, f: FaceFractions): [number, number] {
+export function faceTexCoord(
+	box: ModelBox,
+	physical: FaceName,
+	f: FaceFractions,
+): [number, number] {
 	const tf = textureFaceFor(box, physical)
 	const r = faceRegion(box, tf)
 	const fx = box.mirror ? 1 - f.fx : f.fx
@@ -216,7 +224,11 @@ export interface FaceRegionRef {
 }
 
 /** All face regions of a model in texture pixels, for 2D hit testing and part locks. */
-export function regionsInPixels(model: ModelDefinition, width: number, height: number): FaceRegionRef[] {
+export function regionsInPixels(
+	model: ModelDefinition,
+	width: number,
+	height: number,
+): FaceRegionRef[] {
 	const scale = textureScale(model, width, height)
 	const out: FaceRegionRef[] = []
 	model.boxes.forEach((box, index) => {
@@ -302,7 +314,10 @@ function rotationAxis(axis: 0 | 1 | 2, degrees: number): Mat4 {
 /** Box-local (pivot relative) to model space: translate(pivot) · Rz · Ry · Rx, as Minecraft does. */
 export function boxMatrix(box: ModelBox): Mat4 {
 	return multiply(
-		multiply(multiply(translation(box.pivot), rotationAxis(2, box.rotation[2])), rotationAxis(1, box.rotation[1])),
+		multiply(
+			multiply(translation(box.pivot), rotationAxis(2, box.rotation[2])),
+			rotationAxis(1, box.rotation[1]),
+		),
 		rotationAxis(0, box.rotation[0]),
 	)
 }
@@ -413,7 +428,8 @@ export function locateSurfaces(
 			let inside = true
 			for (let other = 0; other < 3; other++) {
 				if (other === axis) continue
-				if (local[other] < min[other] - EPSILON || local[other] > max[other] + EPSILON) inside = false
+				if (local[other] < min[other] - EPSILON || local[other] > max[other] + EPSILON)
+					inside = false
 			}
 			if (inside) hits.push({ box: index, face, fractions: localToFractions(box, local) })
 		}
@@ -493,8 +509,27 @@ function playerModel(variant: 'classic' | 'slim'): ModelDefinition {
 			playerBox('head', 'Head', 'head', 'base', [0, 0], [-4, -8, -4], [8, 8, 8], [0, 0, 0]),
 			playerBox('hat', 'Hat', 'head', 'overlay', [32, 0], [-4, -8, -4], [8, 8, 8], [0, 0, 0], 0.5),
 			playerBox('body', 'Body', 'body', 'base', [16, 16], [-4, 0, -2], [8, 12, 4], [0, 0, 0]),
-			playerBox('jacket', 'Jacket', 'body', 'overlay', [16, 32], [-4, 0, -2], [8, 12, 4], [0, 0, 0], 0.25),
-			playerBox('rightArm', 'Right arm', 'rightArm', 'base', [40, 16], [rightArmX, -2, -2], [arm, 12, 4], [-5, armY, 0]),
+			playerBox(
+				'jacket',
+				'Jacket',
+				'body',
+				'overlay',
+				[16, 32],
+				[-4, 0, -2],
+				[8, 12, 4],
+				[0, 0, 0],
+				0.25,
+			),
+			playerBox(
+				'rightArm',
+				'Right arm',
+				'rightArm',
+				'base',
+				[40, 16],
+				[rightArmX, -2, -2],
+				[arm, 12, 4],
+				[-5, armY, 0],
+			),
 			playerBox(
 				'rightSleeve',
 				'Right sleeve',
@@ -506,7 +541,16 @@ function playerModel(variant: 'classic' | 'slim'): ModelDefinition {
 				[-5, armY, 0],
 				0.25,
 			),
-			playerBox('leftArm', 'Left arm', 'leftArm', 'base', [32, 48], [-1, -2, -2], [arm, 12, 4], [5, armY, 0]),
+			playerBox(
+				'leftArm',
+				'Left arm',
+				'leftArm',
+				'base',
+				[32, 48],
+				[-1, -2, -2],
+				[arm, 12, 4],
+				[5, armY, 0],
+			),
 			playerBox(
 				'leftSleeve',
 				'Left sleeve',
@@ -518,7 +562,16 @@ function playerModel(variant: 'classic' | 'slim'): ModelDefinition {
 				[5, armY, 0],
 				0.25,
 			),
-			playerBox('rightLeg', 'Right leg', 'rightLeg', 'base', [0, 16], [-2, 0, -2], [4, 12, 4], [-1.9, 12, 0]),
+			playerBox(
+				'rightLeg',
+				'Right leg',
+				'rightLeg',
+				'base',
+				[0, 16],
+				[-2, 0, -2],
+				[4, 12, 4],
+				[-1.9, 12, 0],
+			),
 			playerBox(
 				'rightPants',
 				'Right pants',
@@ -530,7 +583,16 @@ function playerModel(variant: 'classic' | 'slim'): ModelDefinition {
 				[-1.9, 12, 0],
 				0.25,
 			),
-			playerBox('leftLeg', 'Left leg', 'leftLeg', 'base', [16, 48], [-2, 0, -2], [4, 12, 4], [1.9, 12, 0]),
+			playerBox(
+				'leftLeg',
+				'Left leg',
+				'leftLeg',
+				'base',
+				[16, 48],
+				[-2, 0, -2],
+				[4, 12, 4],
+				[1.9, 12, 0],
+			),
 			playerBox(
 				'leftPants',
 				'Left pants',
@@ -560,10 +622,50 @@ function legacyModel(): ModelDefinition {
 			playerBox('head', 'Head', 'head', 'base', [0, 0], [-4, -8, -4], [8, 8, 8], [0, 0, 0]),
 			playerBox('hat', 'Hat', 'head', 'overlay', [32, 0], [-4, -8, -4], [8, 8, 8], [0, 0, 0], 0.5),
 			playerBox('body', 'Body', 'body', 'base', [16, 16], [-4, 0, -2], [8, 12, 4], [0, 0, 0]),
-			playerBox('rightArm', 'Right arm', 'rightArm', 'base', [40, 16], [-3, -2, -2], [4, 12, 4], [-5, 2, 0]),
-			playerBox('leftArm', 'Left arm', 'leftArm', 'base', [40, 16], [-1, -2, -2], [4, 12, 4], [5, 2, 0], 0, true),
-			playerBox('rightLeg', 'Right leg', 'rightLeg', 'base', [0, 16], [-2, 0, -2], [4, 12, 4], [-1.9, 12, 0]),
-			playerBox('leftLeg', 'Left leg', 'leftLeg', 'base', [0, 16], [-2, 0, -2], [4, 12, 4], [1.9, 12, 0], 0, true),
+			playerBox(
+				'rightArm',
+				'Right arm',
+				'rightArm',
+				'base',
+				[40, 16],
+				[-3, -2, -2],
+				[4, 12, 4],
+				[-5, 2, 0],
+			),
+			playerBox(
+				'leftArm',
+				'Left arm',
+				'leftArm',
+				'base',
+				[40, 16],
+				[-1, -2, -2],
+				[4, 12, 4],
+				[5, 2, 0],
+				0,
+				true,
+			),
+			playerBox(
+				'rightLeg',
+				'Right leg',
+				'rightLeg',
+				'base',
+				[0, 16],
+				[-2, 0, -2],
+				[4, 12, 4],
+				[-1.9, 12, 0],
+			),
+			playerBox(
+				'leftLeg',
+				'Left leg',
+				'leftLeg',
+				'base',
+				[0, 16],
+				[-2, 0, -2],
+				[4, 12, 4],
+				[1.9, 12, 0],
+				0,
+				true,
+			),
 		],
 	}
 }

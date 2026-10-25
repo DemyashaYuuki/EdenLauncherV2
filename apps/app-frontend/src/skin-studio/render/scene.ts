@@ -6,8 +6,8 @@ import {
 	FACE_NAMES,
 	FACE_NORMALS,
 	type FaceName,
-	faceTexCoord,
 	facePointToTexel,
+	faceTexCoord,
 	localToFractions,
 	type ModelBox,
 	type ModelDefinition,
@@ -195,7 +195,12 @@ export class StudioScene {
 	visibility: Visibility = { parts: {}, overlay: {}, overlayGlobal: true, ghost: false }
 
 	constructor(canvas: HTMLCanvasElement, antialias: boolean) {
-		this.renderer = new THREE.WebGLRenderer({ canvas, antialias, alpha: true, preserveDrawingBuffer: false })
+		this.renderer = new THREE.WebGLRenderer({
+			canvas,
+			antialias,
+			alpha: true,
+			preserveDrawingBuffer: false,
+		})
 		this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1))
 		this.renderer.outputColorSpace = THREE.SRGBColorSpace
 		this.root.rotation.x = Math.PI
@@ -216,10 +221,13 @@ export class StudioScene {
 	}
 
 	setOptions(options: Partial<SceneOptions>): void {
-		const lightingChanged = options.lighting !== undefined && options.lighting !== this.options.lighting
+		const lightingChanged =
+			options.lighting !== undefined && options.lighting !== this.options.lighting
 		this.options = { ...this.options, ...options }
 		if (lightingChanged) this.setupLights()
-		this.scene.background = this.options.background ? new THREE.Color(this.options.background) : null
+		this.scene.background = this.options.background
+			? new THREE.Color(this.options.background)
+			: null
 		this.updateGrass()
 		this.updateMaterials()
 		this.invalidate()
@@ -266,7 +274,12 @@ export class StudioScene {
 		model.boxes.forEach((box, index) => {
 			const pivot = new THREE.Group()
 			pivot.position.set(...box.pivot)
-			const baseRotation = new THREE.Euler(box.rotation[0] * DEG, box.rotation[1] * DEG, box.rotation[2] * DEG, 'ZYX')
+			const baseRotation = new THREE.Euler(
+				box.rotation[0] * DEG,
+				box.rotation[1] * DEG,
+				box.rotation[2] * DEG,
+				'ZYX',
+			)
 			pivot.rotation.copy(baseRotation)
 			const material = new THREE.MeshLambertMaterial({ map: this.texture, side: THREE.FrontSide })
 			const mesh = new THREE.Mesh(buildBoxGeometry(box, model), material)
@@ -297,7 +310,12 @@ export class StudioScene {
 		this.invalidate()
 	}
 
-	private defaultOrbit: OrbitState = { theta: 0.55, phi: 1.35, radius: 70, target: new THREE.Vector3(0, 16, 0) }
+	private defaultOrbit: OrbitState = {
+		theta: 0.55,
+		phi: 1.35,
+		radius: 70,
+		target: new THREE.Vector3(0, 16, 0),
+	}
 
 	resetCamera(): void {
 		this.orbit = {
@@ -343,7 +361,9 @@ export class StudioScene {
 	private isVisible(box: ModelBox): boolean {
 		const partVisible = this.visibility.parts[box.part] !== false
 		if (box.layer === 'base') return partVisible
-		return partVisible && this.visibility.overlayGlobal && this.visibility.overlay[box.part] !== false
+		return (
+			partVisible && this.visibility.overlayGlobal && this.visibility.overlay[box.part] !== false
+		)
 	}
 
 	private updateMaterials(): void {
@@ -355,11 +375,13 @@ export class StudioScene {
 			view.mesh.visible = visible || ghost
 			view.mesh.userData.pickable = visible
 			const blended =
-				view.box.layer === 'overlay' && (mode === 'all' || (mode === 'helmet' && view.box.part === 'head'))
+				view.box.layer === 'overlay' &&
+				(mode === 'all' || (mode === 'helmet' && view.box.part === 'head'))
 			material.transparent = ghost || blended
 			material.opacity = ghost ? 0.16 : 1
 			material.depthWrite = !ghost && !blended
-			material.alphaTest = ghost || blended ? 0.01 : mode === 'off' && view.box.layer === 'base' ? 0 : 0.5
+			material.alphaTest =
+				ghost || blended ? 0.01 : mode === 'off' && view.box.layer === 'base' ? 0 : 0.5
 			material.needsUpdate = true
 			view.mesh.renderOrder = view.box.layer === 'overlay' ? 2 : ghost ? 3 : 1
 		}
@@ -457,7 +479,12 @@ export class StudioScene {
 			if (target === 'overlay' && box.layer !== 'overlay') continue
 			const face = FACE_NAMES[Math.floor((hit.faceIndex ?? 0) / 2)]
 			const local = (hit.object as THREE.Mesh).worldToLocal(hit.point.clone())
-			const [x, y] = facePointToTexel(box, face, localToFractions(box, local.toArray() as Vec3), scale)
+			const [x, y] = facePointToTexel(
+				box,
+				face,
+				localToFractions(box, local.toArray() as Vec3),
+				scale,
+			)
 			if (target === 'auto' && box.layer === 'overlay') {
 				const alpha = image.data[(y * image.width + x) * 4 + 3]
 				if (alpha === 0) continue
@@ -472,7 +499,12 @@ export class StudioScene {
 		const canvas = document.createElement('canvas')
 		canvas.width = width
 		canvas.height = height
-		const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true })
+		const renderer = new THREE.WebGLRenderer({
+			canvas,
+			antialias: true,
+			alpha: true,
+			preserveDrawingBuffer: true,
+		})
 		renderer.outputColorSpace = THREE.SRGBColorSpace
 		const camera = this.camera.clone()
 		camera.aspect = width / height

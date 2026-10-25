@@ -19,11 +19,15 @@ export interface DimensionCheck {
  * These are the shapes box-UV models address without distortion.
  */
 export function checkTextureDimensions(width: number, height: number): DimensionCheck {
-	if (!Number.isInteger(width) || !Number.isInteger(height)) return { ok: false, reason: 'not-integer' }
-	if (width < MIN_TEXTURE_SIZE || height < MIN_TEXTURE_SIZE) return { ok: false, reason: 'too-small' }
-	if (width > MAX_TEXTURE_SIZE || height > MAX_TEXTURE_SIZE) return { ok: false, reason: 'too-large' }
+	if (!Number.isInteger(width) || !Number.isInteger(height))
+		return { ok: false, reason: 'not-integer' }
+	if (width < MIN_TEXTURE_SIZE || height < MIN_TEXTURE_SIZE)
+		return { ok: false, reason: 'too-small' }
+	if (width > MAX_TEXTURE_SIZE || height > MAX_TEXTURE_SIZE)
+		return { ok: false, reason: 'too-large' }
 	if (width % 8 !== 0 || height % 8 !== 0) return { ok: false, reason: 'bad-aspect' }
-	if (width !== height && width !== height * 2 && height !== width * 2) return { ok: false, reason: 'bad-aspect' }
+	if (width !== height && width !== height * 2 && height !== width * 2)
+		return { ok: false, reason: 'bad-aspect' }
 	return { ok: true }
 }
 

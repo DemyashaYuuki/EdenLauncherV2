@@ -14,7 +14,7 @@ import {
 } from '../../src/skin-studio/engine/document.ts'
 import { convertLegacyToModern, createImage, getPixel } from '../../src/skin-studio/engine/image.ts'
 import { builtinModel, type ModelDefinition } from '../../src/skin-studio/engine/model.ts'
-import { defaultToolSettings, Stroke } from '../../src/skin-studio/engine/paint.ts'
+import { defaultToolSettings, solidPatchFill, Stroke } from '../../src/skin-studio/engine/paint.ts'
 import {
 	LookupError,
 	parseElyTextures,
@@ -44,10 +44,35 @@ const key = (code: string, mods: Partial<KeyLike> = {}): KeyLike => ({
 	...mods,
 })
 
+test('undo restores imported model geometry when replacing it with a built-in model', () => {
+	const classic = builtinModel('player-classic') as ModelDefinition
+	const imported = { ...classic, id: 'custom-import', name: 'Imported geometry' }
+	const doc = createDocument({ name: 'Custom', model: imported, image: createImage(64, 64) })
+	replaceTexture(doc, 'Change model', createImage(64, 64), classic)
+	undo(doc)
+	assert.equal(doc.model, imported)
+	redo(doc)
+	assert.equal(doc.model, classic)
+})
+
+test('trimming old history cannot mark remaining edits as saved after undo', () => {
+	const model = builtinModel('player-classic') as ModelDefinition
+	const doc = createDocument({ name: 'History', model, image: createImage(64, 64), saved: true })
+	for (let n = 1; n <= 202; n++) {
+		commitPatch(doc, 'Paint', solidPatchFill(doc.image, { x: 8, y: 8, w: 1, h: 1 }, [n, 0, 0, 255]))
+	}
+	while (doc.history.canUndo) undo(doc)
+	assert.equal(getPixel(doc.image, 8, 8)[0], 2)
+	assert.equal(isDirty(doc), true)
+})
+
 test('shortcuts use physical keys so the Russian layout works', () => {
 	assert.equal(comboFromEvent({ ...key('KeyZ', { ctrlKey: true }), key: 'я' }), 'Ctrl+Z')
 	assert.equal(actionForEvent(DEFAULT_SHORTCUTS, { ...key('KeyB'), key: 'и' }), 'tool.pencil')
-	assert.equal(actionForEvent(DEFAULT_SHORTCUTS, key('KeyZ', { ctrlKey: true, shiftKey: true })), 'edit.redo')
+	assert.equal(
+		actionForEvent(DEFAULT_SHORTCUTS, key('KeyZ', { ctrlKey: true, shiftKey: true })),
+		'edit.redo',
+	)
 	assert.equal(actionForEvent(DEFAULT_SHORTCUTS, key('BracketRight')), 'brush.bigger')
 	assert.equal(comboFromEvent(key('ShiftLeft', { shiftKey: true })), null)
 })
@@ -77,7 +102,12 @@ test('documents track dirty state through strokes, undo, save and rename', () =>
 	const doc = createDocument({ name: 'Skin', model, image: createImage(64, 64), saved: true })
 	assert.equal(isDirty(doc), false)
 	const paint = (x: number) => {
-		const s = new Stroke({ image: doc.image, tool: 'pencil', color: [255, 0, 0, 255], settings: defaultToolSettings() })
+		const s = new Stroke({
+			image: doc.image,
+			tool: 'pencil',
+			color: [255, 0, 0, 255],
+			settings: defaultToolSettings(),
+		})
 		s.dab(x, 10)
 		commitPatch(doc, 'Pencil', s.finish())
 	}
@@ -102,7 +132,12 @@ test('documents track dirty state through strokes, undo, save and rename', () =>
 
 test('legacy conversion is one undoable step that also restores the model', () => {
 	const legacyModel = builtinModel('player-legacy') as ModelDefinition
-	const doc = createDocument({ name: 'Old', model: legacyModel, image: createImage(64, 32), saved: true })
+	const doc = createDocument({
+		name: 'Old',
+		model: legacyModel,
+		image: createImage(64, 32),
+		saved: true,
+	})
 	replaceTexture(doc, 'Convert', convertLegacyToModern(doc.image), builtinModel('player-classic'))
 	assert.equal(doc.image.height, 64)
 	assert.equal(doc.model.id, 'player-classic')
@@ -114,8 +149,14 @@ test('legacy conversion is one undoable step that also restores the model', () =
 })
 
 test('nickname lookups only build URLs for fixed hosts and valid names', () => {
-	assert.equal(profileLookupUrl('mojang', 'Notch'), 'https://api.mojang.com/users/profiles/minecraft/Notch')
-	assert.equal(profileLookupUrl('ely', 'erick-skrauch'), 'https://skinsystem.ely.by/textures/erick-skrauch')
+	assert.equal(
+		profileLookupUrl('mojang', 'Notch'),
+		'https://api.mojang.com/users/profiles/minecraft/Notch',
+	)
+	assert.equal(
+		profileLookupUrl('ely', 'erick-skrauch'),
+		'https://skinsystem.ely.by/textures/erick-skrauch',
+	)
 	assert.throws(() => profileLookupUrl('mojang', '../admin'), LookupError)
 	assert.throws(() => profileLookupUrl('mojang', 'a'.repeat(17)), LookupError)
 })
@@ -139,21 +180,32 @@ test('texture URLs are allowlisted and upgraded to HTTPS', () => {
 })
 
 test('profile responses are parsed defensively', () => {
-	assert.equal(parseMojangUuid({ id: '069a79f444e94726a5befca90e38aaf5' }), '069a79f444e94726a5befca90e38aaf5')
+	assert.equal(
+		parseMojangUuid({ id: '069a79f444e94726a5befca90e38aaf5' }),
+		'069a79f444e94726a5befca90e38aaf5',
+	)
 	assert.throws(() => parseMojangUuid({ id: '../../x' }), LookupError)
 	const value = btoa(
 		JSON.stringify({
-			textures: { SKIN: { url: 'http://textures.minecraft.net/texture/1', metadata: { model: 'slim' } } },
+			textures: {
+				SKIN: { url: 'http://textures.minecraft.net/texture/1', metadata: { model: 'slim' } },
+			},
 		}),
 	)
 	assert.deepEqual(parseSessionProfile({ properties: [{ name: 'textures', value }] }), {
 		url: 'https://textures.minecraft.net/texture/1',
 		slim: true,
 	})
-	assert.throws(() => parseSessionProfile({ properties: [] }), (e: LookupError) => e.code === 'not-found')
+	assert.throws(
+		() => parseSessionProfile({ properties: [] }),
+		(e: LookupError) => e.code === 'not-found',
+	)
 	assert.deepEqual(parseElyTextures({ SKIN: { url: 'http://ely.by/storage/skins/a.png' } }), {
 		url: 'https://ely.by/storage/skins/a.png',
 		slim: false,
 	})
-	assert.throws(() => parseElyTextures({ SKIN: { url: 'https://evil.example/a.png' } }), LookupError)
+	assert.throws(
+		() => parseElyTextures({ SKIN: { url: 'https://evil.example/a.png' } }),
+		LookupError,
+	)
 })

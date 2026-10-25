@@ -42,7 +42,10 @@ export function isSafeEntryName(name: string): boolean {
  * Reads the central directory of a ZIP archive. Encrypted, multi-disk and ZIP64 archives and
  * entries with unsafe names or excessive sizes are rejected.
  */
-export function readZipDirectory(bytes: Uint8Array, limits: ZipLimits = DEFAULT_ZIP_LIMITS): ZipEntry[] {
+export function readZipDirectory(
+	bytes: Uint8Array,
+	limits: ZipLimits = DEFAULT_ZIP_LIMITS,
+): ZipEntry[] {
 	if (bytes.length > limits.maxArchiveBytes) throw new ZipError('too-big', 'Archive is too large')
 	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
 	let eocd = -1
@@ -57,7 +60,8 @@ export function readZipDirectory(bytes: Uint8Array, limits: ZipLimits = DEFAULT_
 	const count = view.getUint16(eocd + 10, true)
 	const size = view.getUint32(eocd + 12, true)
 	const offset = view.getUint32(eocd + 16, true)
-	if (disk !== 0 || count === 0xffff || offset === 0xffffffff) throw new ZipError('format', 'Unsupported ZIP layout')
+	if (disk !== 0 || count === 0xffff || offset === 0xffffffff)
+		throw new ZipError('format', 'Unsupported ZIP layout')
 	if (count > limits.maxEntries) throw new ZipError('too-many', 'Archive has too many entries')
 	if (offset + size > eocd) throw new ZipError('format', 'Corrupt ZIP directory')
 	const entries: ZipEntry[] = []
@@ -74,12 +78,14 @@ export function readZipDirectory(bytes: Uint8Array, limits: ZipLimits = DEFAULT_
 		const extraLength = view.getUint16(p + 30, true)
 		const commentLength = view.getUint16(p + 32, true)
 		const localOffset = view.getUint32(p + 42, true)
-		if (p + 46 + nameLength > bytes.length) throw new ZipError('format', 'Corrupt ZIP directory entry')
+		if (p + 46 + nameLength > bytes.length)
+			throw new ZipError('format', 'Corrupt ZIP directory entry')
 		const name = new TextDecoder().decode(bytes.subarray(p + 46, p + 46 + nameLength))
 		p += 46 + nameLength + extraLength + commentLength
 		if (flags & 1) throw new ZipError('encrypted', 'Encrypted archives are not supported')
 		if (name.endsWith('/')) continue
-		if (!isSafeEntryName(name)) throw new ZipError('unsafe-name', `Unsafe archive entry name: ${name.slice(0, 80)}`)
+		if (!isSafeEntryName(name))
+			throw new ZipError('unsafe-name', `Unsafe archive entry name: ${name.slice(0, 80)}`)
 		if (method !== 0 && method !== 8) throw new ZipError('method', 'Unsupported compression method')
 		if (uncompressedSize > limits.maxEntryBytes || compressedSize > limits.maxEntryBytes) {
 			throw new ZipError('too-big', 'Archive entry is too large')
@@ -106,7 +112,8 @@ export async function readZipEntry(
 	if (end > bytes.length) throw new ZipError('format', 'Archive entry is truncated')
 	const data = bytes.subarray(start, end)
 	if (entry.method === 0) {
-		if (entry.compressedSize !== entry.size) throw new ZipError('format', 'Stored entry size mismatch')
+		if (entry.compressedSize !== entry.size)
+			throw new ZipError('format', 'Stored entry size mismatch')
 		return data.slice()
 	}
 	const limit = Math.min(limits.maxEntryBytes, entry.size)

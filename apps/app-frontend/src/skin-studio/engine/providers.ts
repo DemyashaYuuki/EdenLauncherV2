@@ -45,14 +45,16 @@ export function sessionProfileUrl(uuid: string): string {
 
 /** Accepts only allowlisted texture hosts, forces HTTPS and rejects credentials or odd ports. */
 export function safeTextureUrl(provider: LookupProvider, raw: unknown): string {
-	if (typeof raw !== 'string' || raw.length > 512) throw new LookupError('url', 'Invalid texture URL')
+	if (typeof raw !== 'string' || raw.length > 512)
+		throw new LookupError('url', 'Invalid texture URL')
 	let url: URL
 	try {
 		url = new URL(raw)
 	} catch {
 		throw new LookupError('url', 'Invalid texture URL')
 	}
-	if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new LookupError('url', 'Invalid texture URL')
+	if (url.protocol !== 'https:' && url.protocol !== 'http:')
+		throw new LookupError('url', 'Invalid texture URL')
 	if (url.username || url.password || (url.port && url.port !== '80' && url.port !== '443')) {
 		throw new LookupError('url', 'Invalid texture URL')
 	}
@@ -83,7 +85,8 @@ function fromTextures(provider: LookupProvider, textures: TexturesJson | undefin
 
 export function parseMojangUuid(json: unknown): string {
 	const id = (json as { id?: unknown } | null)?.id
-	if (typeof id !== 'string' || !/^[0-9a-f]{32}$/i.test(id)) throw new LookupError('not-found', 'Player not found')
+	if (typeof id !== 'string' || !/^[0-9a-f]{32}$/i.test(id))
+		throw new LookupError('not-found', 'Player not found')
 	return id
 }
 

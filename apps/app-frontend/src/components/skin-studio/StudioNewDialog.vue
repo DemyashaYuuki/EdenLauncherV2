@@ -9,9 +9,11 @@ export type NewTemplate = 'blank' | 'ranger' | 'operator'
 
 const props = defineProps<{ open: boolean; customModel?: ModelDefinition | null }>()
 const emit = defineEmits<{
-	(event: 'close'): void
-	(event: 'create', options: { name: string; model: ModelDefinition; scale: number; template: NewTemplate }): void
-	(event: 'models'): void
+	(event: 'close' | 'models'): void
+	(
+		event: 'create',
+		options: { name: string; model: ModelDefinition; scale: number; template: NewTemplate },
+	): void
 }>()
 const t = useStudioText()
 
@@ -31,11 +33,18 @@ watch(
 	},
 )
 
-const models = computed(() => (props.customModel ? [...BUILTIN_MODELS, props.customModel] : BUILTIN_MODELS))
+const models = computed(() =>
+	props.customModel ? [...BUILTIN_MODELS, props.customModel] : BUILTIN_MODELS,
+)
 const model = computed(() => models.value.find((m) => m.id === modelId.value) ?? BUILTIN_MODELS[0])
 const scales = computed(() => {
 	const out: number[] = []
-	for (let s = 1; model.value.textureWidth * s <= 4096 && model.value.textureHeight * s <= 4096; s *= 2) out.push(s)
+	for (
+		let s = 1;
+		model.value.textureWidth * s <= 4096 && model.value.textureHeight * s <= 4096;
+		s *= 2
+	)
+		out.push(s)
 	return out
 })
 const templatesAllowed = computed(() => model.value.id === 'player-classic' && scale.value === 1)
@@ -46,7 +55,12 @@ watch(templatesAllowed, (allowed) => {
 
 function create(): void {
 	const clean = name.value.trim() || t('new.defaultName')
-	emit('create', { name: clean.slice(0, 80), model: model.value, scale: scale.value, template: template.value })
+	emit('create', {
+		name: clean.slice(0, 80),
+		model: model.value,
+		scale: scale.value,
+		template: template.value,
+	})
 }
 </script>
 
@@ -89,7 +103,13 @@ function create(): void {
 			<fieldset class="studio-form-row">
 				<legend>{{ t('new.template') }}</legend>
 				<div class="studio-choice-grid" role="radiogroup">
-					<button type="button" role="radio" class="studio-choice" :aria-checked="template === 'blank'" @click="template = 'blank'">
+					<button
+						type="button"
+						role="radio"
+						class="studio-choice"
+						:aria-checked="template === 'blank'"
+						@click="template = 'blank'"
+					>
 						{{ t('new.template.blank') }}
 					</button>
 					<button
@@ -116,7 +136,9 @@ function create(): void {
 			</fieldset>
 			<p v-if="scale > 1" class="studio-note">{{ t('export.remoteNote') }}</p>
 			<div class="studio-new__actions">
-				<button type="button" class="studio-btn" @click="emit('close')">{{ t('action.cancel') }}</button>
+				<button type="button" class="studio-btn" @click="emit('close')">
+					{{ t('action.cancel') }}
+				</button>
 				<button type="submit" class="studio-btn studio-btn--primary">{{ t('new.start') }}</button>
 			</div>
 		</form>

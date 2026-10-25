@@ -13,16 +13,19 @@ import { useSkinStudio, type ViewMode } from '@/skin-studio/store'
 
 defineProps<{ themeBackground: string }>()
 const emit = defineEmits<{
-	(event: 'new'): void
+	(
+		event:
+			| 'new'
+			| 'models'
+			| 'convert'
+			| 'screenshot'
+			| 'popout'
+			| 'apply-microsoft'
+			| 'apply-ely'
+			| 'apply-server'
+			| 'link',
+	): void
 	(event: 'close', id: string): void
-	(event: 'models'): void
-	(event: 'convert'): void
-	(event: 'screenshot'): void
-	(event: 'popout'): void
-	(event: 'apply-microsoft'): void
-	(event: 'apply-ely'): void
-	(event: 'apply-server'): void
-	(event: 'link'): void
 	(event: 'prompt', title: string, value: string, done: (value: string | null) => void): void
 	(event: 'notify', kind: 'error' | 'info', text: string): void
 }>()
@@ -69,7 +72,8 @@ defineExpose({
 		if (studio.prefs.viewMode === '2d') view2d.value?.zoomBy(direction)
 		else view3d.value?.zoomBy(direction)
 	},
-	screenshot: (w: number, h: number, transparent: boolean) => view3d.value?.screenshot(w, h, transparent) ?? null,
+	screenshot: (w: number, h: number, transparent: boolean) =>
+		view3d.value?.screenshot(w, h, transparent) ?? null,
 })
 </script>
 
@@ -87,9 +91,15 @@ defineExpose({
 				<div class="studio-center__bar">
 					<span class="studio-center__name">
 						{{ doc?.name ?? t('canvas.empty') }}
-						<span v-if="dirty" class="studio-center__dirty" :aria-label="t('footer.unsaved')">●</span>
+						<span v-if="dirty" class="studio-center__dirty" :aria-label="t('footer.unsaved')"
+							>●</span
+						>
 					</span>
-					<div class="studio-segmented" role="radiogroup" :aria-label="t('shortcut.view.toggleMode')">
+					<div
+						class="studio-segmented"
+						role="radiogroup"
+						:aria-label="t('shortcut.view.toggleMode')"
+					>
 						<button
 							v-for="mode in modes"
 							:key="mode.id"
@@ -102,9 +112,15 @@ defineExpose({
 							{{ t(mode.label) }}
 						</button>
 					</div>
-					<span class="studio-center__size">{{ doc ? `${doc.image.width} × ${doc.image.height}` : '' }}</span>
+					<span class="studio-center__size">{{
+						doc ? `${doc.image.width} × ${doc.image.height}` : ''
+					}}</span>
 				</div>
-				<div v-if="doc" class="studio-canvases" :class="`studio-canvases--${studio.prefs.viewMode}`">
+				<div
+					v-if="doc"
+					class="studio-canvases"
+					:class="`studio-canvases--${studio.prefs.viewMode}`"
+				>
 					<div v-show="studio.prefs.viewMode !== '2d'" class="studio-viewport">
 						<span class="studio-viewport__label">{{ t('canvas.view3d') }}</span>
 						<StudioViewport3D
@@ -126,7 +142,9 @@ defineExpose({
 					</div>
 				</div>
 				<div v-else class="studio-canvases studio-canvases--empty">
-					<button type="button" class="studio-center__new" @click="emit('new')">＋ {{ t('action.new') }}</button>
+					<button type="button" class="studio-center__new" @click="emit('new')">
+						＋ {{ t('action.new') }}
+					</button>
 				</div>
 				<div class="studio-center__status" aria-live="polite">
 					<span>{{ toolStatus }}</span>
@@ -158,9 +176,10 @@ defineExpose({
 
 .studio-workspace {
 	display: grid;
-	min-height: 520px;
+	min-height: 260px;
 	flex: 1;
 	grid-template-columns: 216px 48px minmax(360px, 1fr) 258px;
+	grid-template-rows: minmax(0, 1fr);
 	overflow: hidden;
 	border: 1px solid var(--eden-border);
 	border-radius: 14px;

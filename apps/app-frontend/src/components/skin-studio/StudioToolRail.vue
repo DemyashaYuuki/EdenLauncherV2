@@ -32,7 +32,12 @@ function tip(id: ToolId): string {
 </script>
 
 <template>
-	<div class="studio-rail" role="toolbar" aria-orientation="vertical" :aria-label="t('inspector.brush')">
+	<div
+		class="studio-rail"
+		role="toolbar"
+		aria-orientation="vertical"
+		:aria-label="t('inspector.brush')"
+	>
 		<button
 			v-for="tool in tools"
 			:key="tool.id"

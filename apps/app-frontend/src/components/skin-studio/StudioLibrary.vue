@@ -14,9 +14,7 @@ import { useStudioText } from '@/skin-studio/i18n'
 import { useSkinStudio } from '@/skin-studio/store'
 
 const emit = defineEmits<{
-	(event: 'new'): void
-	(event: 'import'): void
-	(event: 'fetch'): void
+	(event: 'new' | 'import' | 'fetch'): void
 	(event: 'template', id: 'ranger' | 'operator'): void
 	(event: 'prompt', title: string, value: string, done: (value: string | null) => void): void
 	(event: 'confirm', title: string, body: string, done: (ok: boolean) => void): void
@@ -31,14 +29,24 @@ const showTrash = ref(false)
 const folders = computed(() => {
 	const prefix = studio.currentFolder ? `${studio.currentFolder}/` : ''
 	return studio.library
-		.filter((e) => e.kind === 'folder' && e.path.startsWith(prefix) && !e.path.slice(prefix.length).includes('/'))
+		.filter(
+			(e) =>
+				e.kind === 'folder' &&
+				e.path.startsWith(prefix) &&
+				!e.path.slice(prefix.length).includes('/'),
+		)
 		.map((e) => ({ path: e.path, name: e.path.slice(prefix.length) }))
 })
 
 const items = computed(() => {
 	const prefix = studio.currentFolder ? `${studio.currentFolder}/` : ''
 	return studio.library
-		.filter((e) => e.kind !== 'folder' && e.path.startsWith(prefix) && !e.path.slice(prefix.length).includes('/'))
+		.filter(
+			(e) =>
+				e.kind !== 'folder' &&
+				e.path.startsWith(prefix) &&
+				!e.path.slice(prefix.length).includes('/'),
+		)
 		.sort((a, b) => b.modified_ms - a.modified_ms)
 		.map((e) => ({
 			...e,
@@ -84,7 +92,11 @@ async function open(path: string): Promise<void> {
 	try {
 		await studio.openLibraryEntry(path)
 	} catch (error) {
-		emit('notify', 'error', t('library.importFailed', { name: path, message: (error as Error).message }))
+		emit(
+			'notify',
+			'error',
+			t('library.importFailed', { name: path, message: (error as Error).message }),
+		)
 	}
 }
 
@@ -105,7 +117,9 @@ function newFolder(): void {
 	emit('prompt', t('library.folderPrompt'), t('action.newFolder'), (name) => {
 		if (!name) return
 		const stem = safeFileStem(name)
-		void run(() => api.createLibraryFolder(studio.currentFolder ? `${studio.currentFolder}/${stem}` : stem))
+		void run(() =>
+			api.createLibraryFolder(studio.currentFolder ? `${studio.currentFolder}/${stem}` : stem),
+		)
 	})
 }
 
@@ -127,9 +141,14 @@ function rename(path: string, name: string, kind: string): void {
 }
 
 function clone(path: string, name: string): void {
-	const target = studio.libraryPathFor(name, path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '')
+	const target = studio.libraryPathFor(
+		name,
+		path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '',
+	)
 	const ext = path.slice(path.lastIndexOf('.'))
-	void run(() => api.copyLibraryEntry(path, target.replace(new RegExp(`\\.${PROJECT_EXTENSION}$`), ext)))
+	void run(() =>
+		api.copyLibraryEntry(path, target.replace(new RegExp(`\\.${PROJECT_EXTENSION}$`), ext)),
+	)
 }
 
 function move(path: string): void {
@@ -198,9 +217,15 @@ onMounted(() => {
 				<h2>{{ t('library.heroTitle') }}</h2>
 				<p>{{ t('library.heroBody') }}</p>
 				<div class="studio-hero__actions">
-					<button type="button" class="studio-btn studio-btn--primary" @click="emit('new')">＋ {{ t('action.new') }}</button>
-					<button type="button" class="studio-btn" @click="emit('import')">{{ t('action.importPng') }}</button>
-					<button type="button" class="studio-btn" @click="emit('fetch')">{{ t('action.fetch') }}</button>
+					<button type="button" class="studio-btn studio-btn--primary" @click="emit('new')">
+						＋ {{ t('action.new') }}
+					</button>
+					<button type="button" class="studio-btn" @click="emit('import')">
+						{{ t('action.importPng') }}
+					</button>
+					<button type="button" class="studio-btn" @click="emit('fetch')">
+						{{ t('action.fetch') }}
+					</button>
 				</div>
 			</div>
 		</div>
@@ -217,7 +242,12 @@ onMounted(() => {
 				<button type="button" class="studio-btn studio-btn--small" @click="newFolder">
 					<StudioIcon name="folder" :size="15" /> {{ t('action.newFolder') }}
 				</button>
-				<button type="button" class="studio-btn studio-btn--small" :aria-pressed="showTrash" @click="showTrash = !showTrash">
+				<button
+					type="button"
+					class="studio-btn studio-btn--small"
+					:aria-pressed="showTrash"
+					@click="showTrash = !showTrash"
+				>
 					{{ t('library.trash') }} ({{ studio.trash.length }})
 				</button>
 			</div>
@@ -228,30 +258,73 @@ onMounted(() => {
 		</p>
 
 		<div v-if="!showTrash" class="studio-cards">
-			<button v-for="folder in folders" :key="folder.path" type="button" class="studio-card studio-card--folder" @click="enterFolder(folder.path)">
+			<button
+				v-for="folder in folders"
+				:key="folder.path"
+				type="button"
+				class="studio-card studio-card--folder"
+				@click="enterFolder(folder.path)"
+			>
 				<StudioIcon name="folder" :size="28" />
 				<strong>{{ folder.name }}</strong>
 			</button>
-			<article v-for="item in items" :key="item.path" class="studio-card" @vue:mounted="loadPreview(item.path)">
-				<button type="button" class="studio-card__preview" :aria-label="`${t('library.openInEditor')}: ${item.name}`" @click="open(item.path)">
+			<article
+				v-for="item in items"
+				:key="item.path"
+				class="studio-card"
+				@vue:mounted="loadPreview(item.path)"
+			>
+				<button
+					type="button"
+					class="studio-card__preview"
+					:aria-label="`${t('library.openInEditor')}: ${item.name}`"
+					@click="open(item.path)"
+				>
 					<StudioThumb :image="previews.get(item.path) ?? null" :label="item.name" />
 				</button>
 				<h3>{{ item.name }}</h3>
-				<p>{{ item.kind === 'png' ? 'PNG' : 'Eden Skin' }} · {{ t('library.modified', { time: relativeTime(item.modified_ms) }) }}</p>
+				<p>
+					{{ item.kind === 'png' ? 'PNG' : 'Eden Skin' }} ·
+					{{ t('library.modified', { time: relativeTime(item.modified_ms) }) }}
+				</p>
 				<div class="studio-card__actions">
 					<button type="button" class="studio-btn studio-btn--small" @click="open(item.path)">
 						{{ item.open ? t('library.continue') : t('library.openInEditor') }} →
 					</button>
-					<button v-tooltip="t('action.rename')" type="button" class="studio-icon-btn" :aria-label="t('action.rename')" @click="rename(item.path, item.name, item.kind)">
+					<button
+						v-tooltip="t('action.rename')"
+						type="button"
+						class="studio-icon-btn"
+						:aria-label="t('action.rename')"
+						@click="rename(item.path, item.name, item.kind)"
+					>
 						<StudioIcon name="pencil" :size="15" />
 					</button>
-					<button v-tooltip="t('action.clone')" type="button" class="studio-icon-btn" :aria-label="t('action.clone')" @click="clone(item.path, item.name)">
+					<button
+						v-tooltip="t('action.clone')"
+						type="button"
+						class="studio-icon-btn"
+						:aria-label="t('action.clone')"
+						@click="clone(item.path, item.name)"
+					>
 						<StudioIcon name="layers" :size="15" />
 					</button>
-					<button v-tooltip="t('action.move')" type="button" class="studio-icon-btn" :aria-label="t('action.move')" @click="move(item.path)">
+					<button
+						v-tooltip="t('action.move')"
+						type="button"
+						class="studio-icon-btn"
+						:aria-label="t('action.move')"
+						@click="move(item.path)"
+					>
 						<StudioIcon name="folder" :size="15" />
 					</button>
-					<button v-tooltip="t('action.delete')" type="button" class="studio-icon-btn studio-icon-btn--danger" :aria-label="t('action.delete')" @click="remove(item.path, item.name)">
+					<button
+						v-tooltip="t('action.delete')"
+						type="button"
+						class="studio-icon-btn studio-icon-btn--danger"
+						:aria-label="t('action.delete')"
+						@click="remove(item.path, item.name)"
+					>
 						<StudioIcon name="close" :size="15" />
 					</button>
 				</div>
@@ -261,18 +334,29 @@ onMounted(() => {
 				<h3>{{ t('library.blankTitle') }}</h3>
 				<p>{{ t('library.blankBody') }}</p>
 			</button>
-			<button type="button" class="studio-card studio-card--template" @click="emit('template', 'ranger')">
+			<button
+				type="button"
+				class="studio-card studio-card--template"
+				@click="emit('template', 'ranger')"
+			>
 				<span class="studio-card__badge">{{ t('library.templates') }}</span>
 				<h3>{{ t('new.template.ranger') }}</h3>
 				<p>64 × 64 · Classic</p>
 			</button>
-			<button type="button" class="studio-card studio-card--template" @click="emit('template', 'operator')">
+			<button
+				type="button"
+				class="studio-card studio-card--template"
+				@click="emit('template', 'operator')"
+			>
 				<span class="studio-card__badge">{{ t('library.templates') }}</span>
 				<h3>{{ t('new.template.operator') }}</h3>
 				<p>64 × 64 · Classic</p>
 			</button>
 		</div>
-		<p v-if="!showTrash && items.length === 0 && folders.length === 0 && !studio.libraryLoading" class="studio-library__empty">
+		<p
+			v-if="!showTrash && items.length === 0 && folders.length === 0 && !studio.libraryLoading"
+			class="studio-library__empty"
+		>
 			{{ t('library.empty') }} {{ t('library.dropHint') }}
 		</p>
 
@@ -282,26 +366,50 @@ onMounted(() => {
 				<li v-for="entry in studio.trash" :key="entry.id">
 					<span>{{ entry.original_path }} · {{ relativeTime(entry.deleted_ms) }}</span>
 					<div>
-						<button type="button" class="studio-btn studio-btn--small" @click="run(() => api.restoreTrash(entry.id))">
+						<button
+							type="button"
+							class="studio-btn studio-btn--small"
+							@click="run(() => api.restoreTrash(entry.id))"
+						>
 							{{ t('action.restore') }}
 						</button>
-						<button type="button" class="studio-btn studio-btn--small studio-btn--danger" @click="run(() => api.purgeTrash(entry.id))">
+						<button
+							type="button"
+							class="studio-btn studio-btn--small studio-btn--danger"
+							@click="run(() => api.purgeTrash(entry.id))"
+						>
 							{{ t('action.delete') }}
 						</button>
 					</div>
 				</li>
 			</ul>
-			<button v-if="studio.trash.length" type="button" class="studio-btn studio-btn--danger" @click="run(() => api.purgeTrash(null))">
+			<button
+				v-if="studio.trash.length"
+				type="button"
+				class="studio-btn studio-btn--danger"
+				@click="run(() => api.purgeTrash(null))"
+			>
 				{{ t('library.emptyTrash') }}
 			</button>
 		</div>
 
 		<footer class="studio-library__location">
-			<span>{{ t('library.location') }}: <code>{{ studio.libraryInfo?.root ?? '…' }}</code></span>
+			<span
+				>{{ t('library.location') }}: <code>{{ studio.libraryInfo?.root ?? '…' }}</code></span
+			>
 			<div>
-				<button type="button" class="studio-btn studio-btn--small" @click="openLocation">{{ t('action.openFolder') }}</button>
-				<button type="button" class="studio-btn studio-btn--small" @click="changeLocation">{{ t('library.change') }}</button>
-				<button v-if="studio.libraryInfo && !studio.libraryInfo.is_default" type="button" class="studio-btn studio-btn--small" @click="resetLocation">
+				<button type="button" class="studio-btn studio-btn--small" @click="openLocation">
+					{{ t('action.openFolder') }}
+				</button>
+				<button type="button" class="studio-btn studio-btn--small" @click="changeLocation">
+					{{ t('library.change') }}
+				</button>
+				<button
+					v-if="studio.libraryInfo && !studio.libraryInfo.is_default"
+					type="button"
+					class="studio-btn studio-btn--small"
+					@click="resetLocation"
+				>
 					{{ t('library.reset') }}
 				</button>
 			</div>
@@ -324,7 +432,12 @@ onMounted(() => {
 	border: 1px solid var(--eden-border);
 	border-radius: 16px;
 	background:
-		linear-gradient(90deg, var(--eden-canvas) 0%, color-mix(in srgb, var(--eden-canvas) 75%, transparent) 40%, transparent 80%),
+		linear-gradient(
+			90deg,
+			var(--eden-canvas) 0%,
+			color-mix(in srgb, var(--eden-canvas) 75%, transparent) 40%,
+			transparent 80%
+		),
 		var(--art) center / cover;
 
 	h2 {

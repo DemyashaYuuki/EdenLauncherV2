@@ -10,10 +10,8 @@ import { type StudioKey, useStudioText } from '@/skin-studio/i18n'
 import { useSkinStudio } from '@/skin-studio/store'
 
 const emit = defineEmits<{
-	(event: 'new'): void
+	(event: 'new' | 'models' | 'convert'): void
 	(event: 'close', id: string): void
-	(event: 'models'): void
-	(event: 'convert'): void
 }>()
 
 const studio = useSkinStudio()
@@ -47,7 +45,9 @@ const modelChoice = computed({
 		}
 		const next = BUILTIN_MODELS.find((m) => m.id === id)
 		if (!next || next.id === doc.model.id) return
-		if (matchesModelAspect(doc.image.width, doc.image.height, next.textureWidth, next.textureHeight)) {
+		if (
+			matchesModelAspect(doc.image.width, doc.image.height, next.textureWidth, next.textureHeight)
+		) {
 			studio.replace(next.name, doc.image, next)
 		} else {
 			emit('convert')
@@ -72,12 +72,28 @@ function overlayFor(part: string): boolean {
 	<aside class="studio-dock">
 		<div class="studio-dock__head">
 			<h3 id="studio-projects-label">{{ t('dock.projects') }}</h3>
-			<button v-tooltip="t('dock.newProject')" type="button" class="studio-dock__icon" :aria-label="t('dock.newProject')" @click="emit('new')">
+			<button
+				v-tooltip="t('dock.newProject')"
+				type="button"
+				class="studio-dock__icon"
+				:aria-label="t('dock.newProject')"
+				@click="emit('new')"
+			>
 				<StudioIcon name="plus" :size="16" />
 			</button>
 		</div>
-		<div class="studio-dock__projects" role="tablist" aria-labelledby="studio-projects-label" aria-orientation="vertical">
-			<div v-for="doc in docs" :key="doc.id" class="studio-dock__project" :class="{ active: doc.id === studio.activeId }">
+		<div
+			class="studio-dock__projects"
+			role="tablist"
+			aria-labelledby="studio-projects-label"
+			aria-orientation="vertical"
+		>
+			<div
+				v-for="doc in docs"
+				:key="doc.id"
+				class="studio-dock__project"
+				:class="{ active: doc.id === studio.activeId }"
+			>
 				<button
 					type="button"
 					role="tab"
@@ -85,11 +101,15 @@ function overlayFor(part: string): boolean {
 					:aria-selected="doc.id === studio.activeId"
 					@click="studio.activate(doc.id)"
 				>
-					<span class="studio-dock__thumb"><StudioThumb :image="doc.image" :version="doc.version" /></span>
+					<span class="studio-dock__thumb"
+						><StudioThumb :image="doc.image" :version="doc.version"
+					/></span>
 					<span class="studio-dock__copy">
 						<strong>
 							{{ doc.name }}
-							<span v-if="doc.dirty" class="studio-dock__dirty" :aria-label="t('footer.unsaved')">•</span>
+							<span v-if="doc.dirty" class="studio-dock__dirty" :aria-label="t('footer.unsaved')"
+								>•</span
+							>
 						</strong>
 						<small>{{ doc.info }}</small>
 					</span>
@@ -114,10 +134,14 @@ function overlayFor(part: string): boolean {
 				<option v-for="m in BUILTIN_MODELS" :key="m.id" :value="m.id">
 					{{ m.name }}{{ m.playerVariant ? ` · ${m.playerVariant === 'slim' ? 3 : 4} px` : '' }}
 				</option>
-				<option v-if="!BUILTIN_MODELS.some((m) => m.id === model?.id)" :value="model.id">{{ model.name }}</option>
+				<option v-if="!BUILTIN_MODELS.some((m) => m.id === model?.id)" :value="model.id">
+					{{ model.name }}
+				</option>
 				<option value="__other">{{ t('dock.otherModel') }}</option>
 			</select>
-			<button type="button" class="studio-dock__link" @click="emit('convert')">{{ t('convert.title') }}…</button>
+			<button type="button" class="studio-dock__link" @click="emit('convert')">
+				{{ t('convert.title') }}…
+			</button>
 
 			<div class="studio-dock__sep" />
 			<div class="studio-dock__head">
@@ -130,8 +154,14 @@ function overlayFor(part: string): boolean {
 						<span>{{ partLabel(part.id, part.label) }}</span>
 						<input v-model="studio.visibility.parts[part.id]" type="checkbox" />
 					</label>
-					<label v-if="overlayFor(part.id)" v-tooltip="t('dock.overlay')" class="studio-dock__overlay">
-						<span class="sr-only">{{ t('dock.overlay') }}: {{ partLabel(part.id, part.label) }}</span>
+					<label
+						v-if="overlayFor(part.id)"
+						v-tooltip="t('dock.overlay')"
+						class="studio-dock__overlay"
+					>
+						<span class="sr-only"
+							>{{ t('dock.overlay') }}: {{ partLabel(part.id, part.label) }}</span
+						>
 						<StudioIcon name="texture" :size="13" />
 						<input v-model="studio.visibility.overlay[part.id]" type="checkbox" />
 					</label>
@@ -146,8 +176,15 @@ function overlayFor(part: string): boolean {
 				<span>{{ t('dock.ghost') }}</span>
 				<input v-model="studio.visibility.ghost" type="checkbox" />
 			</label>
-			<label v-if="hasOverlay" class="studio-dock__label" for="studio-paint-target">{{ t('dock.paintTarget') }}</label>
-			<select v-if="hasOverlay" id="studio-paint-target" v-model="studio.prefs.paintTarget" class="studio-dock__select">
+			<label v-if="hasOverlay" class="studio-dock__label" for="studio-paint-target">{{
+				t('dock.paintTarget')
+			}}</label>
+			<select
+				v-if="hasOverlay"
+				id="studio-paint-target"
+				v-model="studio.prefs.paintTarget"
+				class="studio-dock__select"
+			>
 				<option value="auto">{{ t('dock.paintTarget.auto') }}</option>
 				<option value="base">{{ t('dock.paintTarget.base') }}</option>
 				<option value="overlay">{{ t('dock.paintTarget.overlay') }}</option>

@@ -34,7 +34,9 @@ const planeColor = computed(() => {
 	return `rgb(${r}, ${g}, ${b})`
 })
 
-const solid = computed(() => `rgb(${props.modelValue[0]}, ${props.modelValue[1]}, ${props.modelValue[2]})`)
+const solid = computed(
+	() => `rgb(${props.modelValue[0]}, ${props.modelValue[1]}, ${props.modelValue[2]})`,
+)
 
 function track(event: PointerEvent, update: (fx: number, fy: number) => void): void {
 	const target = event.currentTarget as HTMLElement
@@ -90,7 +92,12 @@ function planeKey(event: KeyboardEvent): void {
 }
 
 function sliderKey(event: KeyboardEvent, kind: 'hue' | 'alpha'): void {
-	const dir = event.key === 'ArrowRight' || event.key === 'ArrowUp' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowDown' ? -1 : 0
+	const dir =
+		event.key === 'ArrowRight' || event.key === 'ArrowUp'
+			? 1
+			: event.key === 'ArrowLeft' || event.key === 'ArrowDown'
+				? -1
+				: 0
 	if (!dir) return
 	event.preventDefault()
 	if (kind === 'hue') {
@@ -128,7 +135,10 @@ function setChannel(index: number, value: string): void {
 			@pointerdown="onPlane"
 			@keydown="planeKey"
 		>
-			<span class="studio-color__knob" :style="{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: solid }" />
+			<span
+				class="studio-color__knob"
+				:style="{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: solid }"
+			/>
 		</div>
 		<div
 			class="studio-color__hue"
@@ -158,9 +168,21 @@ function setChannel(index: number, value: string): void {
 			<span class="studio-color__thumb" :style="{ left: `${(modelValue[3] / 255) * 100}%` }" />
 		</div>
 		<label class="studio-color__hex">
-			<span class="studio-color__swatch" :style="{ background: `rgba(${modelValue[0]}, ${modelValue[1]}, ${modelValue[2]}, ${modelValue[3] / 255})` }" />
+			<span
+				class="studio-color__swatch"
+				:style="{
+					background: `rgba(${modelValue[0]}, ${modelValue[1]}, ${modelValue[2]}, ${modelValue[3] / 255})`,
+				}"
+			/>
 			<span class="sr-only">HEX</span>
-			<input v-model="hexText" type="text" spellcheck="false" maxlength="9" @change="commitHex" @keydown.enter="commitHex" />
+			<input
+				v-model="hexText"
+				type="text"
+				spellcheck="false"
+				maxlength="9"
+				@change="commitHex"
+				@keydown.enter="commitHex"
+			/>
 		</label>
 		<div class="studio-color__rgba">
 			<label v-for="(channel, index) in ['R', 'G', 'B', 'A']" :key="channel">
@@ -188,9 +210,7 @@ function setChannel(index: number, value: string): void {
 	position: relative;
 	height: 132px;
 	border-radius: 9px;
-	background:
-		linear-gradient(0deg, #000, transparent),
-		linear-gradient(90deg, #fff, var(--plane));
+	background: linear-gradient(0deg, #000, transparent), linear-gradient(90deg, #fff, var(--plane));
 	cursor: crosshair;
 	touch-action: none;
 
@@ -261,7 +281,9 @@ function setChannel(index: number, value: string): void {
 		border-radius: 7px;
 		color: var(--eden-text);
 		background: var(--eden-canvas);
-		font: 12px ui-monospace, monospace;
+		font:
+			12px ui-monospace,
+			monospace;
 	}
 }
 

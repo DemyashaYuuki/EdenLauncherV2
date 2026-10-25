@@ -1,9 +1,4 @@
-import {
-	checkTextureDimensions,
-	looksSlim,
-	matchesModelAspect,
-	type RgbaImage,
-} from './image.ts'
+import { checkTextureDimensions, looksSlim, matchesModelAspect, type RgbaImage } from './image.ts'
 import {
 	BUILTIN_MODELS,
 	builtinModel,
@@ -52,13 +47,14 @@ function finite(value: unknown, label: string, limit = 4096): number {
 }
 
 function vector(value: unknown, label: string): [number, number, number] {
-	if (!Array.isArray(value) || value.length !== 3) throw new ProjectError('model', `Invalid ${label}`)
+	if (!Array.isArray(value) || value.length !== 3)
+		throw new ProjectError('model', `Invalid ${label}`)
 	return [finite(value[0], label), finite(value[1], label), finite(value[2], label)]
 }
 
 function text(value: unknown, label: string, max = 80): string {
 	if (typeof value !== 'string') throw new ProjectError('model', `Invalid ${label}`)
-	return value.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, max)
+	return value.replace(/\p{Cc}/gu, '').slice(0, max)
 }
 
 /** Validates an untrusted model definition and returns a normalized copy. */
@@ -67,7 +63,12 @@ export function validateModel(input: unknown): ModelDefinition {
 	const raw = input as Record<string, unknown>
 	const textureWidth = finite(raw.textureWidth, 'textureWidth', 1024)
 	const textureHeight = finite(raw.textureHeight, 'textureHeight', 1024)
-	if (!Number.isInteger(textureWidth) || !Number.isInteger(textureHeight) || textureWidth < 8 || textureHeight < 8) {
+	if (
+		!Number.isInteger(textureWidth) ||
+		!Number.isInteger(textureHeight) ||
+		textureWidth < 8 ||
+		textureHeight < 8
+	) {
 		throw new ProjectError('model', 'Invalid model texture size')
 	}
 	const category = raw.category as ModelCategory
@@ -75,15 +76,18 @@ export function validateModel(input: unknown): ModelDefinition {
 	if (!Array.isArray(raw.boxes) || raw.boxes.length === 0 || raw.boxes.length > MAX_BOXES) {
 		throw new ProjectError('model', 'Invalid model boxes')
 	}
-	if (!Array.isArray(raw.parts) || raw.parts.length > MAX_PARTS) throw new ProjectError('model', 'Invalid parts')
+	if (!Array.isArray(raw.parts) || raw.parts.length > MAX_PARTS)
+		throw new ProjectError('model', 'Invalid parts')
 	const boxes: ModelBox[] = raw.boxes.map((value, index) => {
 		if (!value || typeof value !== 'object') throw new ProjectError('model', 'Invalid box')
 		const b = value as Record<string, unknown>
 		const size = vector(b.size, 'size')
-		if (size.some((v) => !Number.isInteger(v) || v < 0 || v > 512)) throw new ProjectError('model', 'Invalid box size')
+		if (size.some((v) => !Number.isInteger(v) || v < 0 || v > 512))
+			throw new ProjectError('model', 'Invalid box size')
 		if (!Array.isArray(b.uv) || b.uv.length !== 2) throw new ProjectError('model', 'Invalid box UV')
 		const layer = b.layer as LayerKind
-		if (layer !== 'base' && layer !== 'overlay') throw new ProjectError('model', 'Invalid box layer')
+		if (layer !== 'base' && layer !== 'overlay')
+			throw new ProjectError('model', 'Invalid box layer')
 		const inflate = finite(b.inflate ?? 0, 'inflate', 16)
 		if (Math.min(...size) + 2 * inflate < 0) throw new ProjectError('model', 'Invalid box inflate')
 		return {
@@ -163,13 +167,15 @@ export async function serializeProject(data: ProjectData): Promise<Uint8Array> {
 }
 
 function isoOrNow(value: unknown): string {
-	if (typeof value === 'string' && !Number.isNaN(Date.parse(value)) && value.length < 40) return value
+	if (typeof value === 'string' && !Number.isNaN(Date.parse(value)) && value.length < 40)
+		return value
 	return new Date().toISOString()
 }
 
 /** Parses and fully validates an untrusted project file. File system paths inside it are ignored. */
 export async function parseProject(bytes: Uint8Array): Promise<ProjectData> {
-	if (bytes.length > MAX_PROJECT_BYTES) throw new ProjectError('too-big', 'Project file is too large')
+	if (bytes.length > MAX_PROJECT_BYTES)
+		throw new ProjectError('too-big', 'Project file is too large')
 	let raw: Record<string, unknown>
 	try {
 		raw = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
@@ -182,7 +188,8 @@ export async function parseProject(bytes: Uint8Array): Promise<ProjectData> {
 	if (typeof raw.version !== 'number' || !Number.isInteger(raw.version) || raw.version < 1) {
 		throw new ProjectError('format', 'Invalid project version')
 	}
-	if (raw.version > PROJECT_VERSION) throw new ProjectError('newer-version', 'Project was made by a newer version')
+	if (raw.version > PROJECT_VERSION)
+		throw new ProjectError('newer-version', 'Project was made by a newer version')
 	const modelField = (raw.model ?? {}) as Record<string, unknown>
 	let model: ModelDefinition
 	if (typeof modelField.id === 'string' && !modelField.definition) {
@@ -234,10 +241,16 @@ export async function importPngTexture(bytes: Uint8Array): Promise<ImportedTextu
 	const check = checkTextureDimensions(image.width, image.height)
 	if (!check.ok) throw new ProjectError('texture', `Unsupported texture size (${check.reason})`)
 	if (image.width === image.height * 2 || image.width === image.height) {
-		const model = playerModelFor(image.width, image.height, image.width === image.height && looksSlim(image))
+		const model = playerModelFor(
+			image.width,
+			image.height,
+			image.width === image.height && looksSlim(image),
+		)
 		return { image, model, hd: image.width !== 64 }
 	}
-	const fallback = BUILTIN_MODELS.find((m) => matchesModelAspect(image.width, image.height, m.textureWidth, m.textureHeight))
+	const fallback = BUILTIN_MODELS.find((m) =>
+		matchesModelAspect(image.width, image.height, m.textureWidth, m.textureHeight),
+	)
 	if (!fallback) throw new ProjectError('texture', 'No model matches this texture size')
 	return { image, model: fallback, hd: image.width !== fallback.textureWidth }
 }
@@ -248,7 +261,8 @@ const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i
 export function safeFileStem(name: string): string {
 	let stem = name
 		.normalize('NFC')
-		.replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g, ' ')
+		.replace(/\p{Cc}/gu, ' ')
+		.replace(/[<>:"/\\|?*]/g, ' ')
 		.replace(/\s+/g, ' ')
 		.trim()
 		.replace(/[. ]+$/, '')

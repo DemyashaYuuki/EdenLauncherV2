@@ -33,11 +33,14 @@ jobs:
       - name: Build and test server bridge
         working-directory: server/eden-skin-bridge
         run: bash gradlew build --no-daemon --console=plain
+      - name: Package bridge source and instructions
+        run: zip -q -r EdenSkinBridge-source.zip server/eden-skin-bridge -x '*/build/*' '*/.gradle/*'
       - name: Upload server bridge packages and test reports
         uses: actions/upload-artifact@v4
         with:
           name: EdenSkinBridge
           path: |
+            EdenSkinBridge-source.zip
             server/eden-skin-bridge/paper/build/libs/EdenSkinBridge-Paper-*.jar
             server/eden-skin-bridge/velocity/build/libs/EdenSkinBridge-Velocity-*.jar
             server/eden-skin-bridge/*/build/test-results/test/*.xml
@@ -165,6 +168,11 @@ jobs:
         shell: pwsh
         working-directory: source
         run: pnpm --filter @modrinth/app exec tauri build --target x86_64-pc-windows-msvc
+
+      - name: Test Skin Studio Rust APIs
+        shell: pwsh
+        working-directory: source
+        run: cargo test -p theseus --lib api::skin --target x86_64-pc-windows-msvc
 
       - name: Verify Windows installers and data preservation
         shell: pwsh
@@ -308,7 +316,7 @@ jobs:
         run: |
           VERSION="$(node -p "require('./apps/app-frontend/package.json').version")"
           TAG="v${VERSION}"
-          NOTES='EdenLauncher 2.10.0: обновлённые настройки и вход в аккаунты; сохраняемый переключатель помех и Glitch в Error / Signal. Windows: встроен официальный WebView2 bootstrapper с проверкой подписи Microsoft при сборке и проверкой байтов в установщике; исправлены служебные метаданные версии приложения; убран ненужный ExecutionPolicy Bypass из помощника обновления. Установка WebView2 требует интернета, если Runtime ещё отсутствует. Сертификат для подписи самого лаунчера не покупался. Приложены протокол Windows-проверок и SHA256SUMS.txt. Обновление не гарантирует исчезновения всех предупреждений песочниц.'
+          NOTES='EdenLauncher 2.10.0: Мастерская скинов с рисованием в 3D/2D, Classic/Slim/Legacy, инструментами и палитрами, историей, библиотекой и восстановлением проектов, HD и импортом моделей. Microsoft: применение к выбранному аккаунту и принадлежащие ему плащи. Офлайн: отдельные плагины EdenSkinBridge для Purpur и Velocity с адаптерами nLogin/VeloAuth и SkinsRestorer. Требуется установка и настройка серверного моста по инструкции. Ely.by: экспорт PNG и официальный сайт; прямое OAuth-применение пока не реализовано. Произвольные PNG-плащи не применяются. Приложены исходники плагинов, описание ограничений, протокол Windows-проверок и SHA256SUMS.txt. Проверки официального WebView2 и обновлений из 2.9.1 сохранены; WebView2 при отсутствии Runtime требует интернета.'
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "EdenLauncher $TAG" --notes "$NOTES" --latest
@@ -323,6 +331,9 @@ jobs:
           fi
           (cd release-assets/EdenLauncher-Windows-Verification && zip -q -r ../../EdenLauncher_windows-verification.zip .)
           assets+=(EdenLauncher_windows-verification.zip)
+          while IFS= read -r -d '' plugin; do assets+=("$plugin"); done < <(find release-assets/EdenSkinBridge -type f \( -name 'EdenSkinBridge-Paper-*.jar' -o -name 'EdenSkinBridge-Velocity-*.jar' -o -name 'EdenSkinBridge-source.zip' \) -print0)
+          cp docs/SKIN-STUDIO-2.10.md EdenLauncher-2.10-features.md
+          assets+=(EdenLauncher-2.10-features.md)
           for asset in "${assets[@]}"; do
             (cd "$(dirname "$asset")" && sha256sum "$(basename "$asset")")
           done > SHA256SUMS.txt

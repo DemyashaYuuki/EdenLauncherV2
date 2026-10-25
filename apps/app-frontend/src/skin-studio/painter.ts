@@ -1,8 +1,23 @@
-import { useStudioText } from './i18n.ts'
 import type { SkinDocument } from './engine/document.ts'
 import type { Rgba } from './engine/image.ts'
-import { type FaceName, faceRegion, mirrorTexel, type Rect, regionsAt, regionsInPixels, textureFaceFor } from './engine/model.ts'
-import { capturePattern, floodFill, isStrokeTool, maskFromPattern, pickColor, Stroke } from './engine/paint.ts'
+import {
+	type FaceName,
+	faceRegion,
+	mirrorTexel,
+	type Rect,
+	regionsAt,
+	regionsInPixels,
+	textureFaceFor,
+} from './engine/model.ts'
+import {
+	capturePattern,
+	floodFill,
+	isStrokeTool,
+	maskFromPattern,
+	pickColor,
+	Stroke,
+} from './engine/paint.ts'
+import { useStudioText } from './i18n.ts'
 import { useSkinStudio } from './store.ts'
 
 export interface TexelTarget {
@@ -24,7 +39,12 @@ function scaledRect(doc: SkinDocument, box: number, face: FaceName): Rect {
 	const r = faceRegion(b, textureFaceFor(b, face))
 	const sx = doc.image.width / doc.model.textureWidth
 	const sy = doc.image.height / doc.model.textureHeight
-	return { x: Math.round(r.x * sx), y: Math.round(r.y * sy), w: Math.round(r.w * sx), h: Math.round(r.h * sy) }
+	return {
+		x: Math.round(r.x * sx),
+		y: Math.round(r.y * sy),
+		w: Math.round(r.w * sx),
+		h: Math.round(r.h * sy),
+	}
 }
 
 /**
@@ -38,13 +58,20 @@ export function usePainter() {
 	let stroke: Stroke | null = null
 	let strokeClip: Rect | undefined
 	let selectStart: [number, number] | null = null
-	let regionCache: { doc: SkinDocument; version: string; regions: ReturnType<typeof regionsInPixels> } | null =
-		null
+	let regionCache: {
+		doc: SkinDocument
+		version: string
+		regions: ReturnType<typeof regionsInPixels>
+	} | null = null
 
 	function regions(doc: SkinDocument) {
 		const key = `${doc.model.id}:${doc.image.width}x${doc.image.height}`
 		if (!regionCache || regionCache.doc !== doc || regionCache.version !== key) {
-			regionCache = { doc, version: key, regions: regionsInPixels(doc.model, doc.image.width, doc.image.height) }
+			regionCache = {
+				doc,
+				version: key,
+				regions: regionsInPixels(doc.model, doc.image.width, doc.image.height),
+			}
 		}
 		return regionCache.regions
 	}
@@ -56,7 +83,11 @@ export function usePainter() {
 			const box = doc.model.boxes[hit.box]
 			const partVisible = studio.visibility.parts[box.part] !== false
 			if (box.layer === 'base') return !partVisible
-			return !partVisible || !studio.visibility.overlayGlobal || studio.visibility.overlay[box.part] === false
+			return (
+				!partVisible ||
+				!studio.visibility.overlayGlobal ||
+				studio.visibility.overlay[box.part] === false
+			)
 		})
 	}
 
@@ -64,7 +95,13 @@ export function usePainter() {
 		const selection = studio.selection
 		const protect = fromView === '2d' && studio.prefs.protectHidden
 		return (x: number, y: number) => {
-			if (selection && (x < selection.x || y < selection.y || x >= selection.x + selection.w || y >= selection.y + selection.h)) {
+			if (
+				selection &&
+				(x < selection.x ||
+					y < selection.y ||
+					x >= selection.x + selection.w ||
+					y >= selection.y + selection.h)
+			) {
 				return false
 			}
 			if (protect && hiddenAt(doc, x, y)) return false
@@ -186,9 +223,15 @@ export function usePainter() {
 		if (!stroke) return
 		if (view === '3d') {
 			const clip =
-				target.box !== undefined && target.face !== undefined ? scaledRect(doc, target.box, target.face) : undefined
+				target.box !== undefined && target.face !== undefined
+					? scaledRect(doc, target.box, target.face)
+					: undefined
 			const sameFace =
-				clip && strokeClip && clip.x === strokeClip.x && clip.y === strokeClip.y && clip.w === strokeClip.w
+				clip &&
+				strokeClip &&
+				clip.x === strokeClip.x &&
+				clip.y === strokeClip.y &&
+				clip.w === strokeClip.w
 			if (!sameFace) {
 				stroke.moveTo(target.x, target.y)
 				strokeClip = clip
@@ -222,7 +265,14 @@ export function usePainter() {
 		studio.touch()
 	}
 
-	return { begin, move, end, cancel, updateHover, get active() {
-		return stroke !== null || selectStart !== null
-	} }
+	return {
+		begin,
+		move,
+		end,
+		cancel,
+		updateHover,
+		get active() {
+			return stroke !== null || selectStart !== null
+		},
+	}
 }
