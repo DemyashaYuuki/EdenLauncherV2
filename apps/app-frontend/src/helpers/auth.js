@@ -5,6 +5,12 @@
  */
 import { invoke } from '@tauri-apps/api/core'
 
+export const ACCOUNTS_CHANGED_EVENT = 'eden:accounts-changed'
+
+function accountsChanged() {
+	window.dispatchEvent(new Event(ACCOUNTS_CHANGED_EVENT))
+}
+
 // Example function:
 // User goes to auth_url to complete flow, and when completed, authenticate_await_completion() returns the credentials
 // export async function authenticate() {
@@ -13,7 +19,9 @@ import { invoke } from '@tauri-apps/api/core'
 //   await authenticate_await_completion()
 // }
 export async function offline_login(name) {
-	return await invoke('plugin:auth|offline_login', { name: name })
+	const result = await invoke('plugin:auth|offline_login', { name: name })
+	accountsChanged()
+	return result
 }
 
 /**
@@ -33,7 +41,9 @@ export async function check_reachable() {
  * @property {string} user_code - The code to enter on the verification_uri page.
  */
 export async function login() {
-	return await invoke('plugin:auth|login')
+	const result = await invoke('plugin:auth|login')
+	if (result) accountsChanged()
+	return result
 }
 
 /**
@@ -49,7 +59,9 @@ export async function get_default_user() {
  * @param {UUID} user
  */
 export async function set_default_user(user) {
-	return await invoke('plugin:auth|set_default_user', { user })
+	const result = await invoke('plugin:auth|set_default_user', { user })
+	accountsChanged()
+	return result
 }
 
 /**
@@ -57,7 +69,9 @@ export async function set_default_user(user) {
  * @param {UUID} user
  */
 export async function remove_user(user) {
-	return await invoke('plugin:auth|remove_user', { user })
+	const result = await invoke('plugin:auth|remove_user', { user })
+	accountsChanged()
+	return result
 }
 
 /**

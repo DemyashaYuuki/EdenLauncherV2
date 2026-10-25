@@ -23,13 +23,18 @@ export default new createRouter({
 		},
 		{
 			path: '/skins',
+			name: 'Скины',
+			component: Pages.SkinStudio,
+		},
+		{
+			path: '/skins/wardrobe',
 			name: 'Skin selector',
 			component: Pages.Skins,
 		},
 		{
 			path: '/skin-studio',
 			name: 'Skin Studio',
-			component: Pages.SkinStudio,
+			redirect: (to) => ({ path: '/skins', query: to.query, hash: to.hash }),
 		},
 		{
 			path: '/friends',

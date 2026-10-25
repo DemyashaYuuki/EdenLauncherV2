@@ -11068,7 +11068,7 @@ dependencies = [
 
 [[package]]
 name = "theseus_gui"
-version = "2.10.0"
+version = "2.10.1"
 dependencies = [
  "async_zip",
  "chrono",

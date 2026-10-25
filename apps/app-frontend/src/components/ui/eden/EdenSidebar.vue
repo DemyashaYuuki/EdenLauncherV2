@@ -48,13 +48,12 @@ const navItems: NavItem[] = [
 		to: '/browse/modpack',
 		active: (r) => (r.path.startsWith('/browse') || r.path.startsWith('/project')) && !r.query.i,
 	},
-	{ id: 'skins', label: 'Скины', icon: 'shirt', to: '/skins', active: (r) => r.path === '/skins' },
 	{
-		id: 'skin-studio',
-		label: 'Мастерская',
-		icon: 'studio',
-		to: '/skin-studio',
-		active: (r) => r.path.startsWith('/skin-studio'),
+		id: 'skins',
+		label: 'Скины',
+		icon: 'shirt',
+		to: '/skins',
+		active: (r) => r.path === '/skins' || r.path.startsWith('/skins/'),
 	},
 	{
 		id: 'friends',

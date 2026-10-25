@@ -23,6 +23,7 @@ const emit = defineEmits<{
 			| 'apply-microsoft'
 			| 'apply-ely'
 			| 'apply-server'
+			| 'add-account'
 			| 'link',
 	): void
 	(event: 'close', id: string): void
@@ -161,6 +162,7 @@ defineExpose({
 			@apply-ely="emit('apply-ely')"
 			@apply-server="emit('apply-server')"
 			@link="emit('link')"
+			@add-account="emit('add-account')"
 		/>
 	</div>
 </template>

@@ -936,9 +936,6 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			<button @click="openWindowsRoute('/library')"><LibraryIcon /> Библиотека</button>
 			<button @click="openWindowsRoute('/browse/modpack')"><CompassIcon /> Каталог Modrinth</button>
 			<button @click="openWindowsRoute('/skins')"><ShirtIcon /> Скины</button>
-			<button @click="openWindowsRoute('/skin-studio')">
-				<EdenIcon name="studio" /> Мастерская скинов
-			</button>
 			<button @click="openWindowsRoute('/friends')"><EdenIcon name="users" /> Друзья</button>
 			<button @click="openWindowsRoute('/downloads')"><EdenIcon name="download" /> Загрузки</button>
 			<button @click="createGameInstance"><PlusIcon /> Создать игровую сборку</button>
@@ -1111,7 +1108,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			</RouterView>
 		</div>
 	</div>
-	<EdenErrorFx :editor-active="route.name === 'Skin Studio'" />
+	<EdenErrorFx :editor-active="route.path === '/skins'" />
 	<I18nDebugPanel />
 	<NotificationPanel :has-sidebar="false" />
 	<PopupNotificationPanel :has-sidebar="false" />

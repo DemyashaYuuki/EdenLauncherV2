@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 
 import StudioDialog from '@/components/skin-studio/StudioDialog.vue'
+import StudioSettingSwitch from '@/components/skin-studio/StudioSettingSwitch.vue'
 import * as api from '@/helpers/skin-studio'
 import {
 	comboFromEvent,
@@ -25,6 +26,18 @@ const conflict = ref<string | null>(null)
 const endpoint = ref('')
 const health = ref<api.BridgeHealth | null>(null)
 const checking = ref(false)
+const toggles = [
+	'grid',
+	'regions',
+	'alphaChecker',
+	'protectHidden',
+	'grass',
+	'lighting',
+	'animate',
+	'followCursor',
+	'multisampling',
+	'recovery',
+] as const
 
 watch(
 	() => props.open,
@@ -78,58 +91,33 @@ async function saveEndpoint(): Promise<void> {
 </script>
 
 <template>
-	<StudioDialog :open="open" :title="t('settings.title')" width="760px" @close="emit('close')">
+	<StudioDialog :open="open" :title="t('settings.title')" width="880px" @close="emit('close')">
 		<section class="studio-settings__section">
 			<h3>{{ t('settings.view') }}</h3>
 			<div class="studio-settings__grid">
-				<label
-					><input v-model="studio.prefs.grid" type="checkbox" /> {{ t('settings.grid') }}</label
-				>
+				<StudioSettingSwitch
+					v-for="key in toggles"
+					:key="key"
+					v-model="studio.prefs[key]"
+					:label="t(`settings.${key}` as StudioKey)"
+					:hint="t(`settings.hint.${key}` as StudioKey)"
+				/>
+			</div>
+			<div class="studio-settings__controls">
 				<label>
-					{{ t('settings.gridOpacity') }}
+					<span
+						>{{ t('settings.gridOpacity') }} ·
+						{{ Math.round(studio.prefs.gridOpacity * 100) }}%</span
+					>
 					<input
 						v-model.number="studio.prefs.gridOpacity"
 						type="range"
 						min="0.05"
 						max="1"
 						step="0.05"
+						:disabled="!studio.prefs.grid"
 					/>
 				</label>
-				<label
-					><input v-model="studio.prefs.regions" type="checkbox" />
-					{{ t('settings.regions') }}</label
-				>
-				<label
-					><input v-model="studio.prefs.alphaChecker" type="checkbox" />
-					{{ t('settings.alphaChecker') }}</label
-				>
-				<label
-					><input v-model="studio.prefs.protectHidden" type="checkbox" />
-					{{ t('settings.protectHidden') }}</label
-				>
-				<label
-					><input v-model="studio.prefs.grass" type="checkbox" /> {{ t('settings.grass') }}</label
-				>
-				<label
-					><input v-model="studio.prefs.lighting" type="checkbox" />
-					{{ t('settings.lighting') }}</label
-				>
-				<label
-					><input v-model="studio.prefs.animate" type="checkbox" />
-					{{ t('settings.animate') }}</label
-				>
-				<label
-					><input v-model="studio.prefs.followCursor" type="checkbox" />
-					{{ t('settings.followCursor') }}</label
-				>
-				<label
-					><input v-model="studio.prefs.multisampling" type="checkbox" />
-					{{ t('settings.multisampling') }}</label
-				>
-				<label
-					><input v-model="studio.prefs.recovery" type="checkbox" />
-					{{ t('settings.recovery') }}</label
-				>
 				<label>
 					{{ t('settings.transparency') }}
 					<select v-model="studio.prefs.transparency" class="studio-select">
@@ -146,14 +134,15 @@ async function saveEndpoint(): Promise<void> {
 					</select>
 				</label>
 				<label v-if="studio.prefs.backgroundMode === 'color'">
+					{{ t('settings.backgroundColor') }}
 					<input v-model="studio.prefs.backgroundColor" type="color" />
 				</label>
 			</div>
 			<p class="studio-settings__muted">{{ t('settings.language') }}</p>
 		</section>
 
-		<section class="studio-settings__section">
-			<h3>{{ t('settings.shortcuts') }}</h3>
+		<details class="studio-settings__section studio-settings__shortcuts">
+			<summary>{{ t('settings.shortcuts') }}</summary>
 			<p class="studio-settings__muted">{{ t('settings.shortcutsHint') }}</p>
 			<p v-if="conflict" class="studio-note studio-note--error" role="alert">{{ conflict }}</p>
 			<p v-if="conflicts.length" class="studio-note studio-note--error">{{ conflicts.length }}</p>
@@ -174,7 +163,7 @@ async function saveEndpoint(): Promise<void> {
 			<button type="button" class="studio-btn studio-btn--small" @click="studio.resetShortcuts()">
 				{{ t('settings.resetShortcuts') }}
 			</button>
-		</section>
+		</details>
 
 		<section class="studio-settings__section">
 			<h3>{{ t('settings.bridge') }}</h3>
@@ -184,7 +173,7 @@ async function saveEndpoint(): Promise<void> {
 					v-model="endpoint"
 					class="studio-input"
 					type="url"
-					placeholder="https://skins.example.org"
+					:placeholder="t('bridge.endpoint')"
 					spellcheck="false"
 				/>
 			</label>
@@ -232,26 +221,57 @@ async function saveEndpoint(): Promise<void> {
 
 	h3 {
 		margin: 0;
+		color: var(--eden-text);
 		font-size: 14px;
 	}
 }
 
 .studio-settings__grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-	gap: 8px 16px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+}
+
+.studio-settings__controls {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px;
+	margin-top: 6px;
 
 	label {
 		display: flex;
-		align-items: center;
+		flex-direction: column;
+		align-items: stretch;
 		gap: 8px;
 		color: var(--eden-text-secondary);
-		font-size: 12px;
+		font-size: 13px;
 	}
 
-	input[type='checkbox'],
 	input[type='range'] {
+		appearance: auto;
+		width: 100%;
+		height: 24px;
+		margin: 0;
 		accent-color: var(--eden-accent);
+	}
+}
+
+.studio-settings__shortcuts {
+	display: block;
+
+	summary {
+		padding: 8px 0;
+		color: var(--eden-text);
+		font-size: 14px;
+		font-weight: 650;
+		cursor: pointer;
+	}
+}
+
+@media (max-width: 680px) {
+	.studio-settings__grid,
+	.studio-settings__controls {
+		grid-template-columns: minmax(0, 1fr);
 	}
 }
 

@@ -110,6 +110,7 @@ onBeforeUnmount(() => {
 
 	h2 {
 		margin: 8px 0 0;
+		color: var(--eden-text);
 		font-size: 22px;
 		letter-spacing: -0.4px;
 	}

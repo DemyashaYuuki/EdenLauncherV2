@@ -4,7 +4,7 @@ import { computed, reactive, ref, shallowReactive, shallowRef, triggerRef, watch
 import edenPalette from '@/assets/eden/skin-studio/palettes/eden-palette.json'
 import signalPalette from '@/assets/eden/skin-studio/palettes/signal-palette.json'
 import skinTonesPalette from '@/assets/eden/skin-studio/palettes/skin-tones-palette.json'
-import { users } from '@/helpers/auth'
+import { get_default_user, users } from '@/helpers/auth'
 import * as api from '@/helpers/skin-studio'
 
 import {
@@ -235,7 +235,11 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 	const currentFolder = ref('')
 	const recoveryFound = ref<api.RecoveryEntry[]>([])
 	const accounts = ref<StudioAccount[]>([])
+	const accountsLoading = ref(true)
+	const accountsError = ref(false)
 	const selectedAccountId = ref<string | null>(null)
+	let accountRequest = 0
+	let lastDefaultAccountId: string | null = null
 	const bridge = ref<api.BridgeStatus | null>(null)
 	const initialized = ref(false)
 
@@ -504,24 +508,38 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 	}
 
 	async function refreshAccounts(): Promise<void> {
+		const request = ++accountRequest
+		accountsLoading.value = true
 		try {
-			const list = (await users()) as unknown as Array<{
-				profile: { id: string; name: string }
-				account_type: string
-				active: boolean
-			}>
+			const [list, defaultId] = (await Promise.all([users(), get_default_user()])) as [
+				Array<{
+					profile: { id: string; name: string }
+					account_type: string
+					active: boolean
+				}>,
+				string | null,
+			]
+			if (request !== accountRequest) return
+			if (!Array.isArray(list)) throw new Error('Invalid account list')
 			accounts.value = list.map((c) => ({
 				id: c.profile.id,
 				name: c.profile.name,
 				type: accountType(c.account_type),
-				active: c.active,
+				active: defaultId ? c.profile.id === defaultId : c.active,
 			}))
-			if (!accounts.value.some((a) => a.id === selectedAccountId.value)) {
+			if (
+				defaultId !== lastDefaultAccountId ||
+				!accounts.value.some((a) => a.id === selectedAccountId.value)
+			) {
 				selectedAccountId.value =
 					accounts.value.find((a) => a.active)?.id ?? accounts.value[0]?.id ?? null
 			}
+			lastDefaultAccountId = defaultId
+			accountsError.value = false
 		} catch {
-			accounts.value = []
+			if (request === accountRequest) accountsError.value = true
+		} finally {
+			if (request === accountRequest) accountsLoading.value = false
 		}
 	}
 
@@ -534,7 +552,10 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 	}
 
 	async function init(): Promise<void> {
-		if (initialized.value) return
+		if (initialized.value) {
+			await Promise.all([refreshAccounts(), refreshBridge()])
+			return
+		}
 		initialized.value = true
 		await Promise.all([refreshLibrary(), refreshAccounts(), refreshBridge()])
 		try {
@@ -629,6 +650,8 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 		currentFolder,
 		recoveryFound,
 		accounts,
+		accountsLoading,
+		accountsError,
 		selectedAccountId,
 		selectedAccount,
 		bridge,

@@ -81,14 +81,7 @@ const shortcuts = computed<DesktopShortcut[]>(() => [
 		title: 'Скины',
 		kind: 'skins',
 		path: '/skins',
-		details: 'Управление скинами Minecraft',
-	},
-	{
-		id: 'skin-studio',
-		title: 'Мастерская скинов',
-		kind: 'skins',
-		path: '/skin-studio',
-		details: 'Редактор скинов и проектов',
+		details: 'Редактор, библиотека скинов и плащи',
 	},
 	{
 		id: 'create',
@@ -244,7 +237,7 @@ function routeTitle(path: string) {
 	if (path.startsWith('/browse')) return 'Каталог Modrinth'
 	if (path.startsWith('/library')) return 'Библиотека'
 	if (path.startsWith('/skins')) return 'Скины'
-	if (path.startsWith('/skin-studio')) return 'Мастерская скинов'
+	if (path.startsWith('/skin-studio')) return 'Скины'
 	if (path.startsWith('/friends')) return 'Друзья'
 	if (path.startsWith('/downloads')) return 'Загрузки'
 	if (path.startsWith('/user/')) return 'Профиль Modrinth'

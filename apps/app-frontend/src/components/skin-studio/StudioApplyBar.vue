@@ -7,7 +7,7 @@ import { useStudioText } from '@/skin-studio/i18n'
 import { useSkinStudio } from '@/skin-studio/store'
 
 const emit = defineEmits<{
-	(event: 'apply-microsoft' | 'apply-ely' | 'apply-server' | 'link'): void
+	(event: 'apply-microsoft' | 'apply-ely' | 'apply-server' | 'link' | 'add-account'): void
 }>()
 
 const studio = useSkinStudio()
@@ -29,6 +29,8 @@ const typeLabel = (type: string) =>
 				: t('account.other')
 
 const blocker = computed<string | null>(() => {
+	if (studio.accountsLoading) return t('apply.hint.loadingAccounts')
+	if (studio.accountsError) return t('apply.hint.accountsError')
 	if (!account.value) return t('apply.hint.noAccount')
 	const d = doc.value
 	if (!d) return t('footer.noDocument')
@@ -41,6 +43,7 @@ const blocker = computed<string | null>(() => {
 const linked = computed(() => studio.bridge?.link ?? null)
 
 const title = computed(() => {
+	if (!account.value) return t('apply.account')
 	const type = account.value?.type
 	if (type === 'elyby') return t('apply.title.ely')
 	if (type === 'microsoft') return t('apply.title.microsoft')
@@ -79,7 +82,7 @@ function onApply(): void {
 			<select
 				v-model="studio.selectedAccountId"
 				:aria-label="t('apply.account')"
-				:disabled="studio.accounts.length === 0"
+				:disabled="studio.accounts.length === 0 || studio.accountsLoading || studio.accountsError"
 			>
 				<option v-if="studio.accounts.length === 0" :value="null">—</option>
 				<option v-for="a in studio.accounts" :key="a.id" :value="a.id">
@@ -88,7 +91,7 @@ function onApply(): void {
 			</select>
 			<div class="studio-apply__copy">
 				<strong>{{ title }}</strong>
-				<p>{{ hint }}</p>
+				<p role="status">{{ hint }}</p>
 			</div>
 		</div>
 		<div class="studio-apply__actions">
@@ -101,7 +104,29 @@ function onApply(): void {
 				<StudioIcon name="server" :size="16" />
 				{{ linked.player_name }}
 			</button>
-			<button type="button" class="studio-apply__primary" :disabled="!!blocker" @click="onApply">
+			<button
+				v-if="studio.accountsError && !studio.accountsLoading"
+				type="button"
+				class="studio-apply__primary"
+				@click="studio.refreshAccounts()"
+			>
+				{{ t('action.retry') }}
+			</button>
+			<button
+				v-else-if="!account && !studio.accountsLoading"
+				type="button"
+				class="studio-apply__primary"
+				@click="emit('add-account')"
+			>
+				{{ t('action.addAccount') }}
+			</button>
+			<button
+				v-else
+				type="button"
+				class="studio-apply__primary"
+				:disabled="!!blocker"
+				@click="onApply"
+			>
 				{{ buttonLabel }} →
 			</button>
 		</div>

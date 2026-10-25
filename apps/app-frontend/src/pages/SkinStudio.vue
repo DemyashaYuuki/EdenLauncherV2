@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import '@/assets/stylesheets/skin-studio.scss'
 
+import { ShirtIcon } from '@modrinth/assets'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, type Ref, ref, watch } from 'vue'
 
 import rangerUrl from '@/assets/eden/skin-studio/textures/eden-ranger.png'
 import operatorUrl from '@/assets/eden/skin-studio/textures/signal-operator.png'
@@ -21,7 +22,9 @@ import StudioLibrary from '@/components/skin-studio/StudioLibrary.vue'
 import StudioModelsDialog from '@/components/skin-studio/StudioModelsDialog.vue'
 import StudioNewDialog, { type NewTemplate } from '@/components/skin-studio/StudioNewDialog.vue'
 import StudioSettingsDialog from '@/components/skin-studio/StudioSettingsDialog.vue'
+import { ACCOUNTS_CHANGED_EVENT } from '@/helpers/auth'
 import * as api from '@/helpers/skin-studio'
+import { useRootBreadcrumb } from '@/providers/breadcrumbs'
 import { isDirty } from '@/skin-studio/engine/document'
 import { createImage, matchesModelAspect } from '@/skin-studio/engine/image'
 import { builtinModel, type ModelDefinition, playerModelFor } from '@/skin-studio/engine/model'
@@ -40,6 +43,17 @@ import { useTheming } from '@/store/theme'
 const studio = useSkinStudio()
 const theme = useTheming()
 const t = useStudioText()
+const accountsCard = inject<Ref<{ showAccountLoginModal?: () => void } | null> | null>(
+	'accountsCard',
+	null,
+)
+useRootBreadcrumb({
+	slot: 'root',
+	id: 'skins',
+	label: 'Скины',
+	to: '/skins',
+	visual: { type: 'icon', component: ShirtIcon },
+})
 const editor = ref<InstanceType<typeof StudioEditor> | null>(null)
 const themeBackground = ref('#100d19')
 
@@ -510,9 +524,10 @@ function onKeyDown(event: KeyboardEvent): void {
 }
 
 let unlistenDrop: (() => void) | null = null
+let disposed = false
 
 async function listenForDrops(): Promise<void> {
-	unlistenDrop = await getCurrentWebview().onDragDropEvent(async (event) => {
+	const stop = await getCurrentWebview().onDragDropEvent(async (event) => {
 		if (event.payload.type !== 'drop') return
 		const files: PickedFile[] = []
 		for (const path of event.payload.paths.slice(0, 32)) {
@@ -530,6 +545,8 @@ async function listenForDrops(): Promise<void> {
 		}
 		await importFiles(files)
 	})
+	if (disposed) stop()
+	else unlistenDrop = stop
 }
 
 async function restoreRecovery(): Promise<void> {
@@ -546,18 +563,32 @@ watch(
 onMounted(async () => {
 	readThemeBackground()
 	window.addEventListener('keydown', onKeyDown)
+	window.addEventListener(ACCOUNTS_CHANGED_EVENT, refreshAccounts)
+	window.addEventListener('focus', refreshAccounts)
 	await studio.init()
+	if (disposed) return
 	listenForDrops().catch(() => undefined)
 })
 
 onBeforeUnmount(() => {
+	disposed = true
 	window.removeEventListener('keydown', onKeyDown)
+	window.removeEventListener(ACCOUNTS_CHANGED_EVENT, refreshAccounts)
+	window.removeEventListener('focus', refreshAccounts)
 	unlistenDrop?.()
 	void studio.snapshotRecovery()
 	if (previewTimer) clearTimeout(previewTimer)
 	channel?.close()
 	channel = null
 })
+
+function refreshAccounts(): void {
+	void studio.refreshAccounts()
+}
+
+function addAccount(): void {
+	accountsCard?.value?.showAccountLoginModal?.()
+}
 </script>
 
 <template>
@@ -569,6 +600,13 @@ onBeforeUnmount(() => {
 				<p>{{ t('page.subtitle') }}</p>
 			</div>
 			<div class="studio-page__actions">
+				<RouterLink
+					v-if="studio.selectedAccount?.type === 'microsoft'"
+					to="/skins/wardrobe"
+					class="studio-btn"
+				>
+					<StudioIcon name="account" /> {{ t('action.wardrobe') }}
+				</RouterLink>
 				<button
 					v-tooltip="t('action.settings')"
 					type="button"
@@ -650,6 +688,7 @@ onBeforeUnmount(() => {
 				@apply-ely="dialogs.ely = true"
 				@apply-server="openApply({ kind: 'server' })"
 				@link="dialogs.bridge = true"
+				@add-account="addAccount"
 				@prompt="askPrompt"
 				@notify="notify"
 			/>
@@ -821,6 +860,7 @@ onBeforeUnmount(() => {
 
 	h1 {
 		margin: 5px 0 4px;
+		color: var(--eden-text);
 		font-size: 27px;
 		letter-spacing: -0.8px;
 	}
