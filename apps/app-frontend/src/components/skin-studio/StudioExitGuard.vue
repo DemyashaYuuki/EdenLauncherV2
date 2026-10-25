@@ -12,14 +12,14 @@ const t = useStudioText()
 const open = ref(false)
 const saving = ref(false)
 const error = ref('')
-let allowClose = false
 let unlisten: (() => void) | undefined
 let disposed = false
 
 onMounted(async () => {
 	const stop = await getCurrentWindow().onCloseRequested((event) => {
-		if (allowClose || studio.dirtyDocuments.length === 0) return
+		if (!saving.value && studio.dirtyDocuments.length === 0) return
 		event.preventDefault()
+		if (!open.value) error.value = ''
 		open.value = true
 	})
 	if (disposed) stop()
@@ -38,13 +38,11 @@ async function finish(save: boolean): Promise<void> {
 		if (save) {
 			await studio.saveAll()
 			if (studio.dirtyDocuments.length) throw new Error(t('footer.unsaved'))
-		} else {
-			for (const doc of [...studio.dirtyDocuments]) studio.closeDocument(doc.id)
 		}
-		allowClose = true
-		await getCurrentWindow().close()
+		await studio.prepareExit()
+		await getCurrentWindow().destroy()
 	} catch (reason) {
-		allowClose = false
+		studio.cancelExit()
 		error.value = String(reason)
 	} finally {
 		saving.value = false

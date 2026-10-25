@@ -3,7 +3,6 @@ import { computed, ref, watch } from 'vue'
 
 import StudioDialog from '@/components/skin-studio/StudioDialog.vue'
 import StudioSettingSwitch from '@/components/skin-studio/StudioSettingSwitch.vue'
-import * as api from '@/helpers/skin-studio'
 import {
 	comboFromEvent,
 	findConflicts,
@@ -23,9 +22,6 @@ const t = useStudioText()
 
 const recording = ref<ShortcutAction | null>(null)
 const conflict = ref<string | null>(null)
-const endpoint = ref('')
-const health = ref<api.BridgeHealth | null>(null)
-const checking = ref(false)
 const toggles = [
 	'grid',
 	'regions',
@@ -45,8 +41,6 @@ watch(
 		if (!open) return
 		recording.value = null
 		conflict.value = null
-		endpoint.value = studio.bridge?.endpoint ?? ''
-		health.value = null
 	},
 )
 
@@ -75,19 +69,6 @@ function onShortcutKey(event: KeyboardEvent, action: ShortcutAction): void {
 }
 
 const conflicts = computed(() => findConflicts(studio.shortcuts))
-
-async function saveEndpoint(): Promise<void> {
-	checking.value = true
-	health.value = null
-	try {
-		studio.bridge = await api.bridgeSetEndpoint(endpoint.value.trim() || null)
-		if (studio.bridge.endpoint) health.value = await api.bridgeHealth()
-	} catch (error) {
-		emit('notify', 'error', t('error.generic', { message: (error as Error).message }))
-	} finally {
-		checking.value = false
-	}
-}
 </script>
 
 <template>
@@ -165,44 +146,6 @@ async function saveEndpoint(): Promise<void> {
 			</button>
 		</details>
 
-		<section class="studio-settings__section">
-			<h3>{{ t('settings.bridge') }}</h3>
-			<label class="studio-form-row">
-				{{ t('bridge.endpoint') }}
-				<input
-					v-model="endpoint"
-					class="studio-input"
-					type="url"
-					:placeholder="t('bridge.endpoint')"
-					spellcheck="false"
-				/>
-			</label>
-			<p class="studio-settings__muted">{{ t('bridge.endpointHint') }}</p>
-			<div class="studio-settings__row">
-				<button
-					type="button"
-					class="studio-btn studio-btn--small"
-					:disabled="checking"
-					@click="saveEndpoint"
-				>
-					{{ t('bridge.check') }}
-				</button>
-				<span
-					v-if="health"
-					:class="
-						health.reachable && health.auth_ready && health.skins_ready
-							? 'studio-settings__ok'
-							: 'studio-settings__bad'
-					"
-				>
-					{{ health.service ?? '—' }} {{ health.version ?? '' }} · auth:
-					{{ health.auth_adapter ?? '—' }} {{ health.auth_ready ? '✓' : '✗' }} · SkinsRestorer
-					{{ health.skins_ready ? '✓' : '✗' }} · MineSkin
-					{{ health.generator_ready ? '✓' : '✗' }}
-					<template v-if="health.message">— {{ health.message }}</template>
-				</span>
-			</div>
-		</section>
 		<template #actions>
 			<button type="button" class="studio-btn studio-btn--primary" @click="emit('close')">
 				{{ t('action.done') }}

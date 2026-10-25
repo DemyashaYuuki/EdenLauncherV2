@@ -28,19 +28,6 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             skin_studio_apply_microsoft,
             skin_studio_microsoft_capes,
             skin_studio_set_microsoft_cape,
-            skin_bridge_status,
-            skin_bridge_set_endpoint,
-            skin_bridge_health,
-            skin_bridge_pair_start,
-            skin_bridge_pair_poll,
-            skin_bridge_pair_finalize,
-            skin_bridge_pair_cancel,
-            skin_bridge_unlink,
-            skin_bridge_apply_skin,
-            skin_bridge_job,
-            skin_bridge_cancel_job,
-            skin_bridge_looks,
-            skin_bridge_apply_look,
         ])
         .build()
 }

@@ -11,7 +11,7 @@ import { isDirty } from '@/skin-studio/engine/document'
 import { type StudioKey, useStudioText } from '@/skin-studio/i18n'
 import { useSkinStudio, type ViewMode } from '@/skin-studio/store'
 
-defineProps<{ themeBackground: string }>()
+defineProps<{ themeBackground: string; savingPng: boolean }>()
 const emit = defineEmits<{
 	(
 		event:
@@ -22,9 +22,8 @@ const emit = defineEmits<{
 			| 'popout'
 			| 'apply-microsoft'
 			| 'apply-ely'
-			| 'apply-server'
-			| 'add-account'
-			| 'link',
+			| 'export-png'
+			| 'server-help',
 	): void
 	(event: 'close', id: string): void
 	(event: 'prompt', title: string, value: string, done: (value: string | null) => void): void
@@ -158,11 +157,11 @@ defineExpose({
 			/>
 		</div>
 		<StudioApplyBar
+			:saving-png="savingPng"
 			@apply-microsoft="emit('apply-microsoft')"
 			@apply-ely="emit('apply-ely')"
-			@apply-server="emit('apply-server')"
-			@link="emit('link')"
-			@add-account="emit('add-account')"
+			@export-png="emit('export-png')"
+			@server-help="emit('server-help')"
 		/>
 	</div>
 </template>

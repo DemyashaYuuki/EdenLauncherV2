@@ -1,7 +1,7 @@
 [package]
 name = "theseus_gui"
 # Keep release metadata in sync with apps/app-frontend/package.json.
-version = "2.10.1"
+version = "2.10.2"
 edition.workspace = true
 description = "EdenLauncher is the official EdenWorld Minecraft launcher"
 repository = "https://edenworld.fun/"

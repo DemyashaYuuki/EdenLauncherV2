@@ -5,12 +5,11 @@ import { ShirtIcon } from '@modrinth/assets'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { computed, inject, onBeforeUnmount, onMounted, type Ref, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import rangerUrl from '@/assets/eden/skin-studio/textures/eden-ranger.png'
 import operatorUrl from '@/assets/eden/skin-studio/textures/signal-operator.png'
 import StudioApplyDialog, { type ApplyMode } from '@/components/skin-studio/StudioApplyDialog.vue'
-import StudioBridgeDialog from '@/components/skin-studio/StudioBridgeDialog.vue'
 import StudioCapes from '@/components/skin-studio/StudioCapes.vue'
 import StudioConvertDialog from '@/components/skin-studio/StudioConvertDialog.vue'
 import StudioDialog from '@/components/skin-studio/StudioDialog.vue'
@@ -21,6 +20,7 @@ import StudioIcon from '@/components/skin-studio/StudioIcon.vue'
 import StudioLibrary from '@/components/skin-studio/StudioLibrary.vue'
 import StudioModelsDialog from '@/components/skin-studio/StudioModelsDialog.vue'
 import StudioNewDialog, { type NewTemplate } from '@/components/skin-studio/StudioNewDialog.vue'
+import StudioServerUploadDialog from '@/components/skin-studio/StudioServerUploadDialog.vue'
 import StudioSettingsDialog from '@/components/skin-studio/StudioSettingsDialog.vue'
 import { ACCOUNTS_CHANGED_EVENT } from '@/helpers/auth'
 import * as api from '@/helpers/skin-studio'
@@ -43,10 +43,6 @@ import { useTheming } from '@/store/theme'
 const studio = useSkinStudio()
 const theme = useTheming()
 const t = useStudioText()
-const accountsCard = inject<Ref<{ showAccountLoginModal?: () => void } | null> | null>(
-	'accountsCard',
-	null,
-)
 useRootBreadcrumb({
 	slot: 'root',
 	id: 'skins',
@@ -64,11 +60,12 @@ const dialogs = ref({
 	export: false,
 	apply: false,
 	ely: false,
-	bridge: false,
+	serverHelp: false,
 	fetch: false,
 	settings: false,
 })
 const applyMode = ref<ApplyMode | null>(null)
+const savingPng = ref(false)
 const customModel = ref<ModelDefinition | null>(null)
 const modelsForNew = ref(false)
 
@@ -322,21 +319,33 @@ function openApply(mode: ApplyMode): void {
 	dialogs.value.apply = true
 }
 
-async function exportForEly(): Promise<void> {
+async function saveSkinPng(): Promise<boolean> {
 	const doc = studio.active
-	if (!doc) return
+	if (!doc || savingPng.value) return false
+	savingPng.value = true
 	try {
 		const saved = await saveBytes(
 			`${safeFileStem(doc.name)}.png`,
 			[{ name: 'PNG', extensions: ['png'] }],
 			await encodePng(doc.image),
 		)
-		if (saved) {
-			await openUrl(ELY_UPLOAD_PAGE)
-			dialogs.value.ely = false
-		}
+		if (saved) notify('info', t('export.saved'))
+		return saved
 	} catch (error) {
 		notify('error', t('export.failed', { message: (error as Error).message }))
+		return false
+	} finally {
+		savingPng.value = false
+	}
+}
+
+async function exportForEly(): Promise<void> {
+	if (!(await saveSkinPng())) return
+	try {
+		await openUrl(ELY_UPLOAD_PAGE)
+		dialogs.value.ely = false
+	} catch (error) {
+		notify('error', t('error.generic', { message: (error as Error).message }))
 	}
 }
 
@@ -585,10 +594,6 @@ onBeforeUnmount(() => {
 function refreshAccounts(): void {
 	void studio.refreshAccounts()
 }
-
-function addAccount(): void {
-	accountsCard?.value?.showAccountLoginModal?.()
-}
 </script>
 
 <template>
@@ -678,6 +683,7 @@ function addAccount(): void {
 				v-show="studio.tab === 'editor'"
 				ref="editor"
 				:theme-background="themeBackground"
+				:saving-png="savingPng"
 				@new="((customModel = null), (dialogs.new = true))"
 				@close="requestClose"
 				@models="dialogs.models = true"
@@ -686,9 +692,8 @@ function addAccount(): void {
 				@popout="openPopout"
 				@apply-microsoft="openApply({ kind: 'microsoft' })"
 				@apply-ely="dialogs.ely = true"
-				@apply-server="openApply({ kind: 'server' })"
-				@link="dialogs.bridge = true"
-				@add-account="addAccount"
+				@export-png="saveSkinPng"
+				@server-help="dialogs.serverHelp = true"
 				@prompt="askPrompt"
 				@notify="notify"
 			/>
@@ -705,8 +710,7 @@ function addAccount(): void {
 			<StudioCapes
 				v-if="studio.tab === 'capes'"
 				@cape-template="openCapeTemplate"
-				@link="dialogs.bridge = true"
-				@apply-look="(look) => openApply({ kind: 'look', look })"
+				@server-help="dialogs.serverHelp = true"
 				@notify="notify"
 			/>
 		</div>
@@ -737,10 +741,12 @@ function addAccount(): void {
 			@notify="notify"
 		/>
 		<StudioApplyDialog :open="dialogs.apply" :mode="applyMode" @close="dialogs.apply = false" />
-		<StudioBridgeDialog
-			:open="dialogs.bridge"
-			@close="dialogs.bridge = false"
-			@settings="((dialogs.bridge = false), (dialogs.settings = true))"
+		<StudioServerUploadDialog
+			:open="dialogs.serverHelp"
+			:saving="savingPng"
+			@close="dialogs.serverHelp = false"
+			@save="saveSkinPng"
+			@notify="notify"
 		/>
 		<StudioFetchDialog :open="dialogs.fetch" @close="dialogs.fetch = false" @fetched="onFetched" />
 		<StudioSettingsDialog

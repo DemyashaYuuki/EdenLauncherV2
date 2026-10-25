@@ -115,3 +115,5 @@ export function parseElyTextures(json: unknown): TextureInfo {
 
 /** Official page where Ely.by users upload a skin themselves (export fallback, not direct apply). */
 export const ELY_UPLOAD_PAGE = 'https://ely.by/skins/add'
+
+export const SKINSRESTORER_UPLOAD_PAGE = 'https://skinsrestorer.net/upload'

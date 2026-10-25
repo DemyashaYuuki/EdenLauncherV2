@@ -7,8 +7,7 @@ import { type StudioKey, useStudioText } from '@/skin-studio/i18n'
 import { useSkinStudio } from '@/skin-studio/store'
 
 const emit = defineEmits<{
-	(event: 'cape-template' | 'link'): void
-	(event: 'apply-look', look: api.BridgeLook): void
+	(event: 'cape-template' | 'server-help'): void
 	(event: 'notify', kind: 'error' | 'info', text: string): void
 }>()
 
@@ -23,8 +22,6 @@ const microsoftAccount = computed(() =>
 const capes = ref<api.AccountCapes | null>(null)
 const loadingCapes = ref(false)
 const busyCape = ref<string | null>(null)
-const looks = ref<api.BridgeLook[] | null>(null)
-const looksError = ref<string | null>(null)
 
 async function loadCapes(): Promise<void> {
 	const account = microsoftAccount.value
@@ -63,17 +60,6 @@ async function setCape(id: string | null): Promise<void> {
 	}
 }
 
-async function loadLooks(): Promise<void> {
-	looks.value = null
-	looksError.value = null
-	if (!studio.bridge?.endpoint || !studio.bridge.link) return
-	try {
-		looks.value = await api.bridgeLooks()
-	} catch (error) {
-		looksError.value = (error as Error).message
-	}
-}
-
 const capeStatusText = computed(() => {
 	const c = capes.value
 	if (!c || c.status === 'applied') return null
@@ -81,11 +67,6 @@ const capeStatusText = computed(() => {
 })
 
 watch(microsoftAccount, () => void loadCapes(), { immediate: true })
-watch(
-	() => studio.bridge,
-	() => void loadLooks(),
-	{ immediate: true },
-)
 </script>
 
 <template>
@@ -146,34 +127,11 @@ watch(
 
 			<article class="studio-capes__card">
 				<h3>{{ t('capes.eden') }}</h3>
-				<p>{{ t('capes.edenBody') }}</p>
-				<template v-if="!studio.bridge?.endpoint">
-					<p class="studio-note">{{ t('bridge.notConfigured') }}</p>
-				</template>
-				<template v-else-if="!studio.bridge.link">
-					<button type="button" class="studio-badge" @click="emit('link')">
-						{{ t('capes.edenLink') }}
-					</button>
-				</template>
-				<template v-else>
-					<p v-if="looksError" class="studio-note studio-note--error" role="alert">
-						{{ t('bridge.unreachable', { message: looksError }) }}
-					</p>
-					<p v-else-if="looks && looks.length === 0">{{ t('capes.edenEmpty') }}</p>
-					<ul v-else-if="looks" class="studio-capes__list">
-						<li v-for="look in looks" :key="look.id">
-							<span class="studio-capes__name">{{ look.label }}</span>
-							<span v-if="look.has_cape" class="studio-chip">{{ t('part.cape') }}</span>
-							<button
-								type="button"
-								class="studio-btn studio-btn--small"
-								@click="emit('apply-look', look)"
-							>
-								{{ t('action.apply') }}
-							</button>
-						</li>
-					</ul>
-				</template>
+				<p>{{ t('manual.paused') }}</p>
+				<p>{{ t('manual.cape') }}</p>
+				<button type="button" class="studio-btn" @click="emit('server-help')">
+					{{ t('manual.help') }}
+				</button>
 				<p class="studio-capes__muted">{{ t('capes.ely') }}: {{ t('capes.elyBody') }}</p>
 			</article>
 

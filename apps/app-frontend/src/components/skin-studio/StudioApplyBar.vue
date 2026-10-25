@@ -6,14 +6,16 @@ import { remoteVariant } from '@/skin-studio/engine/model'
 import { useStudioText } from '@/skin-studio/i18n'
 import { useSkinStudio } from '@/skin-studio/store'
 
+defineProps<{ savingPng?: boolean }>()
 const emit = defineEmits<{
-	(event: 'apply-microsoft' | 'apply-ely' | 'apply-server' | 'link' | 'add-account'): void
+	(event: 'apply-microsoft' | 'apply-ely' | 'export-png' | 'server-help'): void
 }>()
 
 const studio = useSkinStudio()
 const t = useStudioText()
 
 const account = computed(() => studio.selectedAccount)
+const manual = computed(() => !['microsoft', 'elyby'].includes(account.value?.type ?? ''))
 const doc = computed(() => {
 	void studio.revision
 	return studio.active
@@ -29,6 +31,7 @@ const typeLabel = (type: string) =>
 				: t('account.other')
 
 const blocker = computed<string | null>(() => {
+	if (manual.value) return doc.value ? null : t('footer.noDocument')
 	if (studio.accountsLoading) return t('apply.hint.loadingAccounts')
 	if (studio.accountsError) return t('apply.hint.accountsError')
 	if (!account.value) return t('apply.hint.noAccount')
@@ -40,38 +43,35 @@ const blocker = computed<string | null>(() => {
 	return null
 })
 
-const linked = computed(() => studio.bridge?.link ?? null)
-
 const title = computed(() => {
-	if (!account.value) return t('apply.account')
+	if (manual.value) return t('manual.title')
 	const type = account.value?.type
 	if (type === 'elyby') return t('apply.title.ely')
 	if (type === 'microsoft') return t('apply.title.microsoft')
-	return t('apply.title.offline')
+	return t('manual.title')
 })
 
 const hint = computed(() => {
 	if (blocker.value) return blocker.value
+	if (manual.value && studio.accountsError) return t('manual.accountError')
 	const type = account.value?.type
 	if (type === 'elyby') return t('apply.hint.ely')
 	if (type === 'microsoft') return t('apply.hint.microsoft')
-	if (linked.value) return t('apply.hint.offlineLinked', { name: linked.value.player_name })
-	return t('apply.hint.offline')
+	return t('manual.barHint')
 })
 
 const buttonLabel = computed(() => {
 	const type = account.value?.type
 	if (type === 'elyby') return t('apply.buttonEly')
 	if (type === 'microsoft') return t('apply.button')
-	return linked.value ? t('apply.button') : t('apply.buttonLink')
+	return t('manual.savePng')
 })
 
 function onApply(): void {
 	const type = account.value?.type
 	if (type === 'microsoft') emit('apply-microsoft')
 	else if (type === 'elyby') emit('apply-ely')
-	else if (linked.value) emit('apply-server')
-	else emit('link')
+	else emit('export-png')
 }
 </script>
 
@@ -84,7 +84,9 @@ function onApply(): void {
 				:aria-label="t('apply.account')"
 				:disabled="studio.accounts.length === 0 || studio.accountsLoading || studio.accountsError"
 			>
-				<option v-if="studio.accounts.length === 0" :value="null">—</option>
+				<option v-if="studio.accounts.length === 0" :value="null">
+					{{ t('manual.noAccount') }}
+				</option>
 				<option v-for="a in studio.accounts" :key="a.id" :value="a.id">
 					{{ a.name }} · {{ typeLabel(a.type) }}
 				</option>
@@ -96,16 +98,19 @@ function onApply(): void {
 		</div>
 		<div class="studio-apply__actions">
 			<button
-				v-if="linked && account && account.type !== 'microsoft' && account.type !== 'elyby'"
+				v-if="manual && studio.accountsError && !studio.accountsLoading"
 				type="button"
 				class="studio-apply__secondary"
-				@click="emit('link')"
+				@click="studio.refreshAccounts()"
 			>
+				{{ t('action.retry') }}
+			</button>
+			<button type="button" class="studio-apply__secondary" @click="emit('server-help')">
 				<StudioIcon name="server" :size="16" />
-				{{ linked.player_name }}
+				{{ t('manual.help') }}
 			</button>
 			<button
-				v-if="studio.accountsError && !studio.accountsLoading"
+				v-if="!manual && studio.accountsError && !studio.accountsLoading"
 				type="button"
 				class="studio-apply__primary"
 				@click="studio.refreshAccounts()"
@@ -113,21 +118,13 @@ function onApply(): void {
 				{{ t('action.retry') }}
 			</button>
 			<button
-				v-else-if="!account && !studio.accountsLoading"
-				type="button"
-				class="studio-apply__primary"
-				@click="emit('add-account')"
-			>
-				{{ t('action.addAccount') }}
-			</button>
-			<button
 				v-else
 				type="button"
 				class="studio-apply__primary"
-				:disabled="!!blocker"
+				:disabled="!!blocker || (manual && savingPng)"
 				@click="onApply"
 			>
-				{{ buttonLabel }} →
+				{{ manual && savingPng ? '…' : buttonLabel }}
 			</button>
 		</div>
 	</section>
@@ -225,5 +222,16 @@ function onApply(): void {
 	color: var(--eden-text);
 	background: transparent;
 	font-weight: 500;
+}
+
+@media (max-width: 1100px) {
+	.studio-apply,
+	.studio-apply__account,
+	.studio-apply__actions {
+		flex-wrap: wrap;
+	}
+	.studio-apply__actions {
+		margin-left: auto;
+	}
 }
 </style>

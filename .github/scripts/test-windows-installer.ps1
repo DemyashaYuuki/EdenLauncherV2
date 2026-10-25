@@ -88,16 +88,16 @@ for ($attempt = 0; $attempt -lt 30 -and (Test-Path -LiteralPath $app); $attempt+
 if (Test-Path -LiteralPath $app) { throw 'NSIS uninstallation did not remove the app' }
 Assert-DataPreserved 'NSIS uninstall preserves data by default'
 
-$oldInstaller = Join-Path $fixtureRoot 'EdenLauncher_2.10.0_x64-setup.exe'
-Invoke-WebRequest -Uri 'https://github.com/DemyashaYuuki/EdenLauncherV2/releases/download/v2.10.0/EdenLauncher_2.10.0_x64-setup.exe' -OutFile $oldInstaller
-if ((Get-FileHash -LiteralPath $oldInstaller -Algorithm SHA256).Hash -ne '12aea8b8a0a742d54cd82ef1d106cf6a7ff33a85ed515cfacd39b307e40b5254') { throw '2.10.0 baseline checksum mismatch' }
+$oldInstaller = Join-Path $fixtureRoot 'EdenLauncher_2.10.1_x64-setup.exe'
+Invoke-WebRequest -Uri 'https://github.com/DemyashaYuuki/EdenLauncherV2/releases/download/v2.10.1/EdenLauncher_2.10.1_x64-setup.exe' -OutFile $oldInstaller
+if ((Get-FileHash -LiteralPath $oldInstaller -Algorithm SHA256).Hash -ne '07f7c29a18a318574129687f1222837fe8c16bbc4868ebaa79cc15ac4f16ab48') { throw '2.10.1 baseline checksum mismatch' }
 $exitCode = Invoke-Installer $oldInstaller "/S /NS /D=$installRoot"
-if (!(Test-Path -LiteralPath $app)) { throw '2.10.0 baseline installation failed' }
+if (!(Test-Path -LiteralPath $app)) { throw '2.10.1 baseline installation failed' }
 $oldVersion = (Get-Item -LiteralPath $app).VersionInfo.FileVersion
 $exitCode = Invoke-Installer $exe[0].FullName '/S /NS'
 $newVersion = (Get-Item -LiteralPath $app).VersionInfo.FileVersion
 if ($newVersion -eq $oldVersion -or $newVersion -notlike "$targetVersion*") { throw "Application version did not upgrade to $targetVersion (old=$oldVersion, new=$newVersion)" }
-Add-Result "Installer upgrade 2.10.0 to $targetVersion" @{ OldVersion = $oldVersion; NewVersion = $newVersion; ExitCode = $exitCode; InstallerFlags = '/S /NS'; InAppButtonTested = $false }
+Add-Result "Installer upgrade 2.10.1 to $targetVersion" @{ OldVersion = $oldVersion; NewVersion = $newVersion; ExitCode = $exitCode; InstallerFlags = '/S /NS'; InAppButtonTested = $false }
 Assert-DataPreserved 'Upgrade preserves user data'
 Test-Launch $app 'Application launch after upgrade'
 $exitCode = Invoke-Installer (Join-Path $installRoot 'uninstall.exe') '/S'

@@ -1,4 +1,34 @@
 export const ru = {
+	'manual.title': 'Скин для EdenWorld',
+	'manual.barHint':
+		'Сохрани PNG и установи скин через SkinsRestorer. Автосинхронизация временно отключена.',
+	'manual.noAccount': 'Экспорт без аккаунта',
+	'manual.accountError':
+		'Список аккаунтов недоступен. PNG можно сохранить; загрузку аккаунтов можно повторить.',
+	'manual.savePng': 'Сохранить файл скина (.png)',
+	'manual.help': 'Как загрузить на сервер',
+	'manual.guideTitle': 'Установить скин на EdenWorld',
+	'manual.paused':
+		'Автосинхронизация временно отключена. Скин можно сохранить в PNG и установить вручную.',
+	'manual.step1':
+		'Сохрани PNG кнопкой ниже: нужна развёртка 64×64 или 64×32, а не снимок 3D-модели.',
+	'manual.step2': 'Открой сайт SkinsRestorer, нажми Browse files и выбери сохранённый PNG.',
+	'manual.step3': 'Выбери модель рук Classic или Slim.',
+	'manual.model': 'Модель этого скина: {model}.',
+	'manual.cape': 'Для бесплатной загрузки выбери Axolotl; плащ — только из списка сайта.',
+	'manual.step4':
+		'Нажми Generate /skin url и скопируй полученную команду целиком, включая кавычки и модель.',
+	'manual.step5':
+		'Войди и авторизуйся на EdenWorld, вставь команду в игровой чат. Дождись успеха и проверь скин после перезахода.',
+	'manual.permissions':
+		'Если нет прав на /skin url, передай команду администратору. Локальный путь к PNG в команде не работает.',
+	'manual.project':
+		'PNG — текстура для игры. Для продолжения редактирования отдельно сохрани проект .edenskin.',
+	'manual.privacy':
+		'Лаунчер откроет сайт. Файл ты загружаешь самостоятельно в SkinsRestorer / MineSkin.',
+	'manual.openSite': 'Открыть SkinsRestorer',
+	'manual.unsupported':
+		'Для сервера выбери модель игрока Classic / Slim и размер 64×64 или 64×32. Эта текстура сохранится как PNG, но не подходит для загрузки скина.',
 	'settings.enabled': 'Включено',
 	'settings.backgroundColor': 'Цвет фона 3D',
 	'settings.disabled': 'Выключено',
@@ -422,6 +452,37 @@ export const ru = {
 export type StudioMessages = typeof ru
 
 export const en: StudioMessages = {
+	'manual.title': 'Skin for EdenWorld',
+	'manual.barHint':
+		'Save a PNG and install it through SkinsRestorer. Automatic sync is temporarily disabled.',
+	'manual.noAccount': 'Export without an account',
+	'manual.accountError':
+		'Accounts could not be loaded. PNG export is available; you can retry loading accounts.',
+	'manual.savePng': 'Save skin file (.png)',
+	'manual.help': 'How to upload to the server',
+	'manual.guideTitle': 'Install a skin on EdenWorld',
+	'manual.paused':
+		'Automatic sync is temporarily disabled. Export the PNG and install it manually.',
+	'manual.step1':
+		'Save the PNG below. Use a 64×64 or 64×32 texture layout, rather than a 3D screenshot.',
+	'manual.step2': 'Open SkinsRestorer, choose Browse files and select the exported PNG.',
+	'manual.step3': 'Choose Classic or Slim arms.',
+	'manual.model': 'This skin uses: {model}.',
+	'manual.cape':
+		'Choose Axolotl for free uploads; capes are limited to the supported website list.',
+	'manual.step4':
+		'Select Generate /skin url. Copy the entire generated command, including quotes and model.',
+	'manual.step5':
+		'Join and sign in on EdenWorld. Paste the command into game chat. Wait for success, then reconnect to check persistence.',
+	'manual.permissions':
+		'If /skin url is denied, ask an administrator to apply the generated command. A local PNG file path cannot be used in that command.',
+	'manual.project':
+		'The PNG is the game texture. Save an .edenskin project separately to continue editing later.',
+	'manual.privacy':
+		'The launcher opens the website. You choose and upload the file to SkinsRestorer / MineSkin yourself.',
+	'manual.openSite': 'Open SkinsRestorer',
+	'manual.unsupported':
+		'Use a Classic / Slim player model and 64×64 or 64×32 texture for the server. This texture can be exported, but is not a supported skin upload.',
 	'settings.enabled': 'Enabled',
 	'settings.backgroundColor': '3D background colour',
 	'settings.disabled': 'Disabled',

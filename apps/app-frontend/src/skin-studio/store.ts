@@ -468,20 +468,43 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 
 	const lastSnapshot = new Map<string, number>()
 	let recoveryTimer: ReturnType<typeof setInterval> | null = null
+	let exitPending = false
+	const recoveryWrites = new Set<Promise<void>>()
 
 	async function snapshotRecovery(): Promise<void> {
-		if (!prefs.recovery) return
-		for (const doc of documents.value) {
-			if (!isDirty(doc)) continue
-			if (lastSnapshot.get(doc.id) === doc.version) continue
-			const version = doc.version
-			try {
-				await api.putRecovery(doc.id, await serializeProject(toProject(doc)))
-				lastSnapshot.set(doc.id, version)
-			} catch {
-				return
+		if (!prefs.recovery || exitPending) return
+		const write = (async () => {
+			for (const doc of documents.value) {
+				if (!isDirty(doc)) continue
+				if (lastSnapshot.get(doc.id) === doc.version) continue
+				const version = doc.version
+				try {
+					await api.putRecovery(doc.id, await serializeProject(toProject(doc)))
+					lastSnapshot.set(doc.id, version)
+				} catch {
+					return
+				}
 			}
+		})()
+		recoveryWrites.add(write)
+		try {
+			await write
+		} finally {
+			recoveryWrites.delete(write)
 		}
+	}
+
+	async function prepareExit(): Promise<void> {
+		exitPending = true
+		await Promise.all([...recoveryWrites])
+		for (const doc of documents.value) {
+			await api.deleteRecovery(doc.id)
+			lastSnapshot.delete(doc.id)
+		}
+	}
+
+	function cancelExit(): void {
+		exitPending = false
 	}
 
 	async function restoreRecovery(): Promise<number> {
@@ -544,11 +567,7 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 	}
 
 	async function refreshBridge(): Promise<void> {
-		try {
-			bridge.value = await api.bridgeStatus()
-		} catch {
-			bridge.value = null
-		}
+		bridge.value = null
 	}
 
 	async function init(): Promise<void> {
@@ -677,6 +696,8 @@ export const useSkinStudio = defineStore('skin-studio', () => {
 		restoreRecovery,
 		discardRecovery,
 		snapshotRecovery,
+		prepareExit,
+		cancelExit,
 		refreshAccounts,
 		refreshBridge,
 		init,
