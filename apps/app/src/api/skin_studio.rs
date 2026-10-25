@@ -3,7 +3,7 @@ use crate::api::Result;
 use theseus::minecraft_skins::{
     self, AccountCapes, Bytes, MinecraftSkinVariant, SkinApplyReport,
 };
-use theseus::{skin_bridge, skin_studio};
+use theseus::skin_studio;
 
 pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri::plugin::Builder::new("skin-studio")
@@ -157,80 +157,4 @@ pub async fn skin_studio_set_microsoft_cape(
 
 fn base64_decode(data: &str) -> Result<Bytes> {
     Ok(theseus::skin_studio::decode_base64_payload(data)?.into())
-}
-
-#[tauri::command]
-pub async fn skin_bridge_status() -> Result<skin_bridge::BridgeStatus> {
-    Ok(skin_bridge::status().await?)
-}
-
-#[tauri::command]
-pub async fn skin_bridge_set_endpoint(
-    url: Option<String>,
-) -> Result<skin_bridge::BridgeStatus> {
-    Ok(skin_bridge::set_endpoint(url).await?)
-}
-
-#[tauri::command]
-pub async fn skin_bridge_health() -> Result<skin_bridge::BridgeHealth> {
-    Ok(skin_bridge::health().await?)
-}
-
-#[tauri::command]
-pub async fn skin_bridge_pair_start() -> Result<skin_bridge::PairStart> {
-    Ok(skin_bridge::pair_start().await?)
-}
-
-#[tauri::command]
-pub async fn skin_bridge_pair_poll() -> Result<skin_bridge::PairState> {
-    Ok(skin_bridge::pair_poll().await?)
-}
-
-#[tauri::command]
-pub async fn skin_bridge_pair_finalize() -> Result<skin_bridge::BridgeStatus> {
-    Ok(skin_bridge::pair_finalize().await?)
-}
-
-#[tauri::command]
-pub async fn skin_bridge_pair_cancel() -> Result<()> {
-    Ok(skin_bridge::pair_cancel().await?)
-}
-
-#[tauri::command]
-pub async fn skin_bridge_unlink() -> Result<skin_bridge::BridgeStatus> {
-    Ok(skin_bridge::unlink().await?)
-}
-
-#[tauri::command]
-pub async fn skin_bridge_apply_skin(
-    data: String,
-    variant: String,
-    idempotency_key: String,
-) -> Result<skin_bridge::BridgeJob> {
-    Ok(skin_bridge::apply_skin(data, variant, idempotency_key).await?)
-}
-
-#[tauri::command]
-pub async fn skin_bridge_job(job_id: String) -> Result<skin_bridge::BridgeJob> {
-    Ok(skin_bridge::job(job_id).await?)
-}
-
-#[tauri::command]
-pub async fn skin_bridge_cancel_job(
-    job_id: String,
-) -> Result<skin_bridge::BridgeJob> {
-    Ok(skin_bridge::cancel_job(job_id).await?)
-}
-
-#[tauri::command]
-pub async fn skin_bridge_looks() -> Result<Vec<skin_bridge::BridgeLook>> {
-    Ok(skin_bridge::looks().await?)
-}
-
-#[tauri::command]
-pub async fn skin_bridge_apply_look(
-    look_id: String,
-    idempotency_key: String,
-) -> Result<skin_bridge::BridgeJob> {
-    Ok(skin_bridge::apply_look(look_id, idempotency_key).await?)
 }
