@@ -9,7 +9,9 @@
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::collections::HashMap;
+use std::sync::{LazyLock, Mutex};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use base64::Engine;
 use serde::{Deserialize, Serialize};
@@ -31,6 +33,37 @@ const DROPPED_EXTENSIONS: &[&str] = &[
     "png", "edenskin", "tcn", "xml", "gpl", "gimp", "aco", "act", "swtch",
     "json",
 ];
+
+static DROPPED_PATHS: LazyLock<Mutex<HashMap<PathBuf, Instant>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+const DROP_TTL: Duration = Duration::from_secs(120);
+
+/// Records files from a native OS drag/drop event, never from a frontend command.
+pub fn record_dropped_paths(paths: &[PathBuf]) {
+    let Ok(mut allowed) = DROPPED_PATHS.lock() else { return; };
+    allowed.retain(|_, time| time.elapsed() < DROP_TTL);
+    for path in paths.iter().take(64) {
+        if let Ok(path) = dunce::canonicalize(path) {
+            if allowed.len() >= 64 {
+                if let Some(oldest) = allowed.iter().min_by_key(|(_, time)| **time).map(|(path, _)| path.clone()) {
+                    allowed.remove(&oldest);
+                }
+            }
+            allowed.insert(path, Instant::now());
+        }
+    }
+}
+
+fn consume_dropped_path(path: &Path) -> crate::Result<PathBuf> {
+    let path = dunce::canonicalize(path)?;
+    let authorized = DROPPED_PATHS.lock().ok()
+        .and_then(|mut allowed| allowed.remove(&path))
+        .is_some_and(|time| time.elapsed() < DROP_TTL);
+    if !authorized {
+        return Err(input_error("The file was not dropped onto this window"));
+    }
+    Ok(path)
+}
 
 #[derive(Serialize, Deserialize, Default)]
 struct StudioSettings {
@@ -702,7 +735,7 @@ pub async fn recovery_delete(doc_id: String) -> crate::Result<()> {
 /// Reads a file the user dropped on the window. Only studio file types are accepted and the size
 /// is checked before reading.
 pub async fn read_dropped(path: String) -> crate::Result<String> {
-    let path = PathBuf::from(path);
+    let path = consume_dropped_path(Path::new(&path))?;
     let extension = path
         .extension()
         .map(|e| e.to_string_lossy().to_ascii_lowercase())
@@ -720,6 +753,20 @@ pub async fn read_dropped(path: String) -> crate::Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn dropped_files_require_a_native_one_time_grant() {
+        let dir = tempfile::tempdir().unwrap();
+        let selected = dir.path().join("selected.png");
+        let private = dir.path().join("private.json");
+        std::fs::write(&selected, b"fixture").unwrap();
+        std::fs::write(&private, b"fixture").unwrap();
+        assert!(consume_dropped_path(&selected).is_err());
+        record_dropped_paths(std::slice::from_ref(&selected));
+        assert!(consume_dropped_path(&private).is_err());
+        assert!(consume_dropped_path(&selected).is_ok());
+        assert!(consume_dropped_path(&selected).is_err());
+    }
 
     #[test]
     fn rejects_traversal_and_reserved_names() {

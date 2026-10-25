@@ -172,7 +172,7 @@ jobs:
       - name: Test Skin Studio Rust APIs
         shell: pwsh
         working-directory: source
-        run: cargo test -p theseus --lib api::skin --target x86_64-pc-windows-msvc
+        run: cargo test -p theseus --lib skin --target x86_64-pc-windows-msvc
 
       - name: Verify Windows installers and data preservation
         shell: pwsh

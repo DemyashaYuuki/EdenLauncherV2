@@ -132,7 +132,13 @@ fn main() {
 
     tracing::info!("Initialized tracing subscriber. Loading EdenLauncher!");
 
-    let mut builder = tauri::Builder::default();
+    let mut builder = tauri::Builder::default().on_webview_event(|webview, event| {
+        if webview.label() == "main"
+            && let tauri::WebviewEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event
+        {
+            theseus::skin_studio::record_dropped_paths(paths);
+        }
+    });
 
     builder = builder
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {

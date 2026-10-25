@@ -1,6 +1,19 @@
-# EdenLauncher 2.9.1
+# EdenLauncher 2.10.0
 
 Брендированный лаунчер для проекта [EdenWorld](https://edenworld.fun/) на базе Theseus.
+
+## Обновление 2.10.0
+
+- Мастерская скинов: рисование в 3D/2D, Classic/Slim/Legacy, слои, палитры, инструменты, история и HD.
+- Проекты, библиотека, корзина, восстановление и защита несохранённой работы при закрытии.
+- Применение к выбранному Microsoft-аккаунту и только принадлежащие ему плащи.
+- EdenSkinBridge для Purpur и Velocity: SkinsRestorer, текущий nLogin и VeloAuth следующего сезона.
+- Для Ely.by пока используется экспорт PNG и официальный сайт; прямое OAuth-применение не реализовано.
+- [Возможности и ограничения](docs/SKIN-STUDIO-2.10.md), [установка плагинов](server/eden-skin-bridge/docs/INSTALL.md).
+
+Плагины нужно настроить отдельно. В сборку не входят VeloAuth, nLogin, SkinsRestorer или чужие скины.
+Репозиторий содержит overlay поверх AstralRinth `80a011e8008ce4f0fd828b98a4a5a2fdcbc01c86`.
+Полная последовательность подготовки исходников и сборки записана в `.github/workflows/build-windows.yml`.
 
 ## Обновление 2.9.1
 
