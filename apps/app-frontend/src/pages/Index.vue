@@ -65,7 +65,11 @@ const recentInstances = computed(() =>
 		.sort((a, b) => dayjs(b.last_played).diff(dayjs(a.last_played))),
 )
 const edenWorldInstance = computed(() =>
-	instances.value.find((instance) => instance.name.toLocaleLowerCase().includes('edenworld')),
+	instances.value.find(
+		(instance) =>
+			instance.name.toLocaleLowerCase().includes('edenworld') &&
+			instance.game_version === EDENWORLD_GAME_VERSION,
+	),
 )
 const instanceReady = computed(() => edenWorldInstance.value?.install_stage === 'installed')
 const instanceInstalling = computed(

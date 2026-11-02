@@ -8,12 +8,12 @@ import {
 	wait_for_install_job,
 } from '@/helpers/install'
 
-const EDENWORLD_FILE_ID = '1Z8wujB1a7XYrf46gjtmrsQb4GitMVqMC'
-const EDENWORLD_PACK_NAME = 'EdenWorld-1.21.11.mrpack'
+const EDENWORLD_PACK_NAME = 'EdenWorld-2.0-1.0.0.mrpack'
 const EDENWORLD_DOWNLOAD_DIRECTORY = 'profiles/.edenworld'
 const EDENWORLD_RELATIVE_PATH = `${EDENWORLD_DOWNLOAD_DIRECTORY}/${EDENWORLD_PACK_NAME}`
 
-const EDENWORLD_RF_DOWNLOAD_URL = `https://drive.usercontent.google.com/download?id=${EDENWORLD_FILE_ID}&export=download&confirm=t`
+// Git LFS serves the archive bytes here; raw.githubusercontent.com serves its pointer.
+const EDENWORLD_DOWNLOAD_URL = `https://media.githubusercontent.com/media/DemyashaYuuki/EdenLauncherV2/main/modpacks/${EDENWORLD_PACK_NAME}`
 
 export const EDENWORLD_PROJECT_URL = 'https://edenworld.fun/'
 export const EDENWORLD_TELEGRAM_URL = 'https://t.me/EdenWorldMC'
@@ -21,8 +21,8 @@ export const EDENWORLD_DISCORD_URL = 'https://discord.gg/WBTUMKuBTa'
 export const EDENWORLD_VOTE_URL = 'https://top-minecrafter.com/server/edenworld/'
 export const EDENWORLD_SERVER_ADDRESS = 'EdenWorld.gomc.fun'
 /** Name of the profile that downloadAndInstallEdenWorld creates. */
-export const EDENWORLD_INSTANCE_NAME = 'EdenWorld 1.21.11'
-export const EDENWORLD_GAME_VERSION = '1.21.11'
+export const EDENWORLD_INSTANCE_NAME = 'EdenWorld 2.0'
+export const EDENWORLD_GAME_VERSION = '26.3'
 
 export type EdenWorldInstallProgress = {
 	downloaded: number
@@ -42,7 +42,7 @@ async function downloadPack(onProgress: (progress: EdenWorldInstallProgress) => 
 	})
 	await removeDownloadedPack()
 
-	const response = await fetch(EDENWORLD_RF_DOWNLOAD_URL, {
+	const response = await fetch(EDENWORLD_DOWNLOAD_URL, {
 		method: 'GET',
 		headers: {
 			Accept: 'application/octet-stream',
